@@ -135,9 +135,16 @@ celerybeat.pid
 *.sage.py
 
 # Environments
+.DS_Store
 .env
 .envrc
 .venv
+.venv-anamorpher/
+.venv-ocr/
+models/ocr/
+runs/
+datasets/external/
+datasets/derived/
 env/
 venv/
 ENV/

@@ -1,0 +1,7 @@
+dataset_id,available_ocr_images,selected_ocr_images
+cyberseceval3_visual_prompt_injection,899,125
+mm_safetybench,3231,125
+typographic_visual_prompt_injection,135,125
+vpi_bench,155,125
+textocr,21749,500
+anamorpher,676,676

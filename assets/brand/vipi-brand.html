@@ -1,0 +1,408 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="icon" href="../icon/favicon.svg">
+<title>VIPI Brand Guidelines</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one 1120px column on a visible pixel raster; mono labels sit in a left rail, content to the right. Monochrome only. */
+:root {
+  --bg: #F2F3F5; --surface: #FFFFFF; --fg: #0B0C10; --muted: #5C616C; --faint: #A3A8B2;
+  --line: rgba(11,12,16,.12); --raster: rgba(11,12,16,.10);
+  --ink: #0B0C10; --paper: #F2F3F5;
+  --injection: #E5484D; --review: #F5A524; --clean: #30A46C;
+  --sans: "Geist", "Helvetica Neue", Arial, sans-serif;
+  --mono: "Geist Mono", ui-monospace, Menlo, Consolas, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0B0C10; --surface: #121318; --fg: #F2F3F5; --muted: #A3A8B2; --faint: #5C616C;
+  --line: rgba(242,243,245,.12); --raster: rgba(242,243,245,.09); color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #0B0C10; --surface: #121318; --fg: #F2F3F5; --muted: #A3A8B2; --faint: #5C616C;
+  --line: rgba(242,243,245,.12); --raster: rgba(242,243,245,.09); color-scheme: dark }
+
+* { box-sizing: border-box }
+body { background: var(--bg); color: var(--fg); font: 400 16px/1.6 var(--sans); padding-inline: 24px; padding-block: 0 64px; -webkit-font-smoothing: antialiased }
+.wrap { max-width: 1120px; margin: 0 auto }
+h1, h2, h3 { font-weight: 500; letter-spacing: -0.02em; text-wrap: balance; margin: 0 }
+h2 { font-size: clamp(26px, 3.2vw, 34px); line-height: 1.15 }
+h3 { font-size: 17px; letter-spacing: -0.01em }
+p { margin: 0; max-width: 62ch }
+.label { font: 500 12px/1.4 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted) }
+code, .mono { font-family: var(--mono); font-size: .9em }
+
+/* top bar */
+.top { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding-block: 22px; border-bottom: 1px solid var(--line) }
+.top svg { height: 18px; width: auto; color: var(--fg) }
+
+/* hero */
+.hero { padding-block: 56px 40px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 28px }
+.stage { position: relative; border: 1px solid var(--line); border-radius: 4px; background: var(--surface);
+  background-image: radial-gradient(var(--raster) 1.2px, transparent 1.4px); background-size: 24px 24px; background-position: 12px 12px;
+  padding: clamp(28px, 7vw, 88px) clamp(20px, 6vw, 72px) }
+.stage svg { display: block; width: 100%; height: auto; color: var(--fg) }
+.controls { display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: center }
+.controls label { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; min-width: 0 }
+input[type=range] { width: min(260px, 60vw); accent-color: var(--fg) }
+.val { font: 500 13px var(--mono); min-width: 4ch; font-variant-numeric: tabular-nums }
+button { font: 500 13px var(--mono); letter-spacing: .04em; color: var(--fg); background: transparent; border: 1px solid var(--fg); border-radius: 2px; padding: 9px 14px; cursor: pointer }
+button:hover { background: var(--fg); color: var(--bg) }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--fg); outline-offset: 3px }
+.lede { font-size: clamp(19px, 2.2vw, 23px); line-height: 1.45; letter-spacing: -0.01em; max-width: 40ch }
+
+/* sections */
+section { display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: 24px 48px; padding-block: 56px; border-top: 1px solid var(--line) }
+section > .label { padding-top: 8px }
+.body { display: grid; gap: 28px; min-width: 0 }
+@media (max-width: 760px) { section { grid-template-columns: minmax(0, 1fr); padding-block: 40px } }
+
+/* name rules */
+.rules { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line) }
+.rules div { background: var(--surface); padding: 18px; display: grid; gap: 6px }
+.rules b { font-weight: 500; font-size: 20px; letter-spacing: -0.01em }
+.rules .x b { color: var(--faint); text-decoration: line-through; text-decoration-thickness: 1.5px }
+.ok { color: var(--clean) } .no { color: var(--injection) }
+
+/* anatomy */
+.anatomy { border: 1px solid var(--line); background: var(--surface); padding: 24px; overflow-x: auto }
+.anatomy svg { width: 100%; min-width: 520px; height: auto; color: var(--fg) }
+.legend { display: flex; flex-wrap: wrap; gap: 10px 28px }
+.legend span { display: flex; align-items: center; gap: 10px; font-size: 14px }
+.sw { width: 14px; height: 14px; display: inline-block; background: var(--fg) }
+.sw.dot { background: transparent; position: relative } .sw.dot::after { content: ""; position: absolute; inset: 5px; background: var(--fg) }
+.sw.grid { background: transparent; border: 1px dashed var(--faint) }
+
+/* variants */
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); gap: 20px 16px }
+.tile { display: grid; gap: 10px; min-width: 0 }
+.tile .pair { display: grid; grid-template-columns: 1fr 1fr; border: 1px solid var(--line); border-radius: 4px; overflow: hidden }
+.tile .pair > div { aspect-ratio: 1 / 1; display: grid; place-items: center; padding: 18%; max-width: 100% }
+.tile .pair > div:first-child { background: var(--ink) } .tile .pair > div:last-child { background: #FFFFFF }
+.tile svg { width: 100%; height: auto; max-height: 100%; display: block }
+.tile .meta { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; flex-wrap: wrap }
+.tile .meta code { color: var(--muted); font-size: 12px; overflow-wrap: anywhere }
+
+/* clear space */
+.two { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px }
+.panel { border: 1px solid var(--line); background: var(--surface); padding: 24px; display: grid; gap: 16px; align-content: start }
+.panel svg { width: 100%; height: auto; color: var(--fg) }
+.sizes { display: flex; align-items: flex-end; gap: 28px; flex-wrap: wrap }
+.sizes figure { margin: 0; display: grid; gap: 8px; justify-items: start }
+.sizes svg { color: var(--fg) }
+
+/* colours */
+.swatches { display: grid; grid-template-columns: repeat(auto-fit, minmax(104px, 1fr)); gap: 10px }
+.swatch { border: 1px solid var(--line); border-radius: 4px; overflow: hidden; background: var(--surface); display: grid }
+.swatch .chip { height: 96px }
+.swatch .info { padding: 12px 14px; display: grid; gap: 2px }
+.swatch .info b { font-weight: 500 }
+.swatch button { border: 0; padding: 0; justify-self: start; color: var(--muted); font-size: 12px }
+.swatch button:hover { background: transparent; color: var(--fg) }
+.status { display: flex; flex-wrap: wrap; gap: 10px }
+.pill { display: inline-flex; align-items: center; gap: 8px; font: 500 13px var(--mono); padding: 6px 12px; border-radius: 999px; border: 1px solid currentColor }
+.pill i { width: 7px; height: 7px; border-radius: 50%; background: currentColor }
+
+/* type */
+.specimen { border: 1px solid var(--line); background: var(--surface); padding: 28px; display: grid; gap: 18px; min-width: 0 }
+.specimen .big { font-size: clamp(34px, 5vw, 56px); line-height: 1.05; letter-spacing: -0.03em; font-weight: 500 }
+.scale { display: grid; gap: 10px }
+.scale div { display: grid; grid-template-columns: 76px minmax(0, 1fr); gap: 16px; align-items: baseline; border-top: 1px solid var(--line); padding-top: 10px }
+.term { font: 400 14px/1.7 var(--mono); background: var(--ink); color: #DADDE2; padding: 18px 20px; border-radius: 4px; overflow-x: auto; white-space: pre }
+.term .n { color: #5C616C } .term .r { color: #E5484D } .term .g { color: #30A46C }
+
+/* motion */
+.motion { border: 1px solid var(--line); background: var(--ink); border-radius: 4px; padding: clamp(24px, 6vw, 64px); display: grid; gap: 20px }
+.motion svg { width: 100%; height: auto; color: #F2F3F5 }
+.motion .row { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap }
+.motion .row .label { color: #A3A8B2 }
+.motion button { color: #F2F3F5; border-color: #F2F3F5 } .motion button:hover { background: #F2F3F5; color: #0B0C10 }
+
+/* don'ts */
+.donts { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px }
+.dont { display: grid; gap: 10px }
+.dont .box { aspect-ratio: 16 / 10; background: var(--ink); border-radius: 4px; display: grid; place-items: center; padding: 14%; overflow: hidden; max-width: 100% }
+.dont svg { width: 100%; height: auto; overflow: visible }
+.dont p { font-size: 14px; color: var(--muted) }
+.dont h3 { display: flex; gap: 8px; align-items: center }
+.dont h3::before { content: "✕"; color: var(--injection); font-size: 13px }
+
+/* tree */
+.tree { font: 400 14px/1.85 var(--mono); border: 1px solid var(--line); background: var(--surface); padding: 20px 24px; overflow-x: auto; white-space: pre; color: var(--fg) }
+.tree .c { color: var(--muted) }
+footer { border-top: 1px solid var(--line); padding-top: 24px; display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important } }
+</style>
+
+</head><body>
+<div class="wrap">
+  <header class="top">
+    <span id="topLogo" aria-label="VIPI"></span>
+    <span class="label">Brand guidelines · 1.0 · October 2026</span>
+  </header>
+
+  <div class="hero">
+    <div class="stage"><div id="heroLogo"></div></div>
+    <div class="controls">
+      <label for="dotSize"><span class="label">Hidden layer</span>
+        <input id="dotSize" type="range" min="0" max="100" value="30" step="1">
+        <span class="val" id="dotVal">30 %</span></label>
+      <button id="scanBtn" type="button">Play scan</button>
+    </div>
+    <p class="lede">VIPI finds hidden instructions in images before an AI model reads them. The logo works the same way: at first glance it says VI. Look closer and it reads VIPI.</p>
+  </div>
+
+  <section id="name">
+    <div class="label">Name</div>
+    <div class="body">
+      <h2>VIPI is the full name.</h2>
+      <p>VIPI stands on its own and is never spelled out. Always write it in capitals, including in running text: “VIPI scanned 3 images.”</p>
+      <div class="rules">
+        <div><span class="label ok">Correct</span><b>VIPI</b></div>
+        <div class="x"><span class="label no">Wrong</span><b>Vipi</b></div>
+        <div class="x"><span class="label no">Wrong</span><b>V.I.P.I.</b></div>
+        <div class="x"><span class="label no">Wrong</span><b>ViPi</b></div>
+        <div class="x"><span class="label no">Wrong</span><b>VIPI (Visual …)</b></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="logo">
+    <div class="label">Logo</div>
+    <div class="body">
+      <h2>Two layers on one grid.</h2>
+      <p>The logo sits on a grid of 19 × 7 pixels. VI is built from full pixels. PI sits on the same grid, but each pixel is only 30% of the full edge length. From a distance and at small sizes PI disappears; up close it is readable.</p>
+      <div class="anatomy"><div id="anatomy"></div></div>
+      <div class="legend">
+        <span><i class="sw"></i>Visible layer · 1 pixel</span>
+        <span><i class="sw dot"></i>Hidden layer · 0.3 pixel</span>
+        <span><i class="sw grid"></i>Grid · 19 × 7</span>
+      </div>
+    </div>
+  </section>
+
+  <section id="varianten">
+    <div class="label">Variants</div>
+    <div class="body">
+      <h2>Four forms for every surface.</h2>
+      <p>The logo comes in two colors only: white on dark backgrounds and Ink on light backgrounds. The horizontal logo is the default. The stacked version is for narrow and square spaces.</p>
+      <div class="tiles">
+        <div class="tile"><div class="pair"><div><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 190 70" role="img" aria-label="VIPI"><title>VIPI</title><path fill="#F2F3F5" d="M10,30 L10,50 L20,50 L20,60 L30,60 L30,70 L40,70 L40,60 L50,60 L50,50 L60,50 L60,30 L70,30 L70,0 L50,0 L50,30 L40,30 L40,50 L30,50 L30,30 L20,30 L20,0 L0,0 L0,30 Z M80,0 L80,70 L100,70 L100,0 Z M113.5,3.5 h3 v3 h-3 Z M123.5,3.5 h3 v3 h-3 Z M133.5,3.5 h3 v3 h-3 Z M143.5,3.5 h3 v3 h-3 Z M113.5,13.5 h3 v3 h-3 Z M123.5,13.5 h3 v3 h-3 Z M143.5,13.5 h3 v3 h-3 Z M153.5,13.5 h3 v3 h-3 Z M113.5,23.5 h3 v3 h-3 Z M123.5,23.5 h3 v3 h-3 Z M143.5,23.5 h3 v3 h-3 Z M153.5,23.5 h3 v3 h-3 Z M113.5,33.5 h3 v3 h-3 Z M123.5,33.5 h3 v3 h-3 Z M133.5,33.5 h3 v3 h-3 Z M143.5,33.5 h3 v3 h-3 Z M113.5,43.5 h3 v3 h-3 Z M123.5,43.5 h3 v3 h-3 Z M113.5,53.5 h3 v3 h-3 Z M123.5,53.5 h3 v3 h-3 Z M113.5,63.5 h3 v3 h-3 Z M123.5,63.5 h3 v3 h-3 Z M173.5,3.5 h3 v3 h-3 Z M183.5,3.5 h3 v3 h-3 Z M173.5,13.5 h3 v3 h-3 Z M183.5,13.5 h3 v3 h-3 Z M173.5,23.5 h3 v3 h-3 Z M183.5,23.5 h3 v3 h-3 Z M173.5,33.5 h3 v3 h-3 Z M183.5,33.5 h3 v3 h-3 Z M173.5,43.5 h3 v3 h-3 Z M183.5,43.5 h3 v3 h-3 Z M173.5,53.5 h3 v3 h-3 Z M183.5,53.5 h3 v3 h-3 Z M173.5,63.5 h3 v3 h-3 Z M183.5,63.5 h3 v3 h-3 Z"/></svg></div><div><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 190 70" role="img" aria-label="VIPI"><title>VIPI</title><path fill="#0B0C10" d="M10,30 L10,50 L20,50 L20,60 L30,60 L30,70 L40,70 L40,60 L50,60 L50,50 L60,50 L60,30 L70,30 L70,0 L50,0 L50,30 L40,30 L40,50 L30,50 L30,30 L20,30 L20,0 L0,0 L0,30 Z M80,0 L80,70 L100,70 L100,0 Z M113.5,3.5 h3 v3 h-3 Z M123.5,3.5 h3 v3 h-3 Z M133.5,3.5 h3 v3 h-3 Z M143.5,3.5 h3 v3 h-3 Z M113.5,13.5 h3 v3 h-3 Z M123.5,13.5 h3 v3 h-3 Z M143.5,13.5 h3 v3 h-3 Z M153.5,13.5 h3 v3 h-3 Z M113.5,23.5 h3 v3 h-3 Z M123.5,23.5 h3 v3 h-3 Z M143.5,23.5 h3 v3 h-3 Z M153.5,23.5 h3 v3 h-3 Z M113.5,33.5 h3 v3 h-3 Z M123.5,33.5 h3 v3 h-3 Z M133.5,33.5 h3 v3 h-3 Z M143.5,33.5 h3 v3 h-3 Z M113.5,43.5 h3 v3 h-3 Z M123.5,43.5 h3 v3 h-3 Z M113.5,53.5 h3 v3 h-3 Z M123.5,53.5 h3 v3 h-3 Z M113.5,63.5 h3 v3 h-3 Z M123.5,63.5 h3 v3 h-3 Z M173.5,3.5 h3 v3 h-3 Z M183.5,3.5 h3 v3 h-3 Z M173.5,13.5 h3 v3 h-3 Z M183.5,13.5 h3 v3 h-3 Z M173.5,23.5 h3 v3 h-3 Z M183.5,23.5 h3 v3 h-3 Z M173.5,33.5 h3 v3 h-3 Z M183.5,33.5 h3 v3 h-3 Z M173.5,43.5 h3 v3 h-3 Z M183.5,43.5 h3 v3 h-3 Z M173.5,53.5 h3 v3 h-3 Z M183.5,53.5 h3 v3 h-3 Z M173.5,63.5 h3 v3 h-3 Z M183.5,63.5 h3 v3 h-3 Z"/></svg></div></div>
+          <div class="meta"><h3>Horizontal</h3><code>logo/svg/vipi-logo-*.svg</code></div></div>
+        <div class="tile"><div class="pair"><div><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 150" role="img" aria-label="VIPI"><title>VIPI</title><path fill="#F2F3F5" d="M10,30 L10,50 L20,50 L20,60 L30,60 L30,70 L40,70 L40,60 L50,60 L50,50 L60,50 L60,30 L70,30 L70,0 L50,0 L50,30 L40,30 L40,50 L30,50 L30,30 L20,30 L20,0 L0,0 L0,30 Z M80,0 L80,70 L100,70 L100,0 Z M13.5,83.5 h3 v3 h-3 Z M23.5,83.5 h3 v3 h-3 Z M33.5,83.5 h3 v3 h-3 Z M43.5,83.5 h3 v3 h-3 Z M13.5,93.5 h3 v3 h-3 Z M23.5,93.5 h3 v3 h-3 Z M43.5,93.5 h3 v3 h-3 Z M53.5,93.5 h3 v3 h-3 Z M13.5,103.5 h3 v3 h-3 Z M23.5,103.5 h3 v3 h-3 Z M43.5,103.5 h3 v3 h-3 Z M53.5,103.5 h3 v3 h-3 Z M13.5,113.5 h3 v3 h-3 Z M23.5,113.5 h3 v3 h-3 Z M33.5,113.5 h3 v3 h-3 Z M43.5,113.5 h3 v3 h-3 Z M13.5,123.5 h3 v3 h-3 Z M23.5,123.5 h3 v3 h-3 Z M13.5,133.5 h3 v3 h-3 Z M23.5,133.5 h3 v3 h-3 Z M13.5,143.5 h3 v3 h-3 Z M23.5,143.5 h3 v3 h-3 Z M73.5,83.5 h3 v3 h-3 Z M83.5,83.5 h3 v3 h-3 Z M73.5,93.5 h3 v3 h-3 Z M83.5,93.5 h3 v3 h-3 Z M73.5,103.5 h3 v3 h-3 Z M83.5,103.5 h3 v3 h-3 Z M73.5,113.5 h3 v3 h-3 Z M83.5,113.5 h3 v3 h-3 Z M73.5,123.5 h3 v3 h-3 Z M83.5,123.5 h3 v3 h-3 Z M73.5,133.5 h3 v3 h-3 Z M83.5,133.5 h3 v3 h-3 Z M73.5,143.5 h3 v3 h-3 Z M83.5,143.5 h3 v3 h-3 Z"/></svg></div><div><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 150" role="img" aria-label="VIPI"><title>VIPI</title><path fill="#0B0C10" d="M10,30 L10,50 L20,50 L20,60 L30,60 L30,70 L40,70 L40,60 L50,60 L50,50 L60,50 L60,30 L70,30 L70,0 L50,0 L50,30 L40,30 L40,50 L30,50 L30,30 L20,30 L20,0 L0,0 L0,30 Z M80,0 L80,70 L100,70 L100,0 Z M13.5,83.5 h3 v3 h-3 Z M23.5,83.5 h3 v3 h-3 Z M33.5,83.5 h3 v3 h-3 Z M43.5,83.5 h3 v3 h-3 Z M13.5,93.5 h3 v3 h-3 Z M23.5,93.5 h3 v3 h-3 Z M43.5,93.5 h3 v3 h-3 Z M53.5,93.5 h3 v3 h-3 Z M13.5,103.5 h3 v3 h-3 Z M23.5,103.5 h3 v3 h-3 Z M43.5,103.5 h3 v3 h-3 Z M53.5,103.5 h3 v3 h-3 Z M13.5,113.5 h3 v3 h-3 Z M23.5,113.5 h3 v3 h-3 Z M33.5,113.5 h3 v3 h-3 Z M43.5,113.5 h3 v3 h-3 Z M13.5,123.5 h3 v3 h-3 Z M23.5,123.5 h3 v3 h-3 Z M13.5,133.5 h3 v3 h-3 Z M23.5,133.5 h3 v3 h-3 Z M13.5,143.5 h3 v3 h-3 Z M23.5,143.5 h3 v3 h-3 Z M73.5,83.5 h3 v3 h-3 Z M83.5,83.5 h3 v3 h-3 Z M73.5,93.5 h3 v3 h-3 Z M83.5,93.5 h3 v3 h-3 Z M73.5,103.5 h3 v3 h-3 Z M83.5,103.5 h3 v3 h-3 Z M73.5,113.5 h3 v3 h-3 Z M83.5,113.5 h3 v3 h-3 Z M73.5,123.5 h3 v3 h-3 Z M83.5,123.5 h3 v3 h-3 Z M73.5,133.5 h3 v3 h-3 Z M83.5,133.5 h3 v3 h-3 Z M73.5,143.5 h3 v3 h-3 Z M83.5,143.5 h3 v3 h-3 Z"/></svg></div></div>
+          <div class="meta"><h3>Stacked</h3><code>logo/svg/vipi-logo-stacked-*.svg</code></div></div>
+        <div class="tile"><div class="pair"><div><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="VIPI"><title>VIPI</title><rect width="512" height="512" rx="112" fill="#0B0C10"/><path fill="#F2F3F5" d="M172,161.5 L172,203.5 L193,203.5 L193,224.5 L214,224.5 L214,245.5 L235,245.5 L235,224.5 L256,224.5 L256,203.5 L277,203.5 L277,161.5 L298,161.5 L298,98.5 L256,98.5 L256,161.5 L235,161.5 L235,203.5 L214,203.5 L214,161.5 L193,161.5 L193,98.5 L151,98.5 L151,161.5 Z M319,98.5 L319,245.5 L361,245.5 L361,98.5 Z M179.35,273.85 h6.3 v6.3 h-6.3 Z M200.35,273.85 h6.3 v6.3 h-6.3 Z M221.35,273.85 h6.3 v6.3 h-6.3 Z M242.35,273.85 h6.3 v6.3 h-6.3 Z M179.35,294.85 h6.3 v6.3 h-6.3 Z M200.35,294.85 h6.3 v6.3 h-6.3 Z M242.35,294.85 h6.3 v6.3 h-6.3 Z M263.35,294.85 h6.3 v6.3 h-6.3 Z M179.35,315.85 h6.3 v6.3 h-6.3 Z M200.35,315.85 h6.3 v6.3 h-6.3 Z M242.35,315.85 h6.3 v6.3 h-6.3 Z M263.35,315.85 h6.3 v6.3 h-6.3 Z M179.35,336.85 h6.3 v6.3 h-6.3 Z M200.35,336.85 h6.3 v6.3 h-6.3 Z M221.35,336.85 h6.3 v6.3 h-6.3 Z M242.35,336.85 h6.3 v6.3 h-6.3 Z M179.35,357.85 h6.3 v6.3 h-6.3 Z M200.35,357.85 h6.3 v6.3 h-6.3 Z M179.35,378.85 h6.3 v6.3 h-6.3 Z M200.35,378.85 h6.3 v6.3 h-6.3 Z M179.35,399.85 h6.3 v6.3 h-6.3 Z M200.35,399.85 h6.3 v6.3 h-6.3 Z M305.35,273.85 h6.3 v6.3 h-6.3 Z M326.35,273.85 h6.3 v6.3 h-6.3 Z M305.35,294.85 h6.3 v6.3 h-6.3 Z M326.35,294.85 h6.3 v6.3 h-6.3 Z M305.35,315.85 h6.3 v6.3 h-6.3 Z M326.35,315.85 h6.3 v6.3 h-6.3 Z M305.35,336.85 h6.3 v6.3 h-6.3 Z M326.35,336.85 h6.3 v6.3 h-6.3 Z M305.35,357.85 h6.3 v6.3 h-6.3 Z M326.35,357.85 h6.3 v6.3 h-6.3 Z M305.35,378.85 h6.3 v6.3 h-6.3 Z M326.35,378.85 h6.3 v6.3 h-6.3 Z M305.35,399.85 h6.3 v6.3 h-6.3 Z M326.35,399.85 h6.3 v6.3 h-6.3 Z"/></svg></div><div><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="VIPI"><title>VIPI</title><rect width="512" height="512" rx="112" fill="#FFFFFF"/><path fill="#0B0C10" d="M172,161.5 L172,203.5 L193,203.5 L193,224.5 L214,224.5 L214,245.5 L235,245.5 L235,224.5 L256,224.5 L256,203.5 L277,203.5 L277,161.5 L298,161.5 L298,98.5 L256,98.5 L256,161.5 L235,161.5 L235,203.5 L214,203.5 L214,161.5 L193,161.5 L193,98.5 L151,98.5 L151,161.5 Z M319,98.5 L319,245.5 L361,245.5 L361,98.5 Z M179.35,273.85 h6.3 v6.3 h-6.3 Z M200.35,273.85 h6.3 v6.3 h-6.3 Z M221.35,273.85 h6.3 v6.3 h-6.3 Z M242.35,273.85 h6.3 v6.3 h-6.3 Z M179.35,294.85 h6.3 v6.3 h-6.3 Z M200.35,294.85 h6.3 v6.3 h-6.3 Z M242.35,294.85 h6.3 v6.3 h-6.3 Z M263.35,294.85 h6.3 v6.3 h-6.3 Z M179.35,315.85 h6.3 v6.3 h-6.3 Z M200.35,315.85 h6.3 v6.3 h-6.3 Z M242.35,315.85 h6.3 v6.3 h-6.3 Z M263.35,315.85 h6.3 v6.3 h-6.3 Z M179.35,336.85 h6.3 v6.3 h-6.3 Z M200.35,336.85 h6.3 v6.3 h-6.3 Z M221.35,336.85 h6.3 v6.3 h-6.3 Z M242.35,336.85 h6.3 v6.3 h-6.3 Z M179.35,357.85 h6.3 v6.3 h-6.3 Z M200.35,357.85 h6.3 v6.3 h-6.3 Z M179.35,378.85 h6.3 v6.3 h-6.3 Z M200.35,378.85 h6.3 v6.3 h-6.3 Z M179.35,399.85 h6.3 v6.3 h-6.3 Z M200.35,399.85 h6.3 v6.3 h-6.3 Z M305.35,273.85 h6.3 v6.3 h-6.3 Z M326.35,273.85 h6.3 v6.3 h-6.3 Z M305.35,294.85 h6.3 v6.3 h-6.3 Z M326.35,294.85 h6.3 v6.3 h-6.3 Z M305.35,315.85 h6.3 v6.3 h-6.3 Z M326.35,315.85 h6.3 v6.3 h-6.3 Z M305.35,336.85 h6.3 v6.3 h-6.3 Z M326.35,336.85 h6.3 v6.3 h-6.3 Z M305.35,357.85 h6.3 v6.3 h-6.3 Z M326.35,357.85 h6.3 v6.3 h-6.3 Z M305.35,378.85 h6.3 v6.3 h-6.3 Z M326.35,378.85 h6.3 v6.3 h-6.3 Z M305.35,399.85 h6.3 v6.3 h-6.3 Z M326.35,399.85 h6.3 v6.3 h-6.3 Z"/></svg></div></div>
+          <div class="meta"><h3>App icon</h3><code>icon/vipi-icon-*.svg</code></div></div>
+        <div class="tile"><div class="pair"><div style="padding:32%"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="VIPI"><title>VIPI</title><rect width="32" height="32" rx="7" fill="#0B0C10"/><path fill="#F2F3F5" d="M5.6,14.7 L5.6,19.9 L8.2,19.9 L8.2,22.5 L10.8,22.5 L10.8,25.1 L13.4,25.1 L13.4,22.5 L16,22.5 L16,19.9 L18.6,19.9 L18.6,14.7 L21.2,14.7 L21.2,6.9 L16,6.9 L16,14.7 L13.4,14.7 L13.4,19.9 L10.8,19.9 L10.8,14.7 L8.2,14.7 L8.2,6.9 L3,6.9 L3,14.7 Z M23.8,6.9 L23.8,25.1 L29,25.1 L29,6.9 Z"/></svg></div><div style="padding:32%"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="VIPI"><title>VIPI</title><rect width="32" height="32" rx="7" fill="#0B0C10"/><path fill="#F2F3F5" d="M5.6,14.7 L5.6,19.9 L8.2,19.9 L8.2,22.5 L10.8,22.5 L10.8,25.1 L13.4,25.1 L13.4,22.5 L16,22.5 L16,19.9 L18.6,19.9 L18.6,14.7 L21.2,14.7 L21.2,6.9 L16,6.9 L16,14.7 L13.4,14.7 L13.4,19.9 L10.8,19.9 L10.8,14.7 L8.2,14.7 L8.2,6.9 L3,6.9 L3,14.7 Z M23.8,6.9 L23.8,25.1 L29,25.1 L29,6.9 Z"/></svg></div></div>
+          <div class="meta"><h3>Favicon</h3><code>icon/favicon.*</code></div></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="schutzraum">
+    <div class="label">Clear space</div>
+    <div class="body">
+      <h2>Give it room, keep it large enough.</h2>
+      <div class="two">
+        <div class="panel"><div id="clear"></div>
+          <p>Keep at least 2 grid pixels clear on every side. One grid pixel is half the width of the I.</p></div>
+        <div class="panel">
+          <div class="sizes" id="sizes"></div>
+          <p>Horizontal from 96 px wide, stacked from 48 px. Below that PI is no longer readable, so use the favicon, which shows only VI.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="farben">
+    <div class="label">Color</div>
+    <div class="body">
+      <h2>Black, white and the grays in between.</h2>
+      <p>VIPI is monochrome. The logo appears only in Ink or Paper. The grays are for surfaces, lines and secondary text.</p>
+      <div class="swatches" id="swatches"></div>
+      <h3>Status colors in the product</h3>
+      <p>Only for scan results in the interface. Never in the logo, never as a brand color.</p>
+      <div class="status">
+        <span class="pill" style="color:var(--injection)"><i></i>Injection found · #E5484D</span>
+        <span class="pill" style="color:var(--review)"><i></i>Review · #F5A524</span>
+        <span class="pill" style="color:var(--clean)"><i></i>Clean · #30A46C</span>
+      </div>
+    </div>
+  </section>
+
+  <section id="typografie">
+    <div class="label">Typography</div>
+    <div class="body">
+      <h2>Geist for text, Geist Mono for anything technical.</h2>
+      <p>Both typefaces are free under the SIL Open Font License and available on Google Fonts.</p>
+      <div class="specimen">
+        <span class="label">Geist · 400 / 500</span>
+        <div class="big">Image scanned. No hidden instructions.</div>
+        <div class="scale">
+          <div><span class="label">48 / 500</span><span style="font-size:clamp(28px,4vw,48px);font-weight:500;letter-spacing:-.03em;line-height:1.1">Heading</span></div>
+          <div><span class="label">32 / 500</span><span style="font-size:clamp(22px,3vw,32px);font-weight:500;letter-spacing:-.02em">Subheading</span></div>
+          <div><span class="label">20 / 400</span><span style="font-size:20px">Intro and short paragraphs</span></div>
+          <div><span class="label">16 / 400</span><span>Body text for documentation and interface</span></div>
+          <div><span class="label">12 / Mono</span><span class="label" style="color:var(--fg)">Labels · file names · values</span></div>
+        </div>
+      </div>
+      <div class="term"><span class="n">$</span> vipi scan ./assets
+<span class="n">  Scanning 4 images …</span>
+<span class="g">  ✓</span> hero-banner.png        clean       0.02
+<span class="g">  ✓</span> team-photo.jpg         clean       0.04
+<span class="r">  ✕ product-shot.png       injection   0.97</span>
+<span class="g">  ✓</span> screenshot-04.png      clean       0.01</div>
+    </div>
+  </section>
+
+  <section id="bewegung">
+    <div class="label">Motion</div>
+    <div class="body">
+      <h2>The scan reveals what is hidden.</h2>
+      <p>A scan line moves from left to right. Each hidden pixel grows to full size as the line reaches it. VIPI appears in full for a moment, then the logo returns to its resting state. 6 seconds in total, looping.</p>
+      <div class="motion">
+        <div id="motionLogo"></div>
+        <div class="row"><span class="label">motion/vipi-reveal.svg · .mp4 · .gif</span><button id="motionBtn" type="button">Play</button></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="donts-section">
+    <div class="label">Don’ts</div>
+    <div class="body">
+      <h2>What never happens to the logo.</h2>
+      <div class="donts" id="donts"></div>
+    </div>
+  </section>
+
+  <section id="assets">
+    <div class="label">Assets</div>
+    <div class="body">
+      <h2>All files live in the project folder.</h2>
+      <p>Path: <code>Projekte/VIPI/assets</code>. SVG for web and print, PNG for presentations and documents.</p>
+      <div class="tree">assets/
+├── logo/
+│   ├── svg/            <span class="c">vipi-logo-white · black · stacked-white · stacked-black</span>
+│   └── png/            <span class="c">every variant at 512, 1024 and 2048 px wide</span>
+├── icon/               <span class="c">app icon dark/light (SVG, 1024, 512, 192), apple-touch-icon, favicon.svg/.ico/.png</span>
+├── motion/             <span class="c">vipi-reveal.svg (animated), .mp4, .gif</span>
+├── social/             <span class="c">vipi-social-1200x630 (.svg, .png) for link previews</span>
+├── tokens/             <span class="c">vipi-tokens.css, vipi-tokens.json</span>
+├── brand/              <span class="c">this page as vipi-brand.html</span>
+└── source/             <span class="c">build_logo.py regenerates all logo files</span></div>
+    </div>
+  </section>
+
+  <footer><span id="footLogo"></span><span class="label">VIPI brand guidelines · 1.0</span></footer>
+</div>
+
+<script>
+(() => {
+  // ---- glyph data: identical to source/build_logo.py ----
+  const G = {
+    V: ["XX...XX", "XX...XX", "XX...XX", ".XX.XX.", ".XX.XX.", "..XXX..", "...X..."],
+    I: Array(7).fill("XX"),
+    P: ["XXXX.", "XX.XX", "XX.XX", "XXXX.", "XX...", "XX...", "XX..."]
+  };
+  const cells = (word, x0 = 0, y0 = 0) => {
+    const out = []; let x = x0;
+    for (const ch of word) { G[ch].forEach((row, r) => [...row].forEach((v, c) => { if (v === "X") out.push([x + c, y0 + r]); })); x += G[ch][0].length + 1; }
+    return [out, x - 1];
+  };
+  const [VI, WVI] = cells("VI");
+  const [PI, WALL] = cells("PI", WVI + 1);
+  const [PIS] = cells("PI", 1, 8);
+  const VIPATH = "M1,3 L1,5 L2,5 L2,6 L3,6 L3,7 L4,7 L4,6 L5,6 L5,5 L6,5 L6,3 L7,3 L7,0 L5,0 L5,3 L4,3 L4,5 L3,5 L3,3 L2,3 L2,0 L0,0 L0,3 Z M8,0 L8,7 L10,7 L10,0 Z";
+  const dotRects = (list, s, fill = "currentColor", cls = "d") => list.map(([x, y]) =>
+    `<rect class="${cls}" data-x="${x}" x="${x + (1 - s) / 2}" y="${y + (1 - s) / 2}" width="${s}" height="${s}" fill="${fill}"/>`).join("");
+  const logo = ({ s = 0.3, stacked = false, pad = 0, extra = "", attrs = "", piFill = "currentColor", vb = null } = {}) => {
+    const w = stacked ? WVI : WALL, h = stacked ? 15 : 7;
+    const box = vb || `${-pad} ${-pad} ${w + 2 * pad} ${h + 2 * pad}`;
+    return `<svg viewBox="${box}" ${attrs} role="img" aria-label="VIPI"><path fill="currentColor" d="${VIPATH}"/>${dotRects(stacked ? PIS : PI, s, piFill)}${extra}</svg>`;
+  };
+  const $ = id => document.getElementById(id);
+
+  $("topLogo").innerHTML = logo();
+  $("footLogo").innerHTML = logo();
+  $("footLogo").querySelector("svg").style.cssText = "height:16px;width:auto;color:var(--fg)";
+
+  // ---- hero with adjustable hidden layer + scan ----
+  $("heroLogo").innerHTML = logo({ extra: `<rect id="heroScan" x="-1" y="-0.6" width="0.06" height="8.2" fill="currentColor" opacity="0"/>`, pad: 0.4 });
+  const heroDots = [...$("heroLogo").querySelectorAll("rect.d")];
+  const setDots = (rects, sOf) => rects.forEach(r => { const s = sOf(r); const cx = +r.dataset.x + 0.5;
+    const cy = +r.getAttribute("y") + +r.getAttribute("height") / 2; r.setAttribute("x", cx - s / 2); r.setAttribute("y", cy - s / 2); r.setAttribute("width", s); r.setAttribute("height", s); });
+  let base = 0.3;
+  $("dotSize").addEventListener("input", e => { base = Math.max(0.02, e.target.value / 100); $("dotVal").textContent = `${e.target.value} %`; setDots(heroDots, () => base); });
+
+  const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const ease = t => t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+  function scan(rects, scanEl, getBase, done) {
+    if (reduce) { setDots(rects, () => 1); setTimeout(() => { setDots(rects, getBase); done && done(); }, 1600); return; }
+    const t0 = performance.now(), sweep = 1500, hold = 1600, back = 700;
+    const x0 = -1, x1 = WALL + 1;
+    function frame(now) {
+      const t = now - t0;
+      const sx = x0 + (x1 - x0) * Math.min(1, t / sweep);
+      if (scanEl) { scanEl.setAttribute("x", sx); scanEl.setAttribute("opacity", t < sweep ? .9 : 0); }
+      const b = getBase();
+      setDots(rects, r => {
+        const cx = +r.dataset.x + .5;
+        if (t < sweep + hold) { const k = Math.min(1, Math.max(0, (sx - cx) / 1.6)); return b + (1 - b) * ease(k); }
+        const k = Math.min(1, (t - sweep - hold) / back); return 1 - (1 - b) * ease(k);
+      });
+      if (t < sweep + hold + back) requestAnimationFrame(frame); else { setDots(rects, getBase); done && done(); }
+    }
+    requestAnimationFrame(frame);
+  }
+  let busy = false;
+  $("scanBtn").addEventListener("click", () => { if (busy) return; busy = true; scan(heroDots, $("heroScan"), () => base, () => busy = false); });
+
+  // ---- anatomy ----
+  const grid = []; for (let x = 0; x <= WALL; x++) grid.push(`<line x1="${x}" y1="-0.3" x2="${x}" y2="7.3"/>`);
+  for (let y = 0; y <= 7; y++) grid.push(`<line x1="-0.3" y1="${y}" x2="${WALL + .3}" y2="${y}"/>`);
+  const ann = `<g stroke="var(--faint)" stroke-width="0.02" stroke-dasharray="0.08 0.08">${grid.join("")}</g>`;
+  const brace = (x1, x2, label) => `<g fill="none" stroke="var(--muted)" stroke-width="0.03"><path d="M${x1},8 V8.3 H${x2} V8"/></g>
+    <text x="${(x1 + x2) / 2}" y="9.05" font-size="0.42" text-anchor="middle" fill="var(--muted)" font-family="Geist Mono, monospace">${label}</text>`;
+  $("anatomy").innerHTML = `<svg viewBox="-0.6 -0.6 ${WALL + 1.2} 10.2" role="img" aria-label="Logo construction on the pixel grid">${ann}
+    <path fill="currentColor" d="${VIPATH}"/>${dotRects(PI, 0.3)}
+    ${brace(0, WVI, "VI · full pixels")}${brace(WVI + 1, WALL, "PI · 30% pixels")}</svg>`;
+
+  // ---- clear space + sizes ----
+  $("clear").innerHTML = `<svg viewBox="-3 -3 ${WALL + 6} 13" role="img" aria-label="Clear space">
+    <rect x="-2" y="-2" width="${WALL + 4}" height="11" fill="none" stroke="var(--faint)" stroke-width="0.05" stroke-dasharray="0.2 0.15"/>
+    <g fill="var(--faint)" opacity=".35"><rect x="-2" y="-2" width="2" height="2"/><rect x="${WALL}" y="${7}" width="2" height="2"/></g>
+    <path fill="currentColor" d="${VIPATH}"/>${dotRects(PI, 0.3)}
+    <text x="-1" y="-0.75" font-size="0.55" text-anchor="middle" fill="var(--muted)" font-family="Geist Mono, monospace">2</text></svg>`;
+  $("sizes").innerHTML = [96, 160, 240].map(w => `<figure>${logo({ attrs: `width="${w}" height="${w * 7 / WALL}"` })}<figcaption class="label">${w} px</figcaption></figure>`).join("");
+
+  // ---- swatches ----
+  const SW = [["Ink", "#0B0C10", "Logo on light, backgrounds"], ["Graphite", "#1A1C22", "Surfaces on dark"], ["Steel", "#5C616C", "Secondary text on light"],
+              ["Fog", "#A3A8B2", "Secondary text on dark"], ["Mist", "#DADDE2", "Lines, surfaces on light"], ["Paper", "#F2F3F5", "Logo on dark, backgrounds"], ["White", "#FFFFFF", "Surfaces, print"]];
+  $("swatches").innerHTML = SW.map(([n, h, use]) => `<div class="swatch"><div class="chip" style="background:${h}"></div><div class="info"><b>${n}</b>
+    <button type="button" data-hex="${h}">${h}</button><span class="label" style="text-transform:none;letter-spacing:0">${use}</span></div></div>`).join("");
+  $("swatches").addEventListener("click", e => { const b = e.target.closest("button[data-hex]"); if (!b) return; const h = b.dataset.hex;
+    const done = () => { b.textContent = "Copied"; setTimeout(() => b.textContent = h, 1200); };
+    try { navigator.clipboard.writeText(h).then(done, () => { const r = document.createRange(); r.selectNodeContents(b); getSelection().removeAllRanges(); getSelection().addRange(r); }); } catch (_) {} });
+
+  // ---- motion demo ----
+  $("motionLogo").innerHTML = logo({ extra: `<rect id="mScan" x="-1" y="-0.6" width="0.05" height="8.2" fill="currentColor" opacity="0"/>`, pad: 0.4 });
+  const mDots = [...$("motionLogo").querySelectorAll("rect.d")];
+  let mBusy = false;
+  const playMotion = () => { if (mBusy) return; mBusy = true; scan(mDots, $("mScan"), () => 0.3, () => mBusy = false); };
+  $("motionBtn").addEventListener("click", playMotion);
+
+  // ---- don'ts ----
+  const T = (s, size = 0.9) => `<text x="${WALL / 2}" y="9.6" font-size="${size}" text-anchor="middle" fill="#F2F3F5" font-family="Geist, sans-serif">${s}</text>`;
+  const W = 'style="color:#F2F3F5"';
+  const D = [
+    ["Spell out the name", "VIPI is the name. No tagline with a long form.", logo({ vb: "-0.5 -0.5 20 10.8", extra: T("Visual Indirect Prompt Injection"), attrs: W })],
+    ["Color the hidden layer", "PI always has the same color as VI.", logo({ piFill: "#E5484D", attrs: W })],
+    ["Fill PI to full pixels", "Full pixels only appear in the animation.", logo({ s: 1, attrs: W })],
+    ["Distort it", "The grid stays square.", logo({ attrs: 'style="color:#F2F3F5;transform:scale(1.15,.6)"' })],
+    ["Add effects", "No shadows, gradients or glows.", logo({ attrs: 'style="color:#F2F3F5;filter:drop-shadow(0 0 6px #9B8CFF) drop-shadow(0 4px 3px #000)"' })],
+    ["Use other colors", "The logo appears only in Ink or Paper.", logo({ attrs: 'style="color:#3D8BFD"' })],
+  ];
+  $("donts").innerHTML = D.map(([h, p, svg]) => `<div class="dont"><div class="box">${svg}</div><h3>${h}</h3><p>${p}</p></div>`).join("");
+})();
+</script>
+
+</body></html>

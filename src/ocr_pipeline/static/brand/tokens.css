@@ -1,0 +1,14 @@
+:root {
+  --vipi-ink: #0B0C10;
+  --vipi-graphite: #1A1C22;
+  --vipi-steel: #5C616C;
+  --vipi-fog: #A3A8B2;
+  --vipi-mist: #DADDE2;
+  --vipi-paper: #F2F3F5;
+  --vipi-white: #FFFFFF;
+  --vipi-status-injection: #E5484D;
+  --vipi-status-review: #F5A524;
+  --vipi-status-clean: #30A46C;
+  --vipi-font-sans: Geist, 'Helvetica Neue', Arial, sans-serif;
+  --vipi-font-mono: 'Geist Mono', ui-monospace, Menlo, monospace;
+}
