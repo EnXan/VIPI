@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://vipi.local/schema/ocr_metadata.schema.json",
+  "title": "OCR evaluation images and reference texts",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "image",
+      "text",
+      "category"
+    ],
+    "properties": {
+      "image": {
+        "type": "string",
+        "pattern": "^research/datasets/data/(external/|derived/ocr_obfuscation/v1/images/|derived/anamorpher/v1/images/)",
+        "description": "Source or reviewed derived image path relative to the repository root."
+      },
+      "text": {
+        "type": "string",
+        "pattern": "\\S",
+        "description": "Exact source-backed or generated target reference. Coverage and required Anamorpher downscale are documented in ocr_selection_report.json."
+      },
+      "category": {
+        "enum": [
+          "cyberseceval3_visual_prompt_injection",
+          "mm_safetybench",
+          "typographic_visual_prompt_injection",
+          "vpi_bench",
+          "textocr",
+          "anamorpher"
+        ],
+        "description": "Dataset of origin."
+      }
+    }
+  }
+}

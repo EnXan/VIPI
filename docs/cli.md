@@ -1,0 +1,187 @@
+# VIPI CLI
+
+Use Python 3.12 and uv. From the repository root, sync the OCR dependency extra:
+
+```bash
+uv sync --extra ocr
+uv run vipi setup
+uv run vipi scan image.png
+```
+
+Configure an external provider key in the environment or copy
+[`.env.example`](../.env.example) to `.env` and fill in the key. Research and
+development commands are documented in [development setup](development.md).
+
+## Platform validation status
+
+As of 2026-10-22, the public CLI is designed for macOS, Linux x86-64 and native
+Windows x86-64. Python 3.12 is required; branch-diff scans also require Git on
+`PATH`. The public CLI uses CPU processing and does not require a GPU.
+
+macOS validation covers 252 tests, wheel and source-archive builds, a CLI smoke
+test from the built wheel, and a complete PP-OCRv6 smoke scan with real OCR
+weights and a simulated detector response. **Linux and Windows have not been
+tested**; installation and complete scans on those systems are not verified.
+
+Before declaring Linux or Windows support verified, test installation in a fresh
+Python 3.12 environment, model setup, an image scan, a committed branch-diff scan,
+JSON output and exit codes on each system. Include the selected provider's
+credential handling and the optional local detector when claiming its support.
+
+## Commands
+
+`vipi setup` explicitly downloads and verifies the pinned PP-OCRv6 Tiny, Small
+and Medium detector/recognizer files plus the shared orientation-classifier file.
+The OCR adapter disables orientation classification. Setup does not require an
+external detector API key. Scanning never downloads models. To prepare just one
+mode, pass `--ocr-mode`; `--ocr-model` selects one supported model ID directly.
+
+`vipi scan <path ...>` scans static PNG, JPEG and WebP images, including images
+in nested directories. Supply individual images, multiple paths, or directories:
+
+```bash
+uv run vipi scan label.png screenshot.jpg
+uv run vipi scan ./images
+uv run vipi scan ./images --verbose
+uv run vipi scan ./images --detector openai --threshold 90 --output report.json
+uv run vipi scan ./images --ocr-mode fast
+uv run vipi scan ./images --ocr-mode balanced
+uv run vipi scan ./images --ocr-model ppocr-v6-medium
+uv run vipi setup --ocr-mode fast
+```
+
+| Scan option | Meaning | Default |
+| --- | --- | --- |
+| `--diff REFERENCE` | Scan committed images added or modified since the common ancestor with REFERENCE | Scan all supported images under the supplied paths |
+| `--detector NAME` | `jev`, `openai`, `prompt-guard` | `jev` |
+| `--ocr-mode NAME` | `fast`, `balanced`, `quality` | `quality` |
+| `--ocr-model ID` | Override the mode with a supported model ID | Model for the selected mode |
+| `--threshold NUMBER` | Finding threshold on a 0–100 score scale; equality counts as a finding | `80` |
+| `--output FILE` | Also save the JSON report, including partial results and errors | Terminal output |
+| `--verbose` | Print the final extracted OCR text for each scanned image | Off |
+
+Verbose output labels each text block with its image path. Images with no extracted
+text are marked explicitly. The normal completion summary and errors remain visible
+without this option.
+
+In an interactive terminal, setup and scans show the large VIPI wordmark in a
+framed terminal banner and use a live spinner for the current step. VIPI uses
+color when the terminal supports it. Logs and redirected streams get a compact
+one-line name instead of the banner.
+
+The OCR mode mapping is `fast` → PP-OCRv6 Tiny, `balanced` → Small and `quality`
+→ Medium. Omitting `--ocr-mode` keeps the previous Medium default by selecting
+`quality`. The explicit model ID overrides the mode; `ppocr-v6-medium` and the
+legacy ID `ppocr-v6` both select Medium. `vipi setup` prepares all three mode
+models by default, or only the requested mode/model when either setup option is
+provided. `--ocr-model` currently accepts registered PP-OCRv6 IDs; adding a model
+from another OCR family requires registering its adapter and pinned files first.
+
+The OCR transformation pipeline runs the `reduced-transforms-v1` profile on CPU
+with one worker: 13 passes per image, or 12 when the 2× raster would exceed 8
+megapixels. Images run sequentially, reusing the selected OCR model session. The
+mode and resolved model are recorded in the scan report; run artifacts identify
+their resolved model, profile and pass count. Backend, filter and worker options
+remain internal.
+
+The threshold applies to the selected detector's normalized score, not a
+calibrated probability of an attack. Detection uses the final assembled OCR
+text; raw variant readings are saved as evidence but are not independently
+submitted to detectors. A below-threshold result does not prove safety.
+
+## Credentials and local detection
+
+External detectors read credentials from environment variables, with a `.env`
+in the current working directory as local fallback. Copy
+[`.env.example`](../.env.example) to `.env` and fill in the provider keys you
+use. Environment values take precedence; an explicitly empty variable disables
+the file fallback. Missing credentials fail before OCR processing.
+
+| Detector | Credential |
+| --- | --- |
+| Jev | `TYPESAFE_API_KEY`, with `JEV_API_KEY` as an alias |
+| OpenAI | `OPENAI_API_KEY` |
+| Prompt Guard | No inference API key; local weights required |
+
+For local Prompt Guard, install the additional runtime and prepare its pinned
+revision. The model download requires authorized Hugging Face access and any
+required license acceptance; the Hugging Face client can use `HF_TOKEN`.
+
+```bash
+uv sync --extra ocr --extra detector-local
+uv run vipi setup --detector prompt-guard
+uv run vipi scan ./images --detector prompt-guard
+```
+
+Setup pins `meta-llama/Llama-Prompt-Guard-2-86M` to revision
+`a8ded8e697ce7c355e395a0df51f94adb4a2fd27`. The existing loader verifies model
+files and uses local weights without executing remote model code.
+
+## Branch and PR scans
+
+```bash
+uv run vipi scan . --diff origin/main --output report.json
+```
+
+This selects branch changes between the common ancestor of `origin/main` and
+`HEAD`, and `HEAD`. It reads each selected image's complete committed bytes from
+Git objects. Uncommitted edits and untracked files do not affect the scan. The
+reference may be a branch or commit. Paths restrict the selection; with `--diff`
+and no paths, the scope defaults to the current directory.
+
+Deleted images are excluded. Renames are treated as deletion plus addition, so
+the destination is scanned. Only regular Git image files are accepted; image
+symlinks produce an error. Changes exclusive to the target branch are excluded.
+Missing references or insufficient history produce an error, rather than an
+empty successful scan. Fetch the target branch and sufficient history first.
+
+GitHub Actions can pass a repository Secret directly to the scan step:
+
+```yaml
+- name: Scan changed images
+  env:
+    TYPESAFE_API_KEY: ${{ secrets.TYPESAFE_API_KEY }}
+  run: uv run vipi scan . --diff "origin/${GITHUB_BASE_REF}" --output report.json
+```
+
+This snippet assumes a `pull_request` workflow, a checkout with `fetch-depth: 0`,
+the target branch available as a remote reference, uv installed,
+`uv sync --extra ocr` completed, and `uv run vipi setup` already run. The
+repository does not provide a packaged GitHub Action. Fork PR workflows normally
+do not receive repository Secrets. If an external detector is selected without
+its key, VIPI returns exit code 2; it does not silently omit detection.
+
+## Results and storage
+
+| Exit code | Meaning |
+| --- | --- |
+| `0` | Every selected image completed without a detection; also an empty image selection |
+| `1` | At least one detection, with all selected images completed |
+| `2` | Invalid configuration, unreadable image, missing models/key, provider failure, interruption or incomplete evidence |
+
+Errors take precedence over findings. A report may contain detections and still
+return 2. Empty final OCR text and below-threshold checks with incomplete context
+remain incomplete rather than being reported as clean. Explicit unsupported
+file inputs are errors. Directory scans list unsupported files as skipped and
+exclude `.git`, `.venv*`, `node_modules`, `__pycache__`, directory symlinks and the
+scanner's own cache. Image symlinks are errors. The report lists skipped paths,
+selected paths, per-image verdicts/scores, failures and files not scanned.
+
+Reports include pinned OCR filenames and hashes, OCR runtime versions, detector
+model identity, threshold, timing, artifact paths and (for a diff) base,
+merge-base and HEAD commit IDs. JSON reports are written atomically, including
+when a scan returns 1 or 2. An output path cannot overwrite a selected image.
+
+Setup and scan share a user cache across working directories:
+
+- macOS: `~/Library/Caches/vipi/`
+- Linux: `~/.cache/vipi/`
+- Windows: `%LOCALAPPDATA%/vipi/`
+- If set, `XDG_CACHE_HOME/vipi/` overrides the platform default.
+
+OCR weights live under `ocr/`, optional local detector weights under
+`prompt-guard/`, and persistent image runs under `runs/`. Runs include input
+copies, transformed images, OCR text and detector artifacts. CI can cache the
+model directories; cache keys should include the VIPI version and pinned model
+manifest. Large images may require substantial RAM, processing time and disk
+space; GitHub runner performance has not yet been benchmarked.

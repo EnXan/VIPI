@@ -142,9 +142,13 @@ celerybeat.pid
 .venv-anamorpher/
 .venv-ocr/
 models/ocr/
+models/detector/
 runs/
-datasets/external/
-datasets/derived/
+# Local research data; research code and documentation remain trackable.
+/research/datasets/data/external/
+/research/datasets/data/derived/
+/research/datasets/data/.cache/
+/research/experiments/reports/
 env/
 venv/
 ENV/
@@ -212,3 +216,9 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# Temporary conversational plans; keep the directory convention visible.
+.llm-plans/*
+
+# Locally retained media that should not ship with the repository.
+.local-assets/

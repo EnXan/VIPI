@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ein PNG · Zwei README-Versionen</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #f6f8fa; color: #1f2328; font: 14px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif; }
+    main { max-width: 1120px; margin: 40px auto; padding: 0 24px; }
+    h1 { margin: 0 0 8px; font-size: 27px; font-weight: 600; }
+    .intro { color: #59636e; margin: 0 0 24px; }
+    .grid { display: grid; grid-template-columns: minmax(0, 552px) minmax(0, 1fr); gap: 22px; }
+    .card { background: #fff; border: 1px solid #d0d7de; border-radius: 8px; overflow: hidden; }
+    .bar { padding: 12px 18px; border-bottom: 1px solid #d0d7de; background: #f6f8fa; display: flex; align-items: center; gap: 8px; }
+    .content { padding: 18px; }
+    button, a.download { display: inline-block; border: 1px solid #d0d7de; border-radius: 6px; padding: 7px 11px; background: #fff; color: #1f2328; font: inherit; text-decoration: none; cursor: pointer; }
+    button[aria-pressed="true"] { background: #0969da; border-color: #0969da; color: #fff; }
+    canvas { display: block; max-width: 100%; height: auto; margin: auto; background: #fff; }
+    .caption { color: #59636e; margin: 12px 18px 16px; font-size: 12px; }
+    .tag { color: #0969da; font-size: 12px; font-weight: 600; }
+    h2 { margin: 8px 0; font-size: 19px; }
+    pre { margin: 12px 0 0; padding: 14px; background: #f6f8fa; border-radius: 6px; white-space: pre-wrap; overflow-wrap: anywhere; font: 12px/1.6 ui-monospace, SFMono-Regular, Consolas, monospace; }
+    .status { color: #1a7f37; }
+    .status.partial { color: #9a6700; }
+    .details { margin-top: 22px; padding: 16px 18px; border: 1px solid #d0d7de; border-radius: 8px; background: #fff; }
+    summary { cursor: pointer; font-weight: 600; }
+    .native { margin-top: 14px; max-height: 580px; overflow: auto; border: 1px solid #d0d7de; }
+    .native img { display: block; max-width: none; }
+    .note { color: #59636e; font-size: 12px; }
+    @media (max-width: 820px) { .grid { grid-template-columns: 1fr; } main { margin-top: 24px; } }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Ein PNG. Zwei README-Versionen.</h1>
+    <p class="intro">Die Ansichten entstehen aus denselben Bildpixeln durch zwei unterschiedliche Nearest-Sampler. Kein Text wird im Bild nachträglich ausgetauscht.</p>
+    <div class="grid">
+      <section class="card" aria-label="Verkleinertes Bild">
+        <div class="bar"><button data-offset="0" aria-pressed="true">Ansicht A</button><button data-offset="2" aria-pressed="false">Ansicht B</button></div>
+        <canvas width="512" height="384" aria-label="README aus dem gemeinsamen PNG"></canvas>
+        <p class="caption" id="sampling"></p>
+        <p class="caption"><a class="download" id="view-download" download>Aktuelle Ansicht herunterladen</a> <a class="download" href="template.html" target="_blank" rel="noopener">README-Referenzen öffnen</a></p>
+      </section>
+      <section class="card" aria-label="OCR-Ergebnis">
+        <div class="bar">Erkannter Text · PP-OCRv6</div>
+        <div class="content"><span class="tag" id="view"></span><h2 id="heading"></h2><p id="status" class="status"></p><pre id="ocr"></pre></div>
+      </section>
+    </div>
+    <details class="details">
+      <summary>Gemeinsames PNG in Originalauflösung ansehen</summary>
+      <p class="note" id="native-size">Darstellung 1:1 mit Scrollen. Das Pixelraster ist sichtbar; vollständige Unsichtbarkeit wurde nicht nachgewiesen.</p>
+      <a class="download" href="rgb-dual/combined.png" download>PNG herunterladen</a>
+      <div class="native"><img src="rgb-dual/combined.png" alt="Gemeinsames Bild in Originalauflösung"></div>
+    </details>
+    <p class="note">Lokaler Test mit zwei Referenztexten. Inhalte und Codeblöcke werden als Bildtext dargestellt. Die RGB-Erweiterung verändert alle drei Kanäle; der unveränderte Anamorpher-Ansatz verändert nur Rot. Dies ist ein digitaler Skalierungswechsel.</p>
+  </main>
+  <script type="application/json" id="report">__REPORT_JSON__</script>
+  <script>
+    const report = JSON.parse(document.getElementById("report").textContent);
+    const variant = report.variants.find(item => item.name === "rgb-dual");
+    const canvas = document.querySelector("canvas");
+    const context = canvas.getContext("2d");
+    const [width, height] = report.target_size;
+    canvas.width = width; canvas.height = height;
+    document.querySelector(".native img").style.width = `${report.source_size[0]}px`;
+    document.getElementById("native-size").textContent = `${report.source_size.join("×")} Pixel, Darstellung 1:1 mit Scrollen. Das Pixelraster ist sichtbar; vollständige Unsichtbarkeit wurde nicht nachgewiesen.`;
+    const source = new Image();
+    let pixels;
+    function show(offset) {
+      if (!pixels) return;
+      const rendered = context.createImageData(width, height);
+      for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+          const from = ((y * 4 + offset) * source.width + x * 4 + offset) * 4;
+          const to = (y * width + x) * 4;
+          for (let channel = 0; channel < 4; channel++) rendered.data[to + channel] = pixels[from + channel];
+        }
+      }
+      context.putImageData(rendered, 0, 0);
+      const normal = offset === 0;
+      const backend = normal ? "opencv" : "pillow";
+      const probe = variant.probes.find(item => item.backend === backend && item.method === "nearest");
+      const reference = normal ? "normal" : "alternate";
+      document.getElementById("view").textContent = normal ? "Ansicht A · OpenCV / PyTorch" : "Ansicht B · Pillow / TensorFlow";
+      document.getElementById("heading").textContent = report.labels[reference];
+      document.getElementById("sampling").textContent = `${report.source_size.join("×")} → ${report.target_size.join("×")} · Nearest · Sampleposition (${offset}, ${offset}) pro 4×4-Block`;
+      const missing = probe.ocr.reference_checks[reference].missing.length;
+      const total = report.references[reference].length;
+      document.getElementById("status").textContent = `${total - missing} von ${total} Referenzzeilen erkannt`;
+      document.getElementById("status").classList.toggle("partial", Boolean(missing));
+      document.getElementById("ocr").textContent = probe.ocr.text;
+      document.getElementById("view-download").href = probe.image;
+      for (const button of document.querySelectorAll("[data-offset]")) button.setAttribute("aria-pressed", String(Number(button.dataset.offset) === offset));
+    }
+    source.onload = () => {
+      const scratch = document.createElement("canvas");
+      scratch.width = source.width;
+      scratch.height = source.height;
+      const scratchContext = scratch.getContext("2d");
+      scratchContext.drawImage(source, 0, 0);
+      pixels = scratchContext.getImageData(0, 0, source.width, source.height).data;
+      show(new URLSearchParams(location.search).get("view") === "alternate" ? 2 : 0);
+    };
+    source.onerror = () => document.getElementById("ocr").textContent = "Das gemeinsame PNG konnte nicht geladen werden.";
+    source.src = "rgb-dual/combined.png";
+    for (const button of document.querySelectorAll("[data-offset]")) button.addEventListener("click", () => show(Number(button.dataset.offset)));
+  </script>
+</body>
+</html>

@@ -6,9 +6,9 @@ from PIL import Image
 
 @pytest.fixture
 def dataset_repository(tmp_path):
-    directory = tmp_path / "datasets/catalog/ocr"
+    directory = tmp_path / "research/datasets/data/catalog/ocr"
     directory.mkdir(parents=True)
-    image_root = tmp_path / "datasets/external/examples"
+    image_root = tmp_path / "research/datasets/data/external/examples"
     image_root.mkdir(parents=True)
     records = []
     for i, text in enumerate(["Required", "Missing target", "Failure target"]):

@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="de">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Ein Bild, zwei Größen</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#f0f2f5;color:#172332;font:16px system-ui,sans-serif}
+main{padding:24px;max-width:1500px;margin:auto}h1{font-size:25px;margin:0 0 8px}p{line-height:1.5;margin:8px 0 18px;max-width:900px}
+.controls{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:16px 0}button,select,a{font:inherit}
+button,select{padding:10px 15px;border:1px solid #bbc4d0;border-radius:8px;background:white;color:inherit}
+button{cursor:pointer}button[aria-pressed=true]{background:#183e6b;color:white;border-color:#183e6b}a{color:#194c85}
+#status{min-height:24px;font-size:14px;color:#536171}#stage{margin-top:14px;overflow:auto;max-height:68vh;padding:16px;background:#dce1e7;border:1px solid #c9d0da;border-radius:10px}
+canvas{display:block;max-width:none;image-rendering:pixelated}footer{font-size:13px;color:#647082;margin-top:16px;line-height:1.5}
+</style>
+<main>
+<h1>Ein Bild, zwei Größen</h1>
+<p>Zwischen Original und HIGH_DETAIL umschalten. Die kleine Ansicht wird direkt aus derselben PNG mit Triangle berechnet. Der Grauton und die schwache Schrift in der kleinen Ansicht gehören zum Bild.</p>
+<div class="controls">
+<button id="native" aria-pressed="true">Original</button>
+<button id="high" aria-pressed="false">HIGH_DETAIL</button>
+<label>Ausschnitt <select id="region"><option value="code">Referenzcode</option><option value="title">Überschrift</option><option value="all">Ganzes Bild</option></select></label>
+<label>Pixelansicht <select id="zoom"><option value="1">1:1</option><option value="2">2× ohne Glättung</option><option value="4">4× ohne Glättung</option></select></label>
+<a id="download" download="codex-frequency-switch.png">Original-PNG speichern</a>
+</div>
+<div id="status" role="status">Bild wird geladen …</div>
+<div id="stage"><canvas id="view" aria-label="Bildansicht"></canvas></div>
+<footer>1:1 bedeutet ein Bildpixel pro Displaypixel, einschließlich Retina-Korrektur. Bei Platzmangel scrollen. „An Fenster anpassen“ würde das feine Muster bereits verkleinern. Diese Demo prüft den direkten Pfad 3328 × 2972 → 1664 × 1486; andere Upload-Pfade können abweichen.</footer>
+</main>
+<script>
+const imageDataUrl = "__IMAGE_DATA__";
+const canvas = document.querySelector('#view'), status = document.querySelector('#status');
+const nativeButton = document.querySelector('#native'), highButton = document.querySelector('#high');
+const region = document.querySelector('#region'), zoom = document.querySelector('#zoom');
+const source = document.createElement('canvas'), scaled = document.createElement('canvas');
+let mode = 'native', ready = false;
+document.querySelector('#download').href = imageDataUrl;
+function taps(index, length) {
+  if (index === 0) return [[0,Math.fround(3/7)],[1,Math.fround(3/7)],[2,Math.fround(1/7)]];
+  if (index === length/2-1) return [[length-3,Math.fround(1/7)],[length-2,Math.fround(3/7)],[length-1,Math.fround(3/7)]];
+  return [[2*index-1,.125],[2*index,.375],[2*index+1,.375],[2*index+2,.125]];
+}
+function triangleHalf() {
+  const w=source.width, h=source.height, nw=w/2, nh=h/2;
+  const input=source.getContext('2d').getImageData(0,0,w,h).data;
+  const middle=new Float32Array(w*nh);
+  for(let y=0;y<nh;y++) {
+    const weights=taps(y,h);
+    for(let x=0;x<w;x++) {
+      let sum=0;
+      for(const [sy,weight] of weights) sum=Math.fround(sum+Math.fround(input[(sy*w+x)*4]*weight));
+      middle[y*w+x]=sum;
+    }
+  }
+  scaled.width=nw; scaled.height=nh;
+  const ctx=scaled.getContext('2d'), output=ctx.createImageData(nw,nh);
+  for(let x=0;x<nw;x++) {
+    const weights=taps(x,w);
+    for(let y=0;y<nh;y++) {
+      let sum=0;
+      for(const [sx,weight] of weights) sum=Math.fround(sum+Math.fround(middle[y*w+sx]*weight));
+      const pixel=Math.floor(Math.min(255,Math.max(0,sum))+.5), offset=(y*nw+x)*4;
+      output.data[offset]=output.data[offset+1]=output.data[offset+2]=pixel;
+      output.data[offset+3]=255;
+    }
+  }
+  ctx.putImageData(output,0,0);
+}
+function render() {
+  if(!ready) return;
+  const input=mode==='native'?source:scaled, scale=mode==='native'?1:.5;
+  const boxes={code:[150,2170,1400,390],title:[150,465,1700,295],all:[0,0,3328,2972]};
+  const [x,y,w,h]=boxes[region.value].map(v=>Math.floor(v*scale));
+  canvas.width=w;canvas.height=h;
+  canvas.getContext('2d').drawImage(input,x,y,w,h,0,0,w,h);
+  const dpr=window.devicePixelRatio||1, magnification=Number(zoom.value);
+  canvas.style.width=`${w*magnification/dpr}px`;
+  canvas.style.height=`${h*magnification/dpr}px`;
+  canvas.style.transform='none';
+  const rect=canvas.getBoundingClientRect();
+  canvas.style.transform=`translate(${(Math.round(rect.x*dpr)-rect.x*dpr)/dpr}px,${(Math.round(rect.y*dpr)-rect.y*dpr)/dpr}px)`;
+  nativeButton.setAttribute('aria-pressed',mode==='native');
+  highButton.setAttribute('aria-pressed',mode==='high');
+  status.textContent=`${mode==='native'?'Original':'HIGH_DETAIL · Triangle'} · ${input.width} × ${input.height} Pixel · Ausschnitt ${w} × ${h} · Displayfaktor ${dpr}`;
+}
+nativeButton.onclick=()=>{mode='native';render()};
+highButton.onclick=()=>{mode='high';render()};
+region.onchange=zoom.onchange=render;
+window.addEventListener('resize',render);
+const img=new Image();
+img.onload=()=>{source.width=img.naturalWidth;source.height=img.naturalHeight;source.getContext('2d').drawImage(img,0,0);triangleHalf();ready=true;render()};
+img.onerror=()=>{status.textContent='Das eingebettete Bild konnte nicht geladen werden.'};
+img.src=imageDataUrl;
+</script>
+</html>

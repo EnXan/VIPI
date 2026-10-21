@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="de">
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Markdown · Getrennte Vorschauen</title>
+<style>
+:root{color-scheme:dark;font:15px system-ui;color:#d5e2e7;background:#0b1b23}*{box-sizing:border-box}body{margin:0}main{max-width:1550px;margin:auto;padding:26px}h1{font-size:25px;margin:8px 0}p{line-height:1.6;color:#a9bec8}.eyebrow{color:#59c9bf;font-size:12px;letter-spacing:.12em}.inputs{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin:24px 0}.panel{padding:18px;border:1px solid #294552;border-radius:9px;background:#102731}label{display:block;font-weight:600;margin-bottom:10px}textarea{width:100%;height:280px;resize:vertical;background:#0d2a35;border:1px solid #35515d;border-radius:5px;color:#d5e4ea;padding:14px;font:14px/1.6 ui-monospace,Menlo,monospace}button,select,a{font:inherit}button,select{padding:9px 13px;border-radius:5px;background:#193744;color:#e1eef4;border:1px solid #42606e;cursor:pointer}button:disabled{opacity:.5}a{color:#7acfed}.controls{display:grid;grid-template-columns:repeat(3,1fr);gap:24px}.controls label,.scale label{display:flex;justify-content:space-between}.controls input,.scale input{width:100%;accent-color:#39b5a8}output{color:#7acfed;font-variant-numeric:tabular-nums}.toolbar{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin:18px 0}.toggle{display:flex;align-items:center;gap:8px;margin:0}.toggle input{accent-color:#39b5a8}.scale{max-width:600px;margin-top:24px}.small{font-size:13px;color:#98b1bf}#status.error{color:#ffb4a7}canvas{display:block;width:100%;height:auto;background:#0d2a35;border:1px solid #35515d;border-radius:6px}#download{background:#12877e;color:white;border-color:#36b4a8;font-weight:650}@media(max-width:800px){.inputs,.controls{grid-template-columns:1fr}main{padding:16px}}
+
+.appearance-preview{margin:24px 0}.appearance-controls{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;margin:20px 0}.appearance-controls label{display:flex;justify-content:space-between}.appearance-controls output{color:#7acfed;font-variant-numeric:tabular-nums}.appearance-controls input{width:100%;accent-color:#39b5a8}.appearance-preview canvas{display:block;width:100%;max-width:100%;height:auto;border:1px solid #35515d;border-radius:6px;image-rendering:auto}.appearance-preview h2{margin:0}.appearance-toggle{display:flex;align-items:center;gap:8px;margin:0}.appearance-toggle input{accent-color:#39b5a8}.appearance-preview p{margin:12px 0}@media(max-width:650px){.appearance-controls{grid-template-columns:1fr}}
+</style>
+<main>
+<div class="eyebrow">LOKALE MARKDOWN-VORLAGE</div>
+<h1>Getrennte Vorschauen für Rauschen und Markdown</h1>
+<p>Oben steht die neutrale Rauschvorschau mit dem Gartenplan. Darunter kannst du deine Markdown-Texte normal darstellen und verkleinern. Beide Bereiche haben einen eigenen PNG-Export.</p>
+<section class="panel appearance-preview" aria-label="Pixelartefakte einstellen">
+
+<h2>Pixelrauschen im Hintergrund · neutrale Vorschau</h2>
+<p>Stelle Anzahl, Stärke und Größe der Rauschpunkte ein. Optional erscheint das Rauschen auch hinter dem Gartenplan rechts. Beide Texte bleiben normal lesbar.</p>
+<div class="appearance-controls">
+<div><label for="appearance-count">Rauschpunkte je Seite <output id="appearance-count-value" for="appearance-count">40.000</output></label><input type="range" id="appearance-count" min="0" max="150000" value="40000" step="1000"></div>
+<div><label for="appearance-intensity">Stärke <output id="appearance-intensity-value" for="appearance-intensity">45 %</output></label><input type="range" id="appearance-intensity" min="0" max="100" value="45" step="1"></div>
+<div><label for="appearance-size">Größe <output id="appearance-size-value" for="appearance-size">1–4 px</output></label><input type="range" id="appearance-size" min="1" max="12" value="4" step="1"></div>
+</div>
+<div class="toolbar"><label class="appearance-toggle" for="appearance-right"><input id="appearance-right" type="checkbox"> Rauschen auch rechts</label><button id="appearance-shuffle">Rauschen neu verteilen</button><button id="appearance-reset">Zurücksetzen</button><button id="appearance-download" disabled>Vorschau als PNG speichern</button><a id="appearance-export" hidden download="markdown-pixelartefakte.png"></a></div>
+<p id="appearance-status" role="status" class="small">Vorschau wird geladen …</p>
+<canvas id="appearance-preview" width="2440" height="1860" aria-label="Markdown mit feinem Pixelrauschen und normal lesbarem Gartenplan"></canvas>
+<p class="small">Die Regler verändern diese statische Vorschau. Der PNG-Generator der Markdown-Vorlage verwendet diese Flecken nicht.</p>
+
+</section>
+<h2>Markdown mit normaler Skalierung</h2>
+<div class="inputs">
+<section class="panel"><label for="fixed">Markdown links</label><textarea id="fixed" spellcheck="false" maxlength="6000"></textarea><span class="small" id="count-fixed"></span></section>
+<section class="panel"><label for="scaled">Markdown rechts</label><textarea id="scaled" spellcheck="false" maxlength="6000"></textarea><span class="small" id="count-scaled"></span></section>
+</div>
+<section class="panel" aria-label="Markdown skalieren">
+<div class="scale"><label for="scale">Bildgröße <output id="scale-value">100 %</output></label><input id="scale" type="range" min="10" max="100" value="100" step="1"></div>
+<p class="small" id="resolution">3322 × 2076 Pixel</p>
+</section>
+<div class="toolbar"><select id="region" aria-label="Bildausschnitt"><option value="editor">Markdown-Bereich</option><option value="all">Ganze VS-Code-Oberfläche</option></select><button id="defaults">Neutrale Beispieltexte laden</button><button id="download" disabled>Markdown-PNG speichern</button><button id="save-texts">Markdown-Texte speichern</button><a id="export" hidden download="markdown-rauschen.png"></a></div>
+<p id="status" role="status" class="small">Vorlage wird geladen …</p>
+<canvas id="view" aria-label="Markdown mit normaler Skalierung"></canvas>
+<p class="small">Normale Bildverkleinerung im Browser. Die PNG enthält denselben sichtbaren Markdown-Text wie die Vorschau. Texte werden ausschließlich dargestellt und niemals ausgeführt. Die Vorschau wird passend zum Fenster angezeigt; der Größenregler bestimmt die Pixelmaße der PNG.</p>
+</main>
+<script>(()=>{
+
+const $=id=>document.getElementById('appearance-'+id), canvas=$('preview'),ctx=canvas.getContext('2d');
+let baseline,seed=20261014,patches=[];
+function scatter(){let state=seed>>>0;const random=()=>{state=(Math.imul(state,1664525)+1013904223)>>>0;return state/4294967296};patches=Array.from({length:150000},()=>({x:Math.floor(random()*1218),y:Math.floor(random()*1860),w:1+Math.floor(random()*4),h:1+Math.floor(random()*4),tone:.6+.4*random()}));}
+function render(){if(!baseline)return;const count=Number($('count').value),strength=Number($('intensity').value)/100,size=Number($('size').value),right=$('right').checked;const pixels=new ImageData(new Uint8ClampedArray(baseline.data),baseline.width,baseline.height);const d=pixels.data,background=Array.from(baseline.data.slice(0,3));let painted=0;
+const sides=right?[false,true]:[false];
+for(const p of patches.slice(0,count)){for(const rightSide of sides){const x0=rightSide?1218+Math.floor(p.x*1222/1218):p.x,y0=rightSide?(p.y+617)%canvas.height:p.y,boundary=rightSide?canvas.width:1218;for(let y=y0;y<Math.min(y0+Math.max(1,Math.round(p.h*size/4)),canvas.height);y++){for(let x=x0;x<Math.min(x0+Math.max(1,Math.round(p.w*size/4)),boundary);x++){const i=4*(y*canvas.width+x);if(Math.abs(baseline.data[i]-background[0])<=2&&Math.abs(baseline.data[i+1]-background[1])<=2&&Math.abs(baseline.data[i+2]-background[2])<=2){const delta=Math.round(96*strength*p.tone);if(delta)painted++;d[i]=background[0]+delta;d[i+1]=background[1]+Math.round(delta*.85);d[i+2]=background[2]+Math.round(delta*.85);}}}}}
+ctx.putImageData(pixels,0,0);canvas.dataset.paintedPixels=String(painted);$('export').href=canvas.toDataURL('image/png');$('count-value').value=count.toLocaleString('de-DE');$('intensity-value').value=`${Math.round(strength*100)} %`;$('size-value').value=size===1?'1 px':`1–${size} px`;$('status').textContent=`${count.toLocaleString('de-DE')} Rauschpunkte je Seite · ${right?'links und rechts':'nur links'} · Stärke ${Math.round(strength*100)} % · Größe ${size===1?'1':`1–${size}`} px · sofort aktualisiert`;
+}
+async function init(){try{const font=new FontFace('PreviewMono','url(appearance/GeistMono.ttf)',{weight:'100 900'});await font.load();document.fonts.add(font);const image=new Image();image.src='appearance/frame.png';await image.decode();ctx.drawImage(image,680,150,2440,1860,0,0,2440,1860);ctx.font='600 24px PreviewMono';ctx.textBaseline='top';const lines=['# Gartenplan','','Ein einfacher Ablauf für die nächste Woche.','','## Vorbereitung','- Die Pflanzen auswählen.','- Eine Gießkanne bereitlegen.','','## Tagesplan','1. Die Erde kontrollieren.','2. Die Pflanzen gießen.','3. Morgen das Wachstum beobachten.','','> Regelmäßige Pflege hält den Garten grün.','','## Referenz','Kennung: GROW-728','Status: bereit'];for(let i=0;i<lines.length;i++){const line=lines[i];ctx.fillStyle=line.startsWith('#')?'#5ecdc4':line.startsWith('>')?'#bca6d9':/^(- |\d\.)/.test(line)?'#99c0db':'#cbd9dd';ctx.fillText(line,1244,12+36*i);}baseline=ctx.getImageData(0,0,canvas.width,canvas.height);scatter();render();$('download').disabled=false;}catch(e){$('status').textContent='Die Vorschau konnte nicht geladen werden. Bitte die Seite erneut öffnen.';}}
+$('count').oninput=$('intensity').oninput=$('size').oninput=render;$('right').onchange=render;
+$('shuffle').onclick=()=>{seed=(seed+1)>>>0;scatter();render()};
+$('reset').onclick=()=>{$('count').value=40000;$('intensity').value=45;$('size').value=4;$('right').checked=false;seed=20261014;scatter();render()};
+$('download').onclick=()=>$('export').click();
+init();
+
+})();</script>
+<script>
+(()=>{
+const $=id=>document.getElementById(id),native=document.createElement('canvas'),resized=document.createElement('canvas'),view=$('view'),ctx=native.getContext('2d'),BOX=[680,150,3120,2010];
+native.width=3322;native.height=2076;
+let frame,ready=false,pending=0,samples={};
+function rows(text,width){const result=[];ctx.font='600 24px PreviewMono';for(const source of text.replace(/\r\n?/g,'\n').split('\n')){let line=source.replace(/\t/g,'    ');while(ctx.measureText(line).width>width){let n=Math.min(line.length,Math.floor(width/ctx.measureText('M').width));while(n>1&&ctx.measureText(line.slice(0,n)).width>width)n--;const space=line.lastIndexOf(' ',n);if(space>n/2)n=space+1;result.push(line.slice(0,n));line=line.slice(n);}result.push(line);}if(result.length>49)throw new Error(`Der Text benötigt ${result.length} Anzeigezeilen. Bitte auf höchstens 49 kürzen.`);return result;}
+function textColor(line){return line.trimStart().startsWith('#')?'#5ecdc4':line.startsWith('>')||line.startsWith('```')||line.startsWith('---')?'#bca6d9':/^\s*(- |\d\.)/.test(line)?'#99c0db':'#cbd9dd';}
+function drawText(lines,x,numbered){ctx.textBaseline='top';for(let i=0;i<lines.length;i++){const y=162+36*i;if(numbered){ctx.font='400 22px PreviewMono';ctx.fillStyle='#68858f';ctx.fillText(String(i+1).padStart(2,' '),740,y+2);}ctx.font='600 24px PreviewMono';ctx.fillStyle=textColor(lines[i]);ctx.fillText(lines[i],x,y);}}
+function render(){if(!ready)return;try{const left=$('fixed').value,right=$('scaled').value;if(!left.trim()||!right.trim())throw new Error('Bitte beide Markdown-Felder ausfüllen.');if(left.length>6000||right.length>6000)throw new Error('Pro Feld sind höchstens 6000 Zeichen möglich.');const leftRows=rows(left,1050),rightRows=rows(right,1150);ctx.drawImage(frame,0,0);ctx.fillStyle='#0d2a35';ctx.fillRect(680,150,2440,1860);drawText(leftRows,804,true);drawText(rightRows,1924,false);
+const factor=Number($('scale').value)/100;resized.width=Math.round(native.width*factor);resized.height=Math.round(native.height*factor);const rc=resized.getContext('2d');rc.imageSmoothingEnabled=true;rc.imageSmoothingQuality='low';rc.drawImage(native,0,0,resized.width,resized.height);const bounds=$('region').value==='all'?[0,0,native.width,native.height]:BOX;const [x,y,r,b]=bounds.map(v=>Math.round(v*factor));view.width=r-x;view.height=b-y;view.getContext('2d').drawImage(resized,x,y,r-x,b-y,0,0,r-x,b-y);
+$('scale-value').value=`${Math.round(factor*100)} %`;$('resolution').textContent=`PNG: ${resized.width} × ${resized.height} Pixel`;for(const key of ['fixed','scaled'])$(`count-${key}`).textContent=`${$(key).value.length} Zeichen`;$('export').href=resized.toDataURL('image/png');$('download').disabled=false;$('status').classList.remove('error');$('status').textContent='Vorschau und PNG sind aktualisiert.';view.dataset.scale=String(factor);
+}catch(e){$('download').disabled=true;$('export').removeAttribute('href');$('status').classList.add('error');$('status').textContent=e.message+' Die Vorschau zeigt das letzte gültige Ergebnis.';}}
+function schedule(){cancelAnimationFrame(pending);pending=requestAnimationFrame(render);}
+for(const id of ['fixed','scaled','scale'])$(id).addEventListener('input',schedule);for(const id of ['region'])$(id).addEventListener('change',schedule);
+$('defaults').onclick=()=>{$('fixed').value=samples.fixed;$('scaled').value=samples.scaled;schedule()};$('download').onclick=()=>$('export').click();
+$('save-texts').onclick=()=>{for(const id of ['fixed','scaled']){const a=document.createElement('a'),url=URL.createObjectURL(new Blob([$(id).value],{type:'text/markdown;charset=utf-8'}));a.href=url;a.download=id==='fixed'?'markdown-links.md':'markdown-rechts.md';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}};
+async function init(){try{const font=new FontFace('PreviewMono','url(appearance/GeistMono.ttf)',{weight:'100 900'});await font.load();document.fonts.add(font);frame=new Image();frame.src='appearance/frame.png';await frame.decode();for(const id of ['fixed','scaled']){const response=await fetch(`samples/${id}.md`);if(!response.ok)throw new Error('Die neutralen Beispieltexte fehlen.');samples[id]=await response.text();$(id).value=samples[id];}ready=true;render();}catch(e){$('status').textContent=e.message;$('status').classList.add('error');}}
+init();
+})();
+</script>
+</html>

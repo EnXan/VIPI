@@ -1,12 +1,14 @@
 [project]
 name = "vipi"
 version = "0.1.0"
-description = "Add your description here"
+description = "Scan images for visual indirect prompt injections"
 readme = "README.md"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
 requires-python = ">=3.12,<3.13"
 dependencies = [
-    "huggingface-hub>=1.32.0",
-    "jsonschema>=4.26.0",
+    "python-dotenv>=1.2.4,<2",
+    "rich",
 ]
 
 [project.optional-dependencies]
@@ -18,7 +20,6 @@ ocr = [
     "onnxruntime==1.23.2",
     "torch==2.6.0",
     "tensorflow==2.19.0",
-    "Flask==3.1.2",
 ]
 ocr-cuda = [
     "numpy==1.26.4",
@@ -29,22 +30,49 @@ ocr-cuda = [
     "nvidia-cuda-runtime-cu12>=12.8,<13; sys_platform == 'linux' or sys_platform == 'win32'",
     "torch==2.6.0",
     "tensorflow==2.19.0",
-    "Flask==3.1.2",
 ]
 test = ["pytest==8.4.2", "ruff==0.14.0"]
+detector-local = [
+    "huggingface-hub>=1.32.0",
+    "torch==2.6.0",
+    "transformers==5.8.1",
+    "sentencepiece==0.2.1",
+    "safetensors==0.8.0",
+]
+research = [
+    "Flask==3.1.2",
+    "jsonschema>=4.26.0",
+    "huggingface-hub>=1.32.0",
+]
 
 [project.scripts]
-vipi-ocr = "ocr_pipeline.__main__:main"
+vipi = "vipi.cli:main"
 
 [build-system]
 requires = ["hatchling>=1.27"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/ocr_pipeline"]
+packages = ["src/vipi"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "/src/vipi",
+    "/tests/unit",
+    "/tests/integration",
+    "/tests/conftest.py",
+    "/tests/fixtures",
+    "/README.md",
+    "/.env.example",
+    "/LICENSE",
+    "/pyproject.toml",
+    "/uv.lock",
+    "/docs/cli.md",
+    "/docs/architecture.md",
+]
 
 [tool.pytest.ini_options]
-pythonpath = ["src"]
+pythonpath = ["src", "."]
 testpaths = ["tests"]
 
 [tool.uv]
