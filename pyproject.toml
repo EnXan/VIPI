@@ -1,5 +1,5 @@
 [project]
-name = "vipi"
+name = "vipi-scanner"
 version = "0.1.0"
 description = "Scan images for visual indirect prompt injections"
 readme = "README.md"
