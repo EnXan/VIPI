@@ -130,6 +130,13 @@ def main(argv=None):
         help="Scan committed images added/modified since the common ancestor with REFERENCE",
     )
     command.add_argument(
+        "--exclude",
+        action="append",
+        default=[],
+        metavar="PATTERN",
+        help="Exclude a local scan path (repeatable); prefix with ! to re-include",
+    )
+    command.add_argument(
         "--detector",
         choices=DETECTORS,
         default=DEFAULT_DETECTOR,
@@ -209,6 +216,7 @@ def main(argv=None):
                 ocr_mode=args.ocr_mode,
                 ocr_model=args.ocr_model,
                 diff=args.diff,
+                exclude_patterns=args.exclude,
                 output=args.output,
                 progress=lambda message: status.update(Text(message, style="cyan")),
                 on_result=on_result,

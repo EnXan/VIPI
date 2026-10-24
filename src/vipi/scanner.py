@@ -55,6 +55,7 @@ def scan(
     ocr_mode=DEFAULT_OCR_MODE,
     ocr_model=None,
     diff=None,
+    exclude_patterns=(),
     output=None,
     progress=None,
     on_result=None,
@@ -82,7 +83,12 @@ def scan(
         options = ScanOptions(detector, threshold, ocr_mode, ocr_model)
         report["ocr_mode"] = options.ocr_mode
         report["ocr_model"] = options.resolved_ocr_model
-        selection = select_images(paths, diff=diff, excluded=[root])
+        selection = select_images(
+            paths,
+            diff=diff,
+            excluded=[root],
+            exclude_patterns=exclude_patterns,
+        )
         report.update(
             diff=selection.diff, skipped=selection.skipped, errors=selection.errors
         )

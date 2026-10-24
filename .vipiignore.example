@@ -1,0 +1,8 @@
+# Skip generated images and WebP files, except this reviewed image.
+generated/
+*.webp
+!generated/reviewed.webp
+
+# To scan only PNG files, replace the rules above with:
+# *
+# !*.png

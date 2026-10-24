@@ -45,6 +45,7 @@ uv run vipi scan label.png screenshot.jpg
 uv run vipi scan ./images
 uv run vipi scan ./images --verbose
 uv run vipi scan ./images --detector openai --threshold 90 --output report.json
+uv run vipi scan ./images --exclude 'generated/' --exclude '*.webp'
 uv run vipi scan ./images --ocr-mode fast
 uv run vipi scan ./images --ocr-mode balanced
 uv run vipi scan ./images --ocr-model ppocr-v6-medium
@@ -54,12 +55,59 @@ uv run vipi setup --ocr-mode fast
 | Scan option | Meaning | Default |
 | --- | --- | --- |
 | `--diff REFERENCE` | Scan committed images added or modified since the common ancestor with REFERENCE | Scan all supported images under the supplied paths |
+| `--exclude PATTERN` | Exclude a path; repeat to add ordered rules. Prefix with `!` to re-include | No user rules |
 | `--detector NAME` | `jev`, `openai`, `prompt-guard` | `jev` |
 | `--ocr-mode NAME` | `fast`, `balanced`, `quality` | `quality` |
 | `--ocr-model ID` | Override the mode with a supported model ID | Model for the selected mode |
 | `--threshold NUMBER` | Finding threshold on a 0–100 score scale; equality counts as a finding | `80` |
 | `--output FILE` | Also save the JSON report, including partial results and errors | Terminal output |
 | `--verbose` | Print the final extracted OCR text for each scanned image | Off |
+
+## Excluding images from local scans
+
+VIPI reads `.vipiignore` from the Git repository root. Outside a Git repository,
+it reads the file from the scanned directory, or the parent directory for an
+explicit image path. A missing file is allowed. Command-line `--exclude` rules
+are evaluated after file rules, in the order supplied; the last matching rule
+decides whether a path is skipped or scanned.
+
+The repository includes a [`.vipiignore.example`](../.vipiignore.example)
+template. Copy it to `.vipiignore` in your repository root and edit the rules.
+
+```text
+# Skip generated images and WebP files, except this reviewed image
+generated/
+*.webp
+!generated/reviewed.webp
+```
+
+Rules use forward-slash paths relative to the rule root. A pattern without a
+slash, such as `*.webp`, matches a path component at any depth. A path pattern
+with a slash, such as `docs/logo.png`, matches from the rule root; a leading
+slash also anchors it there. A trailing slash marks a directory and its
+contents. `**` spans any number of directories. Blank lines and lines starting
+with `#` are ignored. The syntax supports ordered `!` re-inclusion and does not
+claim complete `.gitignore` compatibility.
+
+Local scans include every supported image by default. To scan only PNG files,
+exclude every path first and then re-include PNG files:
+
+```text
+*
+!*.png
+```
+
+In this example, `generated/` and `*.webp` exclude images first, then
+`!generated/reviewed.webp` selects that one image. A later `--exclude '*.webp'`
+would exclude it again because the last matching rule wins. Put exceptions
+after broader exclusions when the image should be scanned. Re-included images
+remain within the requested scan path. Excluded paths and the matching rule are
+listed in the report; VIPI does not label excluded images as safe. Re-inclusion
+does not override built-in directory and cache exclusions.
+
+In this implementation slice, user rules apply to filesystem scans. Passing
+`--exclude` with `--diff`, or scanning a repository containing `.vipiignore`
+with `--diff`, returns an error until Git diff integration is completed.
 
 Verbose output labels each text block with its image path. Images with no extracted
 text are marked explicitly. The normal completion summary and errors remain visible
