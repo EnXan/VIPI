@@ -52,6 +52,40 @@ repository's `models/ocr`, `models/detector` and `runs` directories, with its
 existing path options. Prepare workbench models separately using
 `uv run python -m research.workbench prepare-models --model ppocr-v6`.
 
+## Releases and versioning
+
+Update the package version with `uv` when preparing a release. For example, a
+backward-compatible bug fix uses:
+
+```bash
+uv version --bump patch
+```
+
+Use `uv version --bump minor` for a new feature. VIPI is currently before
+`1.0.0`: while the public interface is still developing, use a minor bump for
+intentional breaking changes as well, and describe those changes in the release
+notes. After `1.0.0`, follow Semantic Versioning: patch for compatible fixes,
+minor for backward-compatible features, and `uv version --bump major` for
+breaking changes. The version command updates `pyproject.toml` and keeps
+`uv.lock` in sync.
+
+Include the version change in a pull request. After that commit has been merged
+to `main` and CI passes, tag the commit with the same version, prefixed with
+`v`, and push the tag:
+
+```bash
+git switch main
+git pull --ff-only
+git tag -a v0.1.1 -m "Release v0.1.1"
+git push origin v0.1.1
+```
+
+Pushing a tag that starts with `v` starts the release workflow. It verifies the
+tag against the project version, runs CI, builds the distributions, and
+publishes them to PyPI using Trusted Publishing. Merging to `main` alone does
+not publish a release. Each PyPI release needs a new version and tag; do not
+reuse a version that has already been published.
+
 ## Verification
 
 ```bash
