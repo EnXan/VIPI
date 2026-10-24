@@ -1,5 +1,28 @@
 # Repository working agreement
 
+## Releases
+
+- Include the version bump in the same pull request as every release-worthy
+  code update; do not wait until after that update has merged. Run
+  `uv version --bump patch` for a bug fix (or the appropriate minor/major bump)
+  and include the resulting `pyproject.toml` and `uv.lock` changes in that PR.
+  If an update has already merged without a version bump, open a follow-up
+  version-only PR before tagging a release.
+- After the PR containing the version bump is merged and its CI passes, check
+  out the updated `main`, create an annotated tag matching the version in
+  `pyproject.toml`, and push the tag. For example, for version `0.1.3`, run:
+
+```bash
+git switch main
+git pull --ff-only
+git tag -a v0.1.3 -m "Release v0.1.3"
+git push origin v0.1.3
+```
+
+- Pushing the `v*` tag starts `.github/workflows/ci-release.yml`, which runs CI,
+  builds distributions, and publishes to PyPI. A merge to `main` alone does
+  not publish a release; verify the tag workflow and publication.
+
 ## Working principles
 
 - Use English for communication, UI text, messages, code comments and project
