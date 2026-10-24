@@ -136,21 +136,63 @@ symlinks produce an error. Changes exclusive to the target branch are excluded.
 Missing references or insufficient history produce an error, rather than an
 empty successful scan. Fetch the target branch and sufficient history first.
 
-GitHub Actions can pass a repository Secret directly to the scan step:
+Use the packaged GitHub Action to scan changed images on pull requests:
 
 ```yaml
-- name: Scan changed images
-  env:
-    TYPESAFE_API_KEY: ${{ secrets.TYPESAFE_API_KEY }}
-  run: uv run vipi scan . --diff "origin/${GITHUB_BASE_REF}" --output report.json
+name: VIPI image scan
+on:
+  pull_request:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - uses: EnXan/VIPI@v0.2.0
+        env:
+          TYPESAFE_API_KEY: ${{ secrets.TYPESAFE_API_KEY }}
+      - name: Upload scan report
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: vipi-report
+          path: vipi-report.json
 ```
 
-This snippet assumes a `pull_request` workflow, a checkout with `fetch-depth: 0`,
-the target branch available as a remote reference, uv installed,
-`uv sync --extra ocr` completed, and `uv run vipi setup` already run. The
-repository does not provide a packaged GitHub Action. Fork PR workflows normally
-do not receive repository Secrets. If an external detector is selected without
-its key, VIPI returns exit code 2; it does not silently omit detection.
+The Action installs VIPI from the tagged repository source, prepares the
+selected OCR model and detector, then scans the requested paths. On every
+`pull_request` or `pull_request_target` event, it automatically uses the PR base
+branch and scans only added or modified supported images. It reads the complete
+image bytes from Git at the PR commit, then runs OCR on each full image. The diff
+selects files; it does not reduce images to textual patches. The `paths` input
+can restrict the scan further. Outside PR events, it scans all supported images
+under `paths` unless `base-ref` is set explicitly. The checkout needs
+`fetch-depth: 0` so Git can find the common ancestor and base branch.
+
+For local detection, use Prompt Guard instead of the default Jev API detector:
+
+```yaml
+- uses: EnXan/VIPI@v0.2.0
+  with:
+    detector: prompt-guard
+  env:
+    HF_TOKEN: ${{ secrets.HF_TOKEN }}
+```
+
+OCR and Prompt Guard inference run on the GitHub runner. Hugging Face requires
+access approval for the weights, and the model is under Meta's Llama 4 Community
+License; `HF_TOKEN` downloads the model and is not used for inference API calls.
+Jev and OpenAI require their API keys and can incur provider charges. Fork PRs
+normally receive neither repository secrets nor Hugging Face credentials, so
+those scans fail closed. All modes use GitHub runner time. A finding returns
+exit code 1 and an incomplete scan returns 2; the JSON report is written in
+either case. Use `if: always()` on an artifact upload step to retain it after
+either result. Public repositories can reference the Action with
+`EnXan/VIPI@<tag>`; consumers can pin a release tag or full commit SHA.
 
 ## Results and storage
 

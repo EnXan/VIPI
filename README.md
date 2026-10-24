@@ -121,8 +121,8 @@ Exit codes support CI use:
 | `1` | At least one image was detected |
 | `2` | An error or incomplete scan occurred; errors take precedence |
 
-VIPI provides the CLI for GitHub Actions workflows; this repository does not
-currently include a packaged GitHub Action. See the [PR scan example](docs/cli.md#branch-and-pr-scans).
+VIPI includes a packaged GitHub Action for scanning repository images in CI.
+See the [pull request scan example](docs/cli.md#branch-and-pr-scans).
 
 ## Documentation
 

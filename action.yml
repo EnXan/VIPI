@@ -1,0 +1,107 @@
+name: VIPI Image Scan
+description: Scan repository images for visual prompt injections
+inputs:
+  paths:
+    description: Newline-separated image files or directories to scan
+    required: false
+    default: .
+  base-ref:
+    description: Optional base branch for non-PR diff scans; PRs always use their actual base branch
+    required: false
+  detector:
+    description: Detector to use (jev, openai, or prompt-guard)
+    required: false
+    default: jev
+  threshold:
+    description: Finding threshold on a 0–100 score scale
+    required: false
+    default: "80"
+  ocr-mode:
+    description: OCR model mode (fast, balanced, or quality)
+    required: false
+    default: quality
+  report-path:
+    description: JSON report path relative to the caller repository
+    required: false
+    default: vipi-report.json
+outputs:
+  report-path:
+    description: Path to the JSON report, including findings and scan errors
+    value: ${{ steps.scan.outputs.report-path }}
+runs:
+  using: composite
+  steps:
+    - name: Install uv and Python
+      uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9
+      with:
+        python-version: "3.12"
+        enable-cache: true
+        cache-dependency-glob: ${{ github.action_path }}/uv.lock
+
+    - name: Cache VIPI models
+      uses: actions/cache@9255dc7a253b0ccc959486e2bca901246202afeb # v5.0.1
+      with:
+        path: |
+          ${{ runner.temp }}/vipi-cache/vipi/ocr
+          ${{ runner.temp }}/vipi-cache/vipi/prompt-guard
+        key: ${{ runner.os }}-vipi-${{ inputs.detector }}-${{ inputs.ocr-mode }}-${{ github.action_ref }}
+        restore-keys: |
+          ${{ runner.os }}-vipi-${{ inputs.detector }}-${{ inputs.ocr-mode }}-
+
+    - name: Install VIPI with OCR
+      shell: bash
+      run: uv sync --project "$GITHUB_ACTION_PATH" --locked --extra ocr
+
+    - name: Install Prompt Guard dependencies
+      if: inputs.detector == 'prompt-guard'
+      shell: bash
+      run: uv sync --project "$GITHUB_ACTION_PATH" --locked --extra ocr --extra detector-local
+
+    - name: Prepare scan models
+      shell: bash
+      env:
+        VIPI_DETECTOR: ${{ inputs.detector }}
+        VIPI_OCR_MODE: ${{ inputs.ocr-mode }}
+        XDG_CACHE_HOME: ${{ runner.temp }}/vipi-cache
+      run: >-
+        uv run --project "$GITHUB_ACTION_PATH" vipi setup
+        --detector "$VIPI_DETECTOR"
+        --ocr-mode "$VIPI_OCR_MODE"
+
+    - name: Scan images
+      id: scan
+      shell: bash
+      env:
+        VIPI_PATHS: ${{ inputs.paths }}
+        VIPI_BASE_REF: ${{ inputs.base-ref }}
+        VIPI_DETECTOR: ${{ inputs.detector }}
+        VIPI_THRESHOLD: ${{ inputs.threshold }}
+        VIPI_OCR_MODE: ${{ inputs.ocr-mode }}
+        VIPI_REPORT_PATH: ${{ inputs.report-path }}
+        XDG_CACHE_HOME: ${{ runner.temp }}/vipi-cache
+      run: |
+        paths=()
+        while IFS= read -r path; do
+          [[ -n "$path" ]] && paths+=("$path")
+        done <<< "$VIPI_PATHS"
+
+        if [[ ${#paths[@]} -eq 0 ]]; then
+          echo "The paths input must contain at least one path." >&2
+          exit 2
+        fi
+
+        args=("${paths[@]}" --detector "$VIPI_DETECTOR" --threshold "$VIPI_THRESHOLD" --ocr-mode "$VIPI_OCR_MODE" --output "$VIPI_REPORT_PATH")
+        base_ref="$VIPI_BASE_REF"
+        if [[ "$GITHUB_EVENT_NAME" == "pull_request" || "$GITHUB_EVENT_NAME" == "pull_request_target" ]]; then
+          base_ref="${GITHUB_BASE_REF:-}"
+          if [[ -z "$base_ref" ]]; then
+            echo "Could not determine the pull request base branch." >&2
+            exit 2
+          fi
+        fi
+        if [[ -n "$base_ref" ]]; then
+          args+=(--diff "origin/$base_ref")
+        fi
+
+        echo "report-path=$VIPI_REPORT_PATH" >> "$GITHUB_OUTPUT"
+        uv run --project "$GITHUB_ACTION_PATH" vipi scan "${args[@]}"

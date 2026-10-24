@@ -189,8 +189,12 @@ def test_parallel_engines_persist_independently_and_keep_variant_order(
                 barrier.wait(
                     timeout=5
                 )  # Cannot succeed with sequential/shared inference.
-                if raster.size == (16, 12):
-                    time.sleep(0.05)  # Force the original view to finish out of order.
+                if previous[-1]["step"]["id"] == "0001":
+                    with store.condition:
+                        assert store.condition.wait_for(
+                            lambda: store.status["completed"] > 0,
+                            timeout=5,
+                        )
             self.calls += 1
             return super().recognize(raster)
 
