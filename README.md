@@ -1,7 +1,7 @@
 # VIPI
 
 <p align="center">
-  <img src="assets/motion/vipi-reveal.gif" alt="Animated VIPI logo reveal" width="720">
+  <img src="https://raw.githubusercontent.com/EnXan/VIPI/main/assets/motion/vipi-reveal.gif" alt="Animated VIPI logo reveal" width="720">
 </p>
 
 <p align="center">
