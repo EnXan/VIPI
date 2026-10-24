@@ -121,8 +121,50 @@ Exit codes support CI use:
 | `1` | At least one image was detected |
 | `2` | An error or incomplete scan occurred; errors take precedence |
 
-VIPI includes a packaged GitHub Action for scanning repository images in CI.
-See the [pull request scan example](docs/cli.md#branch-and-pr-scans).
+## GitHub Actions
+
+Add this workflow at `.github/workflows/vipi-scan.yml` to scan images added or
+modified in pull requests targeting `main`:
+
+```yaml
+name: VIPI image scan
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - uses: EnXan/VIPI@v0.2.1
+        with:
+          detector: prompt-guard
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+
+      - name: Upload scan report
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: vipi-report
+          path: vipi-report.json
+```
+
+This example uses the local Prompt Guard detector; inference runs on the GitHub
+runner. Accept the model terms and add `HF_TOKEN` as a repository Actions secret
+so the runner can download the gated weights. Fork pull requests do not receive
+repository secrets, so a cache miss for those weights makes the scan fail
+closed. Jev and OpenAI are also available and need their API keys; see the
+[CLI guide](docs/cli.md#branch-and-pr-scans) for other detectors, scan inputs,
+diff behavior and report details.
 
 ## Documentation
 
