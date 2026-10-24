@@ -254,7 +254,7 @@ def test_batch_reuses_engines_on_their_own_threads_and_releases_run_cache(
 
         def recognize(self, image):
             assert threading.get_ident() == self.thread
-            if self.calls % 5 == 0:
+            if self.calls == 0:
                 barrier.wait(timeout=5)
             self.calls += 1
             return {"text": "", "regions": [], "preprocessing": {}}
