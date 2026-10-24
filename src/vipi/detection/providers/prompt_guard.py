@@ -107,7 +107,7 @@ def download_snapshot(directory, revision):
     files = {
         str(path.relative_to(directory)): file_hash(path)
         for path in directory.rglob("*")
-        if path.is_file() and ".cache" not in path.parts
+        if path.is_file() and ".cache" not in path.relative_to(directory).parts
     }
     manifest = {
         "model": MODEL_ID,
