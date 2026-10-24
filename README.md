@@ -10,8 +10,9 @@
 
 <p align="center">
   <a href="pyproject.toml"><img alt="Python 3.12" src="https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white"></a>
-  <a href="docs/cli.md#platform-validation-status"><img alt="macOS smoke-tested" src="https://img.shields.io/badge/macOS-smoke--tested-2ea44f"></a>
-  <a href="docs/cli.md#platform-validation-status"><img alt="Linux and Windows not tested" src="https://img.shields.io/badge/Linux%20%2F%20Windows-not%20tested-lightgrey"></a>
+  <a href="docs/cli.md#platform-validation-status"><img alt="macOS supported" src="https://img.shields.io/badge/macOS-tested-2ea44f"></a>
+  <a href="docs/cli.md#platform-validation-status"><img alt="Linux supported" src="https://img.shields.io/badge/Linux-tested-2ea44f"></a>
+  <a href="docs/cli.md#platform-validation-status"><img alt="Windows supported" src="https://img.shields.io/badge/Windows-tested-2ea44f"></a>
 </p>
 
 VIPI transforms each image through a multi-view OCR pipeline, then checks the
@@ -66,10 +67,14 @@ vipi setup --detector prompt-guard
 vipi scan image.png --detector prompt-guard
 ```
 
-Prompt Guard weights require authorized access to the Hugging Face model. Set
-`HF_TOKEN` if your account needs a token to download them. OCR model setup
-downloads the pinned PP-OCRv6 files for both install paths; scanning does not
-download models.
+Prompt Guard weights require authorized access to the
+[Prompt Guard model](https://huggingface.co/meta-llama/Prompt-Guard-86M). Visit
+its model page and accept Meta's access terms first. If you need a Hugging Face
+token, install the [Hugging Face CLI](https://huggingface.co/docs/huggingface_hub/guides/cli)
+and run `hf auth login`; the Hugging Face Hub client will use the saved login
+when downloading the model. You can also provide a token through `HF_TOKEN`.
+OCR model setup downloads the pinned PP-OCRv6 files for both install paths;
+scanning does not download models.
 
 If `vipi` is not found after installation, run `uv tool update-shell` and
 restart your terminal so uv's tool directory is added to `PATH`.
