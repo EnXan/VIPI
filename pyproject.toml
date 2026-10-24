@@ -1,6 +1,6 @@
 [project]
 name = "vipi-scanner"
-version = "0.1.2"
+version = "0.1.3"
 description = "Scan images for visual indirect prompt injections"
 readme = "README.md"
 license = "Apache-2.0"
