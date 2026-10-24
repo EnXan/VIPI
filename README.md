@@ -1,24 +1,25 @@
-# VIPI
+# VIPI — Visual Prompt Injection Scanner for Images
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/EnXan/VIPI/main/assets/motion/vipi-reveal.gif" alt="Animated VIPI logo reveal" width="720">
 </p>
 
 <p align="center">
-  Scan images for visual indirect prompt injections.
+  A Python CLI and GitHub Action that use OCR to detect prompt injections in images.
 </p>
 
 <p align="center">
-  <a href="pyproject.toml"><img alt="Python 3.12" src="https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white"></a>
-  <a href="docs/cli.md#platform-validation-status"><img alt="macOS supported" src="https://img.shields.io/badge/macOS-tested-2ea44f"></a>
-  <a href="docs/cli.md#platform-validation-status"><img alt="Linux supported" src="https://img.shields.io/badge/Linux-tested-2ea44f"></a>
-  <a href="docs/cli.md#platform-validation-status"><img alt="Windows supported" src="https://img.shields.io/badge/Windows-tested-2ea44f"></a>
+  <a href="https://github.com/EnXan/VIPI/blob/main/pyproject.toml"><img alt="Python 3.12" src="https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white"></a>
+  <a href="https://github.com/EnXan/VIPI/blob/main/docs/cli.md#platform-validation-status"><img alt="macOS supported" src="https://img.shields.io/badge/macOS-tested-2ea44f"></a>
+  <a href="https://github.com/EnXan/VIPI/blob/main/docs/cli.md#platform-validation-status"><img alt="Linux supported" src="https://img.shields.io/badge/Linux-tested-2ea44f"></a>
+  <a href="https://github.com/EnXan/VIPI/blob/main/docs/cli.md#platform-validation-status"><img alt="Windows supported" src="https://img.shields.io/badge/Windows-tested-2ea44f"></a>
 </p>
 
 VIPI transforms each image through a multi-view OCR pipeline, then checks the
 final recognized text with Jev, OpenAI Decisions or the local Prompt Guard model.
 The public interface is a small command-line tool that can scan files,
-directories and committed image changes.
+directories and committed image changes. Because detection evaluates OCR text,
+images that yield no recognized text may still contain visual prompt injections.
 
 ## Installation
 
@@ -108,7 +109,7 @@ three models by default. The default detector is Jev with a threshold of 80 on a
 0–100 score scale. A score at the threshold counts as a finding; it is not a
 calibrated probability of an attack.
 
-See the [CLI guide](docs/cli.md) for provider configuration, GitHub Actions
+See the [CLI guide](https://github.com/EnXan/VIPI/blob/main/docs/cli.md) for provider configuration, GitHub Actions
 examples, branch-diff behavior, cache paths and report details.
 
 ## Results and automation
@@ -144,7 +145,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - uses: EnXan/VIPI@v0.2.1
+      - uses: EnXan/VIPI@v0.3.0
         with:
           detector: prompt-guard
         env:
@@ -163,16 +164,16 @@ runner. Accept the model terms and add `HF_TOKEN` as a repository Actions secret
 so the runner can download the gated weights. Fork pull requests do not receive
 repository secrets, so a cache miss for those weights makes the scan fail
 closed. Jev and OpenAI are also available and need their API keys; see the
-[CLI guide](docs/cli.md#branch-and-pr-scans) for other detectors, scan inputs,
+[CLI guide](https://github.com/EnXan/VIPI/blob/main/docs/cli.md#branch-and-pr-scans) for other detectors, scan inputs,
 diff behavior and report details.
 
 ## Documentation
 
-- [CLI usage and platform validation](docs/cli.md)
-- [Package architecture](docs/architecture.md)
-- [Development setup and checks](docs/development.md)
-- [Research workbench and datasets](research/README.md)
-- [Decision records](adr-code/README.md)
+- [CLI usage and platform validation](https://github.com/EnXan/VIPI/blob/main/docs/cli.md)
+- [Package architecture](https://github.com/EnXan/VIPI/blob/main/docs/architecture.md)
+- [Development setup and checks](https://github.com/EnXan/VIPI/blob/main/docs/development.md)
+- [Research workbench and datasets](https://github.com/EnXan/VIPI/blob/main/research/README.md)
+- [Decision records](https://github.com/EnXan/VIPI/blob/main/adr-code/README.md)
 
 A built wheel contains the `vipi` package. Research tools, datasets, model
 weights and run artifacts remain outside the runtime package.
@@ -180,6 +181,6 @@ weights and run artifacts remain outside the runtime package.
 ## License
 
 VIPI's original code, documentation and project assets are licensed under the
-[Apache License, Version 2.0](LICENSE). Third-party models, dependencies,
+[Apache License, Version 2.0](https://github.com/EnXan/VIPI/blob/main/LICENSE). Third-party models, dependencies,
 datasets and other third-party material retain their own license terms; see
 their respective notices and source projects.
