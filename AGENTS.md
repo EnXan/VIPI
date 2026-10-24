@@ -34,6 +34,17 @@
   what remains untested; a documentation-only change does not require a full
   model run. Windows/Linux execution remains unverified until tested there.
 
+## Contributing
+
+- Work on a feature branch or fork, then open a pull request targeting `main`.
+- Set up the development environment with
+  `uv sync --extra ocr --extra detector-local --extra research --extra test`
+  and run the checks relevant to your change.
+- Complete the pull request template and summarize the change and validation
+  performed.
+- See [CONTRIBUTING.md](CONTRIBUTING.md) for contributor guidance and
+  [development](docs/development.md) for setup, checks, and release instructions.
+
 ## Package management
 
 - Use `uv` as the package manager for this project. Use `uv add` and `uv remove`
