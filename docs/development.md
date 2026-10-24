@@ -101,5 +101,5 @@ under `research/datasets/data/`; catalog access and dataset tools live in
 `research/datasets/`. Follow `AGENTS.md` and the
 [catalog guide](../research/datasets/data/catalog/README.md) before changing them.
 
-Windows and Linux have not been tested; see the [platform status](cli.md#platform-validation-status).
+macOS, Linux and Windows have been tested; see the [platform status](cli.md#platform-validation-status).
 No live paid provider calls are required by the automated suite.

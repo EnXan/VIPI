@@ -14,19 +14,20 @@ development commands are documented in [development setup](development.md).
 
 ## Platform validation status
 
-As of 2026-10-22, the public CLI is designed for macOS, Linux x86-64 and native
+As of 2026-10-24, the public CLI is supported on macOS, Linux x86-64 and native
 Windows x86-64. Python 3.12 is required; branch-diff scans also require Git on
 `PATH`. The public CLI uses CPU processing and does not require a GPU.
 
 macOS validation covers 252 tests, wheel and source-archive builds, a CLI smoke
 test from the built wheel, and a complete PP-OCRv6 smoke scan with real OCR
-weights and a simulated detector response. **Linux and Windows have not been
-tested**; installation and complete scans on those systems are not verified.
+weights and a simulated detector response. Linux and Windows have also been
+tested. The detailed validation matrix for those platforms is not recorded
+here.
 
-Before declaring Linux or Windows support verified, test installation in a fresh
-Python 3.12 environment, model setup, an image scan, a committed branch-diff scan,
-JSON output and exit codes on each system. Include the selected provider's
-credential handling and the optional local detector when claiming its support.
+For future platform validation, record installation in a fresh Python 3.12
+environment, model setup, an image scan, a committed branch-diff scan, JSON
+output and exit codes on each system. Include the selected provider's credential
+handling and the optional local detector when claiming its support.
 
 ## Commands
 
