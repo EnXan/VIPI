@@ -60,6 +60,13 @@ git push origin v0.1.3
 ## Contributing
 
 - Work on a feature branch or fork, then open a pull request targeting `main`.
+- Name branches with a prefix matching the change's primary purpose, followed
+  by a short lowercase, kebab-case name. Use `feature/<name>` for features,
+  `fix/<name>` for bug fixes and patches, `doc/<name>` for documentation-only
+  changes, `refactor/<name>` for behavior-preserving refactors, `test/<name>`
+  for test-only changes, `ci/<name>` for CI/CD changes, and `chore/<name>` for
+  maintenance or dependency updates. Use the category prefix directly, without
+  an additional generic prefix.
 - Set up the development environment with
   `uv sync --extra ocr --extra detector-local --extra research --extra test`
   and run the checks relevant to your change.
