@@ -18,7 +18,23 @@ def test_candidate_registry_excludes_tesseract():
     )
 
 
-def test_candidate_manifest_records_generational_model_dependencies():
+def test_candidate_manifest_records_generational_model_dependencies(monkeypatch):
+    installed_version = screen.importlib.metadata.version
+    candidate_versions = {
+        "torch": "2.6.0",
+        "torchvision": "0.21.0",
+        "transformers": "5.8.1",
+        "huggingface-hub": "1.32.0",
+        "timm": "1.0.20",
+        "einops": "0.8.1",
+    }
+
+    def version(package):
+        if package in candidate_versions:
+            return candidate_versions[package]
+        return installed_version(package)
+
+    monkeypatch.setattr(screen.importlib.metadata, "version", version)
     versions = screen.candidate_library_versions()
 
     assert all(
