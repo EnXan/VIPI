@@ -19,48 +19,80 @@ final recognized text with Jev, OpenAI Decisions or the local Prompt Guard model
 The public interface is a small command-line tool that can scan files,
 directories and committed image changes.
 
-## Quick start
+## Installation
 
-VIPI requires Python 3.12 and [uv](https://docs.astral.sh/uv/). Install the OCR
-extra, prepare the pinned PP-OCRv6 models once, then provide a Jev API key and
-scan an image. Set `TYPESAFE_API_KEY` in the environment, or copy
-[`.env.example`](.env.example) to `.env` and fill in the key before scanning:
+VIPI requires Python 3.12 and [uv](https://docs.astral.sh/uv/getting-started/installation/).
+Install the CLI from [PyPI](https://pypi.org/project/vipi-scanner/) with
+`uv tool install`. Choose the install path for the detector you plan to use.
+Both paths include the OCR dependencies; OCR runs locally and is required for
+every scan.
 
-`uv venv` creates the project environment in `.venv`. `uv sync --extra ocr`
-installs VIPI and its OCR dependencies into that environment. Commands run with
-`uv run` use `.venv` automatically, so you do not need to activate it yourself.
+### Cloud API detector
+
+For Jev or OpenAI, install VIPI with its OCR extra:
 
 ```bash
-git clone https://github.com/EnXan/VIPI.git
-cd VIPI
-uv venv
-uv sync --extra ocr
-uv run vipi setup
-uv run vipi scan image.png
+uv tool install --python 3.12 'vipi-scanner[ocr]'
+vipi setup
 ```
 
-Jev also accepts `JEV_API_KEY`. Model setup downloads and verifies the pinned
-OCR files; scanning does not download models.
+Set the credential for the detector you will use before scanning. Jev accepts
+`TYPESAFE_API_KEY` (or the alias `JEV_API_KEY`); OpenAI uses `OPENAI_API_KEY`.
+For example, set one in your shell before running `vipi scan`:
+
+```bash
+# macOS / Linux
+export TYPESAFE_API_KEY="your-typesafe-api-key"
+
+# Windows PowerShell
+$env:TYPESAFE_API_KEY = "your-typesafe-api-key"
+```
+
+For OpenAI, set `OPENAI_API_KEY` in place of `TYPESAFE_API_KEY`. The default
+detector is Jev; select OpenAI with `--detector openai`.
+
+```bash
+vipi scan image.png
+```
+
+### Local Prompt Guard detector
+
+To run the detector locally, install the OCR and local-detector extras, then
+prepare Prompt Guard and its model weights:
+
+```bash
+uv tool install --python 3.12 'vipi-scanner[ocr,detector-local]'
+vipi setup --detector prompt-guard
+vipi scan image.png --detector prompt-guard
+```
+
+Prompt Guard weights require authorized access to the Hugging Face model. Set
+`HF_TOKEN` if your account needs a token to download them. OCR model setup
+downloads the pinned PP-OCRv6 files for both install paths; scanning does not
+download models.
+
+If `vipi` is not found after installation, run `uv tool update-shell` and
+restart your terminal so uv's tool directory is added to `PATH`.
 
 ## Usage
 
 ```bash
 # Scan one or more images
-uv run vipi scan label.png screenshot.jpg
+vipi scan label.png screenshot.jpg
 
 # Scan a directory recursively and save a JSON report
-uv run vipi scan ./images --output report.json
+vipi scan ./images --output report.json
 
 # Choose a speed/quality mode or a specific supported model
-uv run vipi scan ./images --ocr-mode fast
-uv run vipi scan ./images --ocr-mode balanced
-uv run vipi scan ./images --ocr-model ppocr-v6-medium
+vipi scan ./images --ocr-mode fast
+vipi scan ./images --ocr-mode balanced
+vipi scan ./images --ocr-model ppocr-v6-medium
 
 # Scan committed images added or modified on a branch
-uv run vipi scan . --diff origin/main --output report.json
+vipi scan . --diff origin/main --output report.json
 
 # Choose a detector and adjust the finding threshold
-uv run vipi scan image.png --detector openai --threshold 90
+vipi scan image.png --detector openai --threshold 90
 ```
 
 The interface has two commands, `vipi setup` and `vipi scan`. OCR modes map
@@ -71,17 +103,8 @@ three models by default. The default detector is Jev with a threshold of 80 on a
 0–100 score scale. A score at the threshold counts as a finding; it is not a
 calibrated probability of an attack.
 
-For local Prompt Guard, install its optional dependencies and prepare its model:
-
-```bash
-uv sync --extra ocr --extra detector-local
-uv run vipi setup --detector prompt-guard
-uv run vipi scan image.png --detector prompt-guard
-```
-
-OpenAI uses `OPENAI_API_KEY`. Prompt Guard runs locally and requires authorized
-access to its model weights. See the [CLI guide](docs/cli.md) for provider setup,
-GitHub Actions examples, branch-diff behavior, cache paths and report details.
+See the [CLI guide](docs/cli.md) for provider configuration, GitHub Actions
+examples, branch-diff behavior, cache paths and report details.
 
 ## Results and automation
 

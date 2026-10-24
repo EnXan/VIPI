@@ -1,6 +1,6 @@
 [project]
 name = "vipi-scanner"
-version = "0.1.0"
+version = "0.1.1"
 description = "Scan images for visual indirect prompt injections"
 readme = "README.md"
 license = "Apache-2.0"
@@ -43,6 +43,7 @@ research = [
     "Flask==3.1.2",
     "jsonschema>=4.26.0",
     "huggingface-hub>=1.32.0",
+    "scipy",
 ]
 
 [project.scripts]
