@@ -1,15 +1,38 @@
 [project]
 name = "vipi-scanner"
-version = "0.3.0"
-description = "Scan images for visual indirect prompt injections"
+version = "0.3.1"
+description = "Detect visual prompt injections in images with OCR, a Python CLI, and a GitHub Action"
 readme = "README.md"
 license = "Apache-2.0"
 license-files = ["LICENSE"]
 requires-python = ">=3.12,<3.13"
+keywords = [
+    "visual prompt injection",
+    "image prompt injection",
+    "LLM security",
+    "OCR",
+    "image scanner",
+    "GitHub Actions",
+]
+classifiers = [
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Security",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
 dependencies = [
     "python-dotenv>=1.2.4,<2",
     "rich",
 ]
+
+[project.urls]
+Homepage = "https://github.com/EnXan/VIPI"
+Documentation = "https://github.com/EnXan/VIPI/blob/main/docs/cli.md"
+Repository = "https://github.com/EnXan/VIPI"
+Issues = "https://github.com/EnXan/VIPI/issues"
+Changelog = "https://github.com/EnXan/VIPI/releases"
 
 [project.optional-dependencies]
 ocr = [

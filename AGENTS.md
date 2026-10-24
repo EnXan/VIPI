@@ -8,6 +8,10 @@
   and include the resulting `pyproject.toml` and `uv.lock` changes in that PR.
   If an update has already merged without a version bump, open a follow-up
   version-only PR before tagging a release.
+- Whenever the version in `pyproject.toml` changes, search documentation,
+  examples, and other repository references for mentions of the previous
+  version. Update references presented as current to the new version in the
+  same PR; keep references that clearly document historical releases unchanged.
 - After the PR containing the version bump is merged and its CI passes, check
   out the updated `main`, create an annotated tag matching the version in
   `pyproject.toml`, and push the tag. For example, for version `0.1.3`, run:
