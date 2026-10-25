@@ -5,7 +5,7 @@ import time
 import pytest
 
 from research.workbench.batch import Batch
-from research.datasets.catalog import Catalog
+from research.ocr_eval.evaluation.catalog import Catalog
 from vipi.ocr.transforms import FILTERS, views_for_size
 from research.workbench.web import create_app
 
@@ -14,7 +14,7 @@ def test_selected_images_evaluation_failures_continuation_and_restore(
     dataset_repository, monkeypatch
 ):
     root = dataset_repository
-    index = root / "research/datasets/data/catalog/ocr/ocr_metadata.json"
+    index = root / "research/ocr_eval/catalog.json"
     original_index = index.read_bytes()
     monkeypatch.setattr("research.workbench.web.validate_model", lambda *args: None)
     monkeypatch.setattr(

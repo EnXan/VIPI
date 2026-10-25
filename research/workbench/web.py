@@ -4,6 +4,7 @@ import re
 import json
 import tempfile
 import threading
+from concurrent.futures import CancelledError
 from pathlib import Path
 
 from flask import Flask, Response, jsonify, render_template, request, send_file
@@ -13,13 +14,15 @@ from .presentation import image_links, sse_events
 
 from vipi.ocr.models import DEFAULT_MODEL, model_options, validate_model
 from .batch import Batch
-from research.datasets.catalog import Catalog
+from research.ocr_eval.evaluation.catalog import Catalog
+from research.detection_eval.evaluation.catalog import Catalog as DetectionCatalog
 from .datasets import DatasetBrowser
 from vipi.ocr.pipeline import extract
 from vipi.storage.ocr import RunStore
 from vipi.ocr.transforms import decode_image, views_for_size
 from vipi.ocr.workers import DEFAULT_WORKERS, MAX_WORKERS, worker_count
 from vipi.ocr.runtime import DEFAULT_BACKEND, backend_options, validate_backend
+from vipi.cancellation import check_cancelled
 
 
 def create_app(
@@ -37,26 +40,28 @@ def create_app(
     root.mkdir(parents=True, exist_ok=True)
     jobs = {}
     batches = {}
+    run_cancellations = {}
     active = threading.Lock()
     repository = Path(repository_root or Path.cwd()).resolve()
-    catalog = None
-    browser = None
+    catalogs = {}
+    browsers = {}
     from research.workbench.detection import DetectionService, register_routes
 
     detection = DetectionService(root, detector_models_dir, detector_provider_factory)
     register_routes(app, detection)
 
-    def get_catalog():
-        nonlocal catalog
-        if catalog is None:
-            catalog = Catalog(repository)
-        return catalog
+    def get_catalog(dataset="ocr_evaluation"):
+        types = {"ocr_evaluation": Catalog, "detection_evaluation": DetectionCatalog}
+        if dataset not in types:
+            raise ValueError("Choose OCR evaluation or detection evaluation.")
+        if dataset not in catalogs:
+            catalogs[dataset] = types[dataset](repository)
+        return catalogs[dataset]
 
-    def get_browser():
-        nonlocal browser
-        if browser is None:
-            browser = DatasetBrowser(get_catalog())
-        return browser
+    def get_browser(dataset):
+        if dataset not in browsers:
+            browsers[dataset] = DatasetBrowser(get_catalog(dataset), dataset)
+        return browsers[dataset]
 
     @app.before_request
     def local_requests():
@@ -99,7 +104,7 @@ def create_app(
             if offset < 0 or not 1 <= limit <= 48:
                 raise ValueError("Invalid dataset page.")
             return jsonify(
-                get_browser().listing(
+                get_browser(request.args.get("dataset", "ocr_evaluation")).listing(
                     request.args.get("category", ""),
                     request.args.get("q", ""),
                     offset,
@@ -109,10 +114,23 @@ def create_app(
         except (ValueError, OSError) as error:
             return jsonify(error=str(error)), 400
 
+    @app.get("/api/datasets/<identifier>/reference")
+    def dataset_reference(identifier):
+        try:
+            catalog = get_catalog(request.args.get("dataset", "ocr_evaluation"))
+            return jsonify(catalog.reference(identifier))
+        except (ValueError, OSError) as error:
+            return jsonify(error=str(error)), 404
+
     @app.get("/api/datasets/<identifier>/image")
     def dataset_image(identifier):
         try:
-            return send_file(get_catalog().path(identifier), conditional=True)
+            return send_file(
+                get_catalog(request.args.get("dataset", "ocr_evaluation")).path(
+                    identifier
+                ),
+                conditional=True,
+            )
         except (ValueError, OSError) as error:
             return jsonify(error=str(error)), 404
 
@@ -123,7 +141,9 @@ def create_app(
         try:
             with thumbnail_slots:
                 return send_file(
-                    get_browser().thumbnail(identifier),
+                    get_browser(
+                        request.args.get("dataset", "ocr_evaluation")
+                    ).thumbnail(identifier),
                     mimetype="image/jpeg",
                     max_age=3600,
                 )
@@ -142,7 +162,10 @@ def create_app(
         ):
             return jsonify(error="Provide a list of dataset image IDs."), 400
         try:
-            selected = get_catalog()
+            dataset = data.get("dataset", "ocr_evaluation")
+            if not isinstance(dataset, str):
+                raise ValueError("Choose a dataset collection.")
+            selected = get_catalog(dataset)
             if len(data["dataset_ids"]) > len(selected.items):
                 raise ValueError("Selection exceeds the dataset catalog.")
             workers = worker_count(data.get("workers", DEFAULT_WORKERS))
@@ -159,6 +182,10 @@ def create_app(
                 if not isinstance(data["detection"], dict):
                     raise ValueError("Detection options must be a JSON object.")
                 detection_options = settings(**data["detection"])
+            if dataset == "detection_evaluation" and detection_options is None:
+                raise ValueError(
+                    "Select at least one detector for detection evaluation."
+                )
         except (ValueError, OSError, TypeError) as error:
             return jsonify(error=str(error)), 400
         if not active.acquire(blocking=False):
@@ -174,6 +201,7 @@ def create_app(
                 workers,
                 backend=backend,
                 detection_options=detection_options,
+                dataset=dataset,
             )
             batches[batch.id] = batch
 
@@ -222,6 +250,17 @@ def create_app(
         except (ValueError, OSError):
             return jsonify(error="Selection run not found."), 404
 
+    @app.post("/api/batches/<identifier>/cancel")
+    def cancel_batch(identifier):
+        try:
+            batch = get_batch(identifier)
+            requested = batch.cancel()
+            if requested and batch.status.get("current_run_id"):
+                detection.cancel(batch.status["current_run_id"])
+            return jsonify(batch.snapshot()), 202 if requested else 200
+        except (ValueError, OSError):
+            return jsonify(error="Selection run not found."), 404
+
     def get_job(run_id):
         if not re.fullmatch(r"[a-f0-9]{32}", run_id):
             return None
@@ -265,8 +304,12 @@ def create_app(
             views_for_size(*image.size)
             store = RunStore(root, model, workers=workers, backend=backend)
             jobs[store.id] = store
+            cancel_event = threading.Event()
+            run_cancellations[store.id] = cancel_event
             check_store = (
-                detection.prepare(store.id, detection_options)
+                detection.prepare(
+                    store.id, detection_options, cancel_event=cancel_event
+                )
                 if detection_options
                 else None
             )
@@ -281,9 +324,14 @@ def create_app(
                         engine_factory=engine_factory,
                         workers=workers,
                         backend=backend,
+                        cancel_event=cancel_event,
                     )
+                    check_cancelled(cancel_event)
                     if check_store:
                         detection.enqueue(check_store, detection_options)
+                except CancelledError:
+                    if check_store and check_store.status["state"] == "queued":
+                        check_store.emit("detection_cancelled", state="cancelled")
                 except Exception as error:
                     if check_store:
                         check_store.emit(
@@ -300,6 +348,7 @@ def create_app(
                             completed=store.status["completed"],
                         )
                 finally:
+                    run_cancellations.pop(store.id, None)
                     temporary.unlink(missing_ok=True)
                     active.release()
 
@@ -319,6 +368,33 @@ def create_app(
             if job
             else (jsonify(error="Run not found."), 404)
         )
+
+    @app.post("/api/runs/<run_id>/cancel")
+    def cancel_run(run_id):
+        job = get_job(run_id)
+        if job is None:
+            return jsonify(error="Run not found."), 404
+        # A batch owns its current OCR run and any following detector work.
+        for batch in list(batches.values()):
+            if batch.status.get("current_run_id") == run_id and batch.status[
+                "state"
+            ] not in {"completed", "failed", "cancelled"}:
+                batch.cancel()
+                detection.cancel(run_id)
+                return jsonify(cancel_requested=True), 202
+        requested = detection.cancel(run_id)
+        event = run_cancellations.get(run_id)
+        if event is not None:
+            event.set()
+            requested = True
+            with job.condition:
+                if job.status["state"] not in {
+                    "completed",
+                    "failed",
+                    "cancelled",
+                } and not job.status.get("cancel_requested"):
+                    job.transition("cancellation_requested", cancel_requested=True)
+        return jsonify(cancel_requested=requested), 202 if requested else 200
 
     @app.get("/api/runs/<run_id>/events")
     def events(run_id):

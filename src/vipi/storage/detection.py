@@ -57,7 +57,7 @@ class DetectionStore(EventLog):
             if (store.directory / "answers.jsonl").exists()
             else []
         )
-        if store.status["state"] not in {"completed", "failed"}:
+        if store.status["state"] not in {"completed", "failed", "cancelled"}:
             store.emit(
                 "detection_failed",
                 state="failed",

@@ -21,7 +21,7 @@ The candidate had 192/205 matched reference tokens (93.7%) versus 193/205
 (94.1%) for the control, and 129 OCR calls versus 340. Summed per-image child
 elapsed time was 304.0 seconds versus 670.5 seconds; this is not an end-to-end
 scan wall-clock comparison. The measurements and limitations are recorded in
-[the screening report](../research/experiments/ocr/README.md).
+[the OCR evaluation guide](../research/ocr_eval/README.md).
 
 ## Decision
 

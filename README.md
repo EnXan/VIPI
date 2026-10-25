@@ -21,6 +21,11 @@ The public interface is a small command-line tool that can scan files,
 directories and committed image changes. Because detection evaluates OCR text,
 images that yield no recognized text may still contain visual prompt injections.
 
+Evaluation images, OCR references and detection labels are available in the
+[VIPI Evaluation dataset](https://huggingface.co/datasets/EnXan/VIPI-evaluation).
+See how to [download the pinned images](https://github.com/EnXan/VIPI/blob/main/research/README.md#download-images)
+or [contribute new examples for review](https://github.com/EnXan/VIPI/blob/main/research/README.md#add-images).
+
 ## Installation
 
 VIPI requires Python 3.12 and [uv](https://docs.astral.sh/uv/getting-started/installation/).
@@ -145,7 +150,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - uses: EnXan/VIPI@v0.3.1
+      - uses: EnXan/VIPI@v0.4.0
         with:
           detector: prompt-guard
         env:

@@ -34,7 +34,7 @@ jobs:
         run: uv sync --locked --extra ocr --extra detector-local --extra research --extra test
 
       - name: Lint
-        run: uv run --locked ruff check src/vipi research/workbench research/evaluation research/datasets/catalog.py tests
+        run: uv run --locked ruff check src/vipi research/download.py research/workbench research/ocr_eval/evaluation tests
 
       - name: Run unit and integration tests
         run: uv run --locked pytest -q tests/unit tests/integration

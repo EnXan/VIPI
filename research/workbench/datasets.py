@@ -8,22 +8,26 @@ from PIL import Image, ImageOps
 
 CATEGORY_LABELS = {
     "textocr": "TextOCR",
-    "anamorpher": "Anamorpher",
     "typographic_visual_prompt_injection": "Dagger7164",
     "cyberseceval3_visual_prompt_injection": "CyberSecEval3",
     "mm_safetybench": "MM-SafetyBench",
     "vpi_bench": "VPI-Bench",
+    "injection": "Injection",
+    "benign": "Benign",
+    "context_dependent": "Context dependent",
 }
 
 
 class DatasetBrowser:
-    def __init__(self, catalog):
+    def __init__(self, catalog, dataset="ocr_evaluation"):
         self.catalog = catalog
+        self.dataset = dataset
 
     def listing(self, category="", query="", offset=0, limit=12):
         matches = self.catalog.search(category, query)
         counts = self.catalog.category_counts()
         return {
+            "dataset": self.dataset,
             "total": len(matches),
             "catalog_total": len(self.catalog.items),
             "offset": offset,
@@ -40,8 +44,9 @@ class DatasetBrowser:
                     "category": item["category"],
                     "label": CATEGORY_LABELS.get(item["category"], item["category"]),
                     "name": Path(item["image"]).name,
-                    "thumbnail_url": f"/api/datasets/{item['id']}/thumbnail",
-                    "image_url": f"/api/datasets/{item['id']}/image",
+                    "thumbnail_url": f"/api/datasets/{item['id']}/thumbnail?dataset={self.dataset}",
+                    "image_url": f"/api/datasets/{item['id']}/image?dataset={self.dataset}",
+                    "case_count": len(item.get("cases", [])),
                 }
                 for item in matches[offset : offset + limit]
             ],

@@ -2,7 +2,7 @@ import random
 
 import pytest
 
-from research.evaluation.metrics import (
+from research.ocr_eval.evaluation.metrics import (
     compare,
     evaluate,
     ordered_matches,
@@ -141,7 +141,7 @@ def test_unicode_and_punctuation_normalization():
 
 
 def test_compact_selected_line_retains_native_word_positions():
-    from research.evaluation.metrics import final_observations
+    from research.ocr_eval.evaluation.metrics import final_observations
 
     native = [word("MCLAREN", 0), word("VALE", 50)]
     line = {"text": "MCLARENVALE", "words": native}

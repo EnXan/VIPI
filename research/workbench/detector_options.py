@@ -7,8 +7,15 @@ from vipi.detection.pipeline import TEXT_CLASSIFIERS, settings
 from vipi.detection.providers.prompt_guard import MODEL_DIR
 
 
-def add_options(parser, *, default="jev"):
-    parser.add_argument("--text-classifier", choices=TEXT_CLASSIFIERS, default=default)
+def add_options(parser):
+    parser.add_argument(
+        "--text-classifier",
+        choices=TEXT_CLASSIFIERS[:3],
+        action="append",
+        default=None,
+        metavar="MODEL",
+        help="Text classifier; repeat for multiple models, omit for none",
+    )
     parser.add_argument("--image-check", choices=("off", "openai"), default="off")
     parser.add_argument("--context-check", choices=("off", "openai"), default="off")
     parser.add_argument("--context-file", type=Path)
@@ -23,7 +30,8 @@ def add_options(parser, *, default="jev"):
 
 def read_options(args):
     return settings(
-        text_classifier=args.text_classifier or "off",
+        text_classifier="off",
+        text_classifiers=args.text_classifier or [],
         image_check=args.image_check,
         context_check=args.context_check,
         context=json.loads(args.context_file.read_text())

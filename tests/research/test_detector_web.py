@@ -220,7 +220,16 @@ def test_dotenv_keys_enable_web_and_cli_without_exposing_secrets(
         return {"status": "completed", "probability": 0.1}
 
     monkeypatch.setattr("vipi.detection.providers.jev.Jev.check", check)
-    assert main(["detect", directory.name, "--runs-dir", str(directory.parent)]) == 0
+    assert main(
+        [
+            "detect",
+            directory.name,
+            "--runs-dir",
+            str(directory.parent),
+            "--text-classifier",
+            "jev",
+        ]
+    ) == 0
     base = f"/api/runs/{directory.name}/detections"
     response = client.post(base, json={"text_classifier": "jev", "reuse": False})
     assert response.status_code == 202
@@ -232,13 +241,25 @@ def test_dotenv_keys_enable_web_and_cli_without_exposing_secrets(
     assert "fixture-secret" not in output.out + output.err
 
 
-def test_cli_defaults_reports_and_operational_exit(tmp_path, monkeypatch, capsys):
+def test_cli_with_selected_detector_reports_and_operational_exit(
+    tmp_path, monkeypatch, capsys
+):
     directory = saved_ocr(tmp_path / "runs")
     monkeypatch.setattr(
         "vipi.detection.pipeline.create_provider", lambda name, model_dir: factory(name)
     )
     assert (
-        main(["detect", directory.name, "--runs-dir", str(directory.parent), "--json"])
+        main(
+            [
+                "detect",
+                directory.name,
+                "--runs-dir",
+                str(directory.parent),
+                "--text-classifier",
+                "jev",
+                "--json",
+            ]
+        )
         == 0
     )
     result = json.loads(capsys.readouterr().out)
@@ -256,6 +277,8 @@ def test_cli_defaults_reports_and_operational_exit(tmp_path, monkeypatch, capsys
                 directory.name,
                 "--runs-dir",
                 str(directory.parent),
+                "--text-classifier",
+                "jev",
                 "--thresholds-file",
                 str(thresholds),
             ]

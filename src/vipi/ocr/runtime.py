@@ -85,7 +85,7 @@ def backend_options():
         {"id": "cpu", "label": "CPU", "available": True},
         {
             "id": "coreml",
-            "label": "Apple CoreML · experimentell",
+            "label": "Apple CoreML · experimental",
             "available": coreml_available(),
         },
         {"id": "cuda", "label": "NVIDIA CUDA", "available": cuda_available()},

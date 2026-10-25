@@ -58,7 +58,7 @@ class RunStore(EventLog):
             if path.exists()
             else []
         )
-        if store.status["state"] not in {"completed", "failed"}:
+        if store.status["state"] not in {"completed", "failed", "cancelled"}:
             store.status.update(
                 state="failed",
                 active_steps={},

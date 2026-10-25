@@ -1,8 +1,9 @@
 # Prompt-injection scanner
 
 Inspect the final saved OCR text through CLI or the existing local web interface.
-Jev is the default detector; `compare` runs Jev, OpenAI Decisions and local
-Prompt Guard 2 86M. Original-image and joint image/OCR/context checks are optional.
+The workbench supports Jev, OpenAI Decisions and local Prompt Guard 2 86M.
+Select any combination by repeating `--text-classifier`; original-image and
+joint image/OCR/context checks are optional.
 
 ## Setup
 
@@ -46,7 +47,7 @@ Check an existing OCR run (replace `RUN_ID` with the directory name under `runs/
 
 ```bash
 .venv-ocr/bin/python -m research.workbench.detector_cli detect RUN_ID --text-classifier jev
-.venv-ocr/bin/python -m research.workbench.detector_cli detect RUN_ID --text-classifier compare --json
+.venv-ocr/bin/python -m research.workbench.detector_cli detect RUN_ID --text-classifier jev --text-classifier openai --json
 ```
 
 Extract a new image, then check its readings in the same command:
@@ -58,7 +59,8 @@ Extract a new image, then check its readings in the same command:
 Optional switches: `--image-check openai`, `--context-check openai`,
 `--context-file context.json`, `--thresholds-file thresholds.json`,
 `--no-reuse` for fresh checks, `--runs-dir` and `--detector-models-dir`.
-Use `--text-classifier off` for image/context checks alone.
+Repeat `--text-classifier` to enable multiple text classifiers. Omit it for
+OCR-only extraction or when selecting only image/context checks.
 
 Caller context is optional and supplied outside the inspected image:
 
@@ -67,8 +69,7 @@ Caller context is optional and supplied outside the inspected image:
   "task": "Read the product information from this image",
   "expected_behavior": "Summarize the visible product information",
   "allowed_actions": [],
-  "constraints": ["Do not open links or send messages"],
-  "source": {"origin": "external upload", "authority": "reference material"}
+  "constraints": ["Do not open links or send messages"]
 }
 ```
 
@@ -84,16 +85,42 @@ Start the server as usual and open its local URL:
 .venv-ocr/bin/python -m research.workbench serve
 ```
 
-Choose **Datensatz auswählen** (category/search filters) or upload/paste an image.
-Select the OCR model and optional text detector, then **Scan starten**. The page
-shows the final OCR text followed by per-detector results. **Erkannten Text prüfen**
+Choose **Browse dataset** (category/search filters) or upload/paste an image,
+then follow the **Input**, **Options** and **Review** steps. Select any
+combination of text classifiers, or leave all unchecked for OCR only. Configure
+the threshold set version and one score threshold for every selected check before
+detection can run. Set each threshold with its slider or numeric input. Scores at
+or above the threshold are flagged; lower complete scores are not flagged. The page
+shows the final OCR text followed by per-detector results. **Check recognized text**
 checks a saved outcome without rerunning OCR. Only the completed final text is
-classified, never individual transformation readings. **OCR-Schritte ansehen**
+classified, never individual transformation readings. **View OCR steps**
 opens a separate dialog with live variants, boxes and texts; it is closed by default.
-Hardware, optional image/context checks and thresholds live under **Weitere
-Einstellungen**. Technical reports and prior checks are collapsed by default. Earlier checks of
+Scan setup and single-image results live in **Scan**. Dataset run reports live in
+**Evaluation**, which opens when a dataset scan starts.
+The current image and run phase remain visible across both tabs. The evaluation
+table summarizes each image; expand **Text, labels and scores** to view the exact
+reference and OCR text, case outcomes, detector verdicts and scores. Aggregate
+metrics and case tables are collapsed by default.
+Hardware, workers, optional image/context checks, caller context, thresholds and
+answer reuse are selectable in the guided options step. Technical reports and prior checks are collapsed by default. Earlier checks of
 individual variants remain accessible in history, but never appear as a new
 final-text result or trigger automatic API calls.
+
+For labeled dataset runs, choose **detection_evaluation** in **Browse dataset**.
+The workbench runs OCR and detection once per image without caller context,
+then scores the shared verdict against every expected label. Catalog context
+is ground truth only; context-dependent misclassifications count normally. See
+[Detection evaluation](README.md#detection-evaluation) for metrics and threshold
+requirements.
+
+The workbench API and CLI both accept multiple text classifiers. The CLI takes
+the repeatable `--text-classifier` option; omitting it means no text classifier.
+Older saved runs retain their original result history.
+
+Use **Stop scan** to cancel active checks. Finished answers are preserved while
+queued checks are skipped. A provider call already running must return before
+the check reaches `cancelled`; completed OCR is retained. A batch's **Stop batch**
+also cancels the active checks and skips its remaining images.
 
 Detector answers are stored separately in
 `runs/<run_id>/detection/<check_id>/`: `inputs.json`, `answers.jsonl`,

@@ -12,7 +12,7 @@
 
 - [ ] Unit and integration tests (`uv run pytest -q tests/unit tests/integration`)
 - [ ] Research tests (`uv run pytest -q tests/research`), if relevant
-- [ ] Lint (`uv run ruff check src/vipi research/workbench research/evaluation research/datasets/catalog.py tests`), if relevant
+- [ ] Lint (`uv run ruff check src/vipi research/download.py research/workbench research/ocr_eval/evaluation tests`), if relevant
 - [ ] Documentation updated, if relevant
 
 ## Notes for reviewers

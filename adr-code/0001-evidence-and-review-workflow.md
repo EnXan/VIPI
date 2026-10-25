@@ -5,7 +5,7 @@ Status: Accepted. Recorded: 2026-10-19.
 ## Context and sources
 
 The user supplied the repository guidelines and requested their adoption. The
-[working agreement](../AGENTS.md) and [scoped dataset instructions](../research/datasets/data/AGENTS.md)
+[working agreement](../AGENTS.md) and [OCR evaluation data rules](../research/ocr_eval/README.md)
 define the current workflow for product and dataset work.
 
 ## Decision

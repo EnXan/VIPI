@@ -1,18 +1,13 @@
 # Research
 
-The research tools use the `vipi` package and are excluded from the published
-runtime wheel. They support local OCR inspection, dataset evaluation and
-experiments. See [development setup](../docs/development.md).
+Research tools import `vipi`; product code must not import research or Flask.
+The research workspace now has three areas:
 
 | Directory | Purpose |
 | --- | --- |
-| `workbench/` | Local OCR interface, dataset browsing and diagnostic commands |
-| `datasets/` | Active OCR catalog access and dataset preparation tools |
-| `datasets/data/` | Active catalogs, local source data and derived images |
-| `evaluation/` | OCR reference metrics and evaluated runs |
-| `experiments/ocr/` | OCR screening and experiment rounds |
-| `experiments/anamorpher/` | Anamorpher constructions and visibility probes |
-| `experiments/reports/` | Local experiment reports, ignored by Git |
+| [`detection_eval/`](detection_eval/README.md) | Reviewed image-based prompt-injection evaluation suite |
+| [`ocr_eval/`](ocr_eval/README.md) | OCR evaluation with one `catalog.json` and local `images/` |
+| [`workbench/`](workbench/README.md) | Local OCR and detection interface, CLI, saved runs and dataset browsing |
 
 Start the workbench from the repository root:
 
@@ -20,39 +15,92 @@ Start the workbench from the repository root:
 uv run python -m research.workbench serve
 ```
 
-The [workbench guide](workbench/README.md) covers OCR, saved runs and dataset
-evaluation. [Detector checks](workbench/DETECTION.md) can inspect a saved OCR
-run without loading the OCR runtime:
+Images and labels are maintained together in the public
+[VIPI Evaluation dataset](https://huggingface.co/datasets/EnXan/VIPI-evaluation).
+GitHub tracks the evaluation code and the exact dataset commit in `dataset.json`.
 
-```bash
-uv run python -m research.workbench.detector_cli detect RUN_ID
-```
+## Download images
 
-The [OCR experiment guide](experiments/ocr/README.md) describes the current
-screening workflow. Dataset selection and rebuild rules are documented in the
-[dataset instructions](datasets/data/AGENTS.md) and
-[catalog guide](datasets/data/catalog/README.md).
-
-To prepare the raw sources used by the active OCR selection, install the
-research dependencies and run the setup command once:
+Run these commands from a VIPI source checkout. For downloading only, install
+the research dependencies below. For workbench scans, use the full
+[development setup](../docs/development.md) with the OCR and detector extras.
 
 ```bash
 uv sync --extra research
-uv run python -m research.datasets.setup
+uv run python -m research.download
 ```
 
-The command skips sources already present and downloads missing raw datasets to
-`datasets/data/external/`. Hugging Face sources use `HF_TOKEN` when provided.
-The active catalog and setup code are tracked; downloaded sources, generated
-images under `datasets/data/derived/`, caches and local experiment reports stay
-out of commits. Derived evaluation images are built separately using the
-dataset instructions; setup does not regenerate or activate unreviewed images.
-Experiment manifests record their input selection, source hashes and
-implementation.
+Download just one suite:
 
-## Future research
+```bash
+uv run python -m research.download detection_eval
+uv run python -m research.download ocr_eval
+```
 
-Plan a separate image-metadata inspection capability for detecting poisoned
-image metadata attacks, where prompt-injection text is embedded in metadata
-rather than rendered pixels. Keep this distinct from OCR evaluation and cover
-relevant metadata containers such as EXIF, XMP and PNG text chunks.
+Public downloads require no Hugging Face account or token. The command uses
+the full commit SHA in [`dataset.json`](dataset.json) and places files here:
+
+| Suite | Local catalog | Local images |
+| --- | --- | --- |
+| Detection | `research/detection_eval/cases.json` | `research/detection_eval/images/` |
+| OCR | `research/ocr_eval/catalog.json` | `research/ocr_eval/images/` |
+
+These copies are ignored by Git. Existing downloaded files can be reused and
+remain available offline. Downloading can overwrite local catalog edits; use a
+separate submission directory when preparing contributions.
+
+## Add images
+
+Submit each image and its catalog changes together as a pull request on the
+[dataset repository](https://huggingface.co/datasets/EnXan/VIPI-evaluation).
+You need a Hugging Face account to submit a contribution. Through its website,
+upload the image and updated catalog using **Open as a pull request**. The
+[dataset contribution guide](https://huggingface.co/datasets/EnXan/VIPI-evaluation/blob/main/CONTRIBUTING.md)
+also describes that workflow.
+
+For a CLI submission from this source checkout:
+
+1. Fetch the latest accepted catalog from `main` into a separate directory.
+   `.local-assets/` is ignored by this code repository, so submission files stay
+   out of GitHub commits.
+
+   ```bash
+   uv run hf download EnXan/VIPI-evaluation detection_eval/cases.json --repo-type dataset --revision main --local-dir .local-assets/dataset-submission
+   ```
+
+2. Create `.local-assets/dataset-submission/detection_eval/images/`, put the new
+   images there, and edit the downloaded `detection_eval/cases.json`. Use
+   unique filenames and the [detection entry format](detection_eval/README.md).
+   Record the exact visible payload, the expected label, attack techniques and
+   obfuscation. Group caller-context variants under the same image entry.
+   Describe the source or synthetic generation method and applicable image
+   license in the PR description.
+
+3. Log in and upload the submission as a PR:
+
+   ```bash
+   uv run hf auth login
+   uv run hf upload EnXan/VIPI-evaluation .local-assets/dataset-submission . --repo-type dataset --create-pr --include 'detection_eval/cases.json' --include 'detection_eval/images/*' --commit-message 'Add detection evaluation images'
+   ```
+
+For OCR submissions, use `ocr_eval/catalog.json` and `ocr_eval/images/` in the
+same commands and directory layout. Follow the existing
+[OCR record format](ocr_eval/README.md), preserving exact transcripts,
+reference scope, word regions and source provenance. Keep existing record IDs
+unchanged.
+
+Only the owner or authorized maintainers merge submissions. Images in a public
+PR can be visible before review; do not submit confidential material or real
+credentials. The official dataset contains accepted contributions from `main`.
+
+## Review and adopt dataset changes
+
+The maintainer reviews the image, catalog diff, transcript, classification,
+caller context and source information in the
+[dataset PR list](https://huggingface.co/datasets/EnXan/VIPI-evaluation/discussions).
+Merging the PR approves its inclusion in the dataset.
+
+To use the updated dataset in VIPI, update `revision` in `research/dataset.json`
+to the full reviewed dataset commit SHA through a GitHub PR, then rerun
+`uv run python -m research.download`. A merge on Hugging Face does not
+automatically change this project's pinned evaluation inputs.
