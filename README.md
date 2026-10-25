@@ -31,8 +31,8 @@ or [contribute new examples for review](https://github.com/EnXan/VIPI/blob/main/
 VIPI requires Python 3.12 and [uv](https://docs.astral.sh/uv/getting-started/installation/).
 Install the CLI from [PyPI](https://pypi.org/project/vipi-scanner/) with
 `uv tool install`. Choose the install path for the detector you plan to use.
-Both paths include the OCR dependencies; OCR runs locally and is required for
-every scan.
+Both paths include the OCR dependencies. OCR uses the local models by default;
+you can explicitly select Mistral OCR for hosted image recognition.
 
 ### Cloud API detector
 
@@ -61,6 +61,23 @@ detector is Jev; select OpenAI with `--detector openai`.
 ```bash
 vipi scan image.png
 ```
+
+### Hosted Mistral OCR
+
+Select Mistral explicitly for OCR. It sends each image to Mistral's OCR API;
+the selected detector continues to run as usual.
+
+```bash
+export MISTRAL_API_KEY="your-mistral-api-key"
+vipi setup --ocr-model mistral-ocr-4-1
+vipi scan image.png --ocr-model mistral-ocr-4-1 --output report.json
+```
+
+Mistral OCR uses one API request per image, with no automatic local fallback.
+The OCR API is currently priced at $4 per 1,000 pages; a one-image scan costs
+about $0.004 at that rate. Review Mistral's current pricing before scanning
+large collections. Keep the API key in the environment or an ignored `.env`
+file; VIPI never writes it into scan reports.
 
 ### Local Prompt Guard detector
 

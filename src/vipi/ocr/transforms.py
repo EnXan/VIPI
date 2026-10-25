@@ -13,6 +13,7 @@ MAX_INPUT_PIXELS = 40_000_000
 MAX_VIEW_PIXELS = 80_000_000
 FILTERS = ("unchanged", "grayscale", "clahe", "inverted", "threshold", "color-contrast")
 OCR_PROFILE = "reduced-transforms-v2"
+MISTRAL_OCR_PROFILE = "mistral-single-pass-v1"
 TWO_TIMES_MAX_PIXELS = 8_000_000
 OCR_PROFILE_PASSES = (
     ("original-unchanged-1x", "unchanged"),

@@ -3,6 +3,7 @@
 from .config import (
     DEFAULT_DETECTOR,
     DEFAULT_OCR_MODE,
+    MISTRAL_OCR_MODEL,
     PROMPT_GUARD_REVISION,
     cache_directory,
     resolve_ocr_model,
@@ -23,10 +24,14 @@ def setup(
     model = None
     if ocr_mode is not None or ocr_model is not None:
         model = resolve_ocr_model(ocr_mode or DEFAULT_OCR_MODE, ocr_model)
-        notify(f"Preparing {MODEL_NAMES[model]}")
+        if model == MISTRAL_OCR_MODEL:
+            notify("Mistral OCR uses its hosted API; no local OCR model is downloaded")
+        else:
+            notify(f"Preparing {MODEL_NAMES[model]}")
     else:
         notify("Preparing PP-OCRv6 models for all modes")
-    prepare_models(root / "ocr", model, on_progress=notify)
+    if model != MISTRAL_OCR_MODEL:
+        prepare_models(root / "ocr", model, on_progress=notify)
     if detector == "prompt-guard":
         from .detection.providers.prompt_guard import prepare_model
 

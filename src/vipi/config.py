@@ -17,7 +17,12 @@ OCR_MODES = {
     "quality": "ppocr-v6",
 }
 DEFAULT_OCR_MODE = "quality"
-OCR_MODEL_IDS = (*dict.fromkeys(OCR_MODES.values()), "ppocr-v6-medium")
+MISTRAL_OCR_MODEL = "mistral-ocr-4-1"
+OCR_MODEL_IDS = (
+    *dict.fromkeys(OCR_MODES.values()),
+    "ppocr-v6-medium",
+    MISTRAL_OCR_MODEL,
+)
 # Pin the same immutable revision used by the existing local detector.
 PROMPT_GUARD_REVISION = "a8ded8e697ce7c355e395a0df51f94adb4a2fd27"
 
@@ -27,6 +32,8 @@ def resolve_ocr_model(mode=DEFAULT_OCR_MODE, model=None):
         raise ValueError("Choose the fast, balanced or quality OCR mode.")
     if model is None:
         return OCR_MODES[mode]
+    if model == MISTRAL_OCR_MODEL:
+        return model
     if model not in OCR_MODEL_IDS:
         raise ValueError("Choose a supported PP-OCRv6 model ID.")
     # Keep the existing model identifier used by reports and saved OCR runs.

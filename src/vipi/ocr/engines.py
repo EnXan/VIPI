@@ -1,15 +1,20 @@
 """OCR adapters returning text and boxes in the supplied raster's coordinates."""
 
+import base64
 import csv
 import io
+import json
 import os
 import subprocess
+import urllib.error
+import urllib.request
 from pathlib import Path
 from typing import Protocol
 
 import cv2
 import numpy as np
 from PIL import Image
+from vipi.config import MISTRAL_OCR_MODEL, api_key
 
 from .models import FILES, REQUIRED, validate_model
 from .runtime import (
@@ -25,6 +30,132 @@ class OcrEngine(Protocol):
     def recognize(self, image: Image.Image) -> dict:
         """Return text and regions in the supplied raster's coordinates."""
         ...
+
+
+class MistralEngine:
+    """Single-image OCR through Mistral's authenticated OCR API."""
+
+    endpoint = "https://api.mistral.ai/v1/ocr"
+    timeout_seconds = 120
+
+    def __init__(self):
+        self.api_key = api_key("MISTRAL_API_KEY")
+        if not self.api_key:
+            raise ValueError(
+                "Mistral OCR requires MISTRAL_API_KEY. Set it in the environment or .env."
+            )
+
+    def recognize(self, image: Image.Image) -> dict:
+        encoded = io.BytesIO()
+        image.save(encoded, format="PNG")
+        data_url = "data:image/png;base64," + base64.b64encode(
+            encoded.getvalue()
+        ).decode("ascii")
+        body = json.dumps(
+            {
+                "model": MISTRAL_OCR_MODEL,
+                "document": {"type": "image_url", "image_url": data_url},
+                "include_blocks": True,
+                "confidence_scores_granularity": "block",
+            }
+        ).encode("utf-8")
+        request = urllib.request.Request(
+            self.endpoint,
+            data=body,
+            headers={
+                "Authorization": f"Bearer {self.api_key}",
+                "Content-Type": "application/json",
+                "Accept": "application/json",
+            },
+            method="POST",
+        )
+        try:
+            with urllib.request.urlopen(request, timeout=self.timeout_seconds) as response:
+                payload = json.loads(response.read())
+        except urllib.error.HTTPError as error:
+            try:
+                body = json.loads(error.read())
+                detail = body.get("message") or body.get("detail")
+                if not detail and isinstance(body.get("error"), dict):
+                    detail = body["error"].get("message")
+            except (ValueError, AttributeError):
+                detail = ""
+            if isinstance(detail, str):
+                detail = detail.replace(self.api_key, "[redacted]")
+            message = f"Mistral OCR request failed (HTTP {error.code})"
+            raise RuntimeError(f"{message}: {detail}" if detail else message) from None
+        except urllib.error.URLError as error:
+            reason = str(error.reason).replace(self.api_key, "[redacted]")
+            raise RuntimeError(f"Mistral OCR request failed: {reason}") from None
+        return self._result(payload, image.size)
+
+    @staticmethod
+    def _result(payload, image_size):
+        if not isinstance(payload, dict) or not isinstance(payload.get("pages"), list):
+            raise RuntimeError("Mistral OCR response did not contain a pages array.")
+        width, height = image_size
+        regions, texts, pages = [], [], payload.get("pages") or []
+        for page_index, page in enumerate(pages):
+            page_text_count = len(texts)
+            dimensions = page.get("dimensions") or {}
+            source_width = dimensions.get("width") or width
+            source_height = dimensions.get("height") or height
+            scale_x, scale_y = width / source_width, height / source_height
+            blocks = page.get("blocks") or []
+            for block in blocks:
+                content = block.get("content")
+                if not isinstance(content, str) or not content.strip():
+                    continue
+                texts.append(content)
+                coordinates = [
+                    block.get("top_left_x"), block.get("top_left_y"),
+                    block.get("bottom_right_x"), block.get("bottom_right_y"),
+                ]
+                if all(isinstance(value, (int, float)) for value in coordinates):
+                    left, top, right, bottom = coordinates
+                    polygon = [
+                        [left * scale_x, top * scale_y],
+                        [right * scale_x, top * scale_y],
+                        [right * scale_x, bottom * scale_y],
+                        [left * scale_x, bottom * scale_y],
+                    ]
+                else:
+                    polygon = [[0, 0], [width, 0], [width, height], [0, height]]
+                scores = block.get("confidence_scores") or {}
+                confidence = scores.get("average_content_confidence_score", 0.0)
+                if not isinstance(confidence, (int, float)):
+                    confidence = 0.0
+                regions.append(
+                    box_region(
+                        content, polygon, confidence, level="line",
+                        line_id=f"{page_index}:{len(regions)}",
+                    )
+                )
+            if len(texts) == page_text_count and isinstance(page.get("markdown"), str):
+                text = page["markdown"].strip()
+                if text:
+                    texts.append(text)
+                    regions.append(
+                        box_region(
+                            text,
+                            [[0, 0], [width, 0], [width, height], [0, height]],
+                            0.0,
+                            level="line",
+                            line_id=f"{page_index}:fallback",
+                        )
+                    )
+        return {
+            "text": "\n".join(texts),
+            "regions": regions,
+            "preprocessing": {
+                "provider": "Mistral OCR API",
+                "model": payload.get("model", MISTRAL_OCR_MODEL),
+                "detector_input": [width, height],
+                "resize": "none",
+                "usage_info": payload.get("usage_info"),
+                "backend": "api",
+            },
+        }
 
 
 def box_region(text, polygon, confidence, level="word", line_id=None):
@@ -247,6 +378,8 @@ class RapidEngine:
 
 def create_engine(model: str, directory: Path, *, backend=DEFAULT_BACKEND, threads=1):
     validate_backend(model, backend)
+    if model == MISTRAL_OCR_MODEL:
+        return MistralEngine()
     if model == "tesseract":
         return TesseractEngine(directory, threads=threads)
     return RapidEngine(model, directory, backend=backend, threads=threads)

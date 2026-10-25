@@ -4,13 +4,19 @@ from importlib.metadata import version
 import io
 from pathlib import Path
 
-from vipi.config import DEFAULT_OCR_MODE, cache_directory, resolve_ocr_model
+from vipi.config import (
+    DEFAULT_OCR_MODE,
+    MISTRAL_OCR_MODEL,
+    api_key,
+    cache_directory,
+    resolve_ocr_model,
+)
 from vipi.results import OcrResult
 from vipi.storage.ocr import RunStore
 from .engine_pool import EnginePool
 from .models import FILES, REQUIRED, validate_model
 from .pipeline import extract
-from .transforms import OCR_PROFILE
+from .transforms import MISTRAL_OCR_PROFILE, OCR_PROFILE
 
 
 class OcrSession:
@@ -18,16 +24,31 @@ class OcrSession:
         self.root = Path(root) if root is not None else cache_directory()
         self.mode = mode
         self.model = resolve_ocr_model(mode, model)
-        try:
-            validate_model(self.model, self.root / "ocr", verify=True)
-        except ValueError as error:
+        if self.model == MISTRAL_OCR_MODEL and not api_key("MISTRAL_API_KEY"):
             raise ValueError(
-                "OCR models are missing or invalid. Run: vipi setup"
-            ) from error
+                "Mistral OCR requires MISTRAL_API_KEY. Set it in the environment or .env."
+            )
+        if self.model != MISTRAL_OCR_MODEL:
+            try:
+                validate_model(self.model, self.root / "ocr", verify=True)
+            except ValueError as error:
+                raise ValueError(
+                    "OCR models are missing or invalid. Run: vipi setup"
+                ) from error
         self.pool = EnginePool(self.model, self.root / "ocr", 1, "cpu")
 
     @property
     def metadata(self):
+        if self.model == MISTRAL_OCR_MODEL:
+            return {
+                "mode": self.mode,
+                "model": self.model,
+                "ocr_profile": MISTRAL_OCR_PROFILE,
+                "files": {},
+                "runtime": {},
+                "backend": "api",
+                "workers": 1,
+            }
         return {
             "mode": self.mode,
             "model": self.model,

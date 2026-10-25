@@ -17,6 +17,7 @@ from .models import DEFAULT_MODEL, sha256
 from vipi.storage.ocr import RunStore, write_json
 from vipi.cancellation import check_cancelled
 from .transforms import (
+    MISTRAL_OCR_PROFILE,
     OCR_PROFILE,
     apply_filter,
     decode_image,
@@ -25,6 +26,7 @@ from .transforms import (
 )
 from .workers import DEFAULT_WORKERS, worker_count
 from .runtime import DEFAULT_BACKEND, threads_per_worker, validate_backend
+from vipi.config import MISTRAL_OCR_MODEL
 
 
 def extract(
@@ -74,11 +76,15 @@ def extract(
         original = decode_image(image)
         original.save(store.directory / "input.png", format="PNG")
         passes = production_passes_for_size(*original.size)
+        ocr_profile = OCR_PROFILE
+        if model == MISTRAL_OCR_MODEL:
+            passes = passes[:1]
+            ocr_profile = MISTRAL_OCR_PROFILE
         store.transition(
             "run_started",
             state="preparing",
             model=model,
-            ocr_profile=OCR_PROFILE,
+            ocr_profile=ocr_profile,
             total=len(passes),
             input_size=list(original.size),
             workers=workers,
@@ -198,7 +204,7 @@ def extract(
         result = {
             "run_id": store.id,
             "model": model,
-            "ocr_profile": OCR_PROFILE,
+            "ocr_profile": ocr_profile,
             "workers": workers,
             "backend": backend,
             "threads_per_worker": threads,

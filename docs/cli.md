@@ -50,6 +50,8 @@ uv run vipi scan ./images --ocr-mode fast
 uv run vipi scan ./images --ocr-mode balanced
 uv run vipi scan ./images --ocr-model ppocr-v6-medium
 uv run vipi setup --ocr-mode fast
+uv run vipi setup --ocr-model mistral-ocr-4-1
+MISTRAL_API_KEY=... uv run vipi scan ./images --ocr-model mistral-ocr-4-1
 ```
 
 | Scan option | Meaning | Default |
@@ -62,6 +64,16 @@ uv run vipi setup --ocr-mode fast
 | `--threshold NUMBER` | Finding threshold on a 0–100 score scale; equality counts as a finding | `80` |
 | `--output FILE` | Also save the JSON report, including partial results and errors | Terminal output |
 | `--verbose` | Print the final extracted OCR text for each scanned image | Off |
+
+`mistral-ocr-4-1` selects hosted OCR through Mistral's `/v1/ocr` API. Set
+`MISTRAL_API_KEY` in the environment or `.env`; setup downloads no OCR weights
+for this model. This opt-in sends the image to Mistral. The default remains
+local PP-OCRv6. Mistral receives one original image per request, with no local
+multi-pass transforms or automatic local fallback. Reports identify the
+selected provider and the model returned by the API, but never contain the API
+key. The OCR API price listed by Mistral is $4 per 1,000 pages; each scan request
+contains one image page. See [Mistral OCR docs](https://docs.mistral.ai/studio/document-processing/basic_ocr)
+and [current API pricing](https://mistral.ai/pricing/api/).
 
 ## Excluding images from local scans
 
@@ -123,16 +135,16 @@ The OCR mode mapping is `fast` → PP-OCRv6 Tiny, `balanced` → Small and `qual
 `quality`. The explicit model ID overrides the mode; `ppocr-v6-medium` and the
 legacy ID `ppocr-v6` both select Medium. `vipi setup` prepares all three mode
 models by default, or only the requested mode/model when either setup option is
-provided. `--ocr-model` currently accepts registered PP-OCRv6 IDs; adding a model
-from another OCR family requires registering its adapter and pinned files first.
+provided. `--ocr-model` accepts registered PP-OCRv6 IDs and the optional hosted
+`mistral-ocr-4-1` backend.
 
-The OCR transformation pipeline runs the `reduced-transforms-v2` profile on CPU
-with one worker: 15 passes per image, or 14 when the 2× raster would exceed 8
-megapixels. It includes native-size CLAHE and a color-derived contrast reading
-for faint text. Images run sequentially, reusing the selected OCR model session. The
-mode and resolved model are recorded in the scan report; run artifacts identify
-their resolved model, profile and pass count. Backend, filter and worker options
-remain internal.
+Local OCR runs the `reduced-transforms-v2` profile on CPU with one worker: 15
+passes per image, or 14 when the 2× raster would exceed 8 megapixels. It includes
+native-size CLAHE and a color-derived contrast reading for faint text. Images run
+sequentially, reusing the selected model session. Mistral uses a single pass over
+the original image. The mode and resolved model are recorded in the scan report;
+run artifacts identify their resolved model, profile and pass count. Backend,
+filter and worker options remain internal.
 
 The threshold applies to the selected detector's normalized score, not a
 calibrated probability of an attack. Detection uses the final assembled OCR

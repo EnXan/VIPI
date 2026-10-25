@@ -250,11 +250,13 @@ def test_scan_runs_shared_pipeline_sequentially_and_emits_json(
             "fast",
             "ppocr-v6",
         ),
+        (["--ocr-model", "mistral-ocr-4-1"], "quality", "mistral-ocr-4-1"),
     ],
 )
 def test_scan_selects_ocr_mode_and_explicit_model_override(
-    tmp_path, scanner_runtime, options, mode, model
+    tmp_path, scanner_runtime, monkeypatch, options, mode, model
 ):
+    monkeypatch.setenv("MISTRAL_API_KEY", "fixture-mistral-key")
     image(tmp_path / "label.png")
     output = tmp_path / "report.json"
 
@@ -393,6 +395,20 @@ def test_setup_only_prepares_default_ocr_and_selected_local_detector(
     assert calls[-1][1] == "ppocr-v6-small"
     assert main(["setup", "--detector", "prompt-guard"]) == 0
     assert calls[-1][1]["revision"] == "a8ded8e697ce7c355e395a0df51f94adb4a2fd27"
+
+
+def test_setup_mistral_does_not_prepare_local_ocr_model(
+    tmp_path, monkeypatch, capsys
+):
+    monkeypatch.setenv("XDG_CACHE_HOME", str(tmp_path))
+    calls = []
+    monkeypatch.setattr(
+        "vipi.ocr.models.prepare_models",
+        lambda *args, **kwargs: calls.append(args),
+    )
+    assert main(["setup", "--ocr-model", "mistral-ocr-4-1"]) == 0
+    assert calls == []
+    assert "Models ready" in capsys.readouterr().out
 
 
 def test_direct_scan_accepts_bytes_and_does_not_reload_ocr_json(

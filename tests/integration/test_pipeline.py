@@ -8,7 +8,8 @@ from PIL import Image
 from vipi.ocr.merge import assemble
 from vipi.ocr.pipeline import extract
 from vipi.storage.ocr import RunStore
-from vipi.ocr.transforms import FILTERS, OCR_PROFILE, views_for_size
+from vipi.config import MISTRAL_OCR_MODEL
+from vipi.ocr.transforms import FILTERS, MISTRAL_OCR_PROFILE, OCR_PROFILE, views_for_size
 
 
 class EmptyEngine:
@@ -94,6 +95,34 @@ def test_every_pass_is_saved_before_next_ocr(tmp_path):
     assert restored.snapshot()["result"] == result
     replay = list(restored.iter_events(after=len(store.events) - 1))
     assert [event["type"] for event in replay] == ["run_completed"]
+
+
+def test_mistral_uses_only_one_original_image_pass(tmp_path, monkeypatch):
+    image = tmp_path / "input.png"
+    Image.new("RGB", (16, 12), "white").save(image)
+    monkeypatch.setattr(
+        "vipi.ocr.pipeline.production_passes_for_size",
+        lambda *args: passes_for_views(*args, 4),
+    )
+
+    class CountingEngine(EmptyEngine):
+        calls = 0
+
+        def recognize(self, raster):
+            self.calls += 1
+            return super().recognize(raster)
+
+    engine = CountingEngine()
+    result = extract(
+        image,
+        MISTRAL_OCR_MODEL,
+        engine=engine,
+        runs_dir=tmp_path / "runs",
+        workers=1,
+    )
+    assert engine.calls == len(result["variants"]) == 1
+    assert result["ocr_profile"] == MISTRAL_OCR_PROFILE
+    assert result["variants"][0]["preprocessing"]["resize"] == "none"
 
 
 def test_failure_retains_steps_without_final_result(tmp_path):
