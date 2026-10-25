@@ -162,12 +162,14 @@
         <section class="batch-result-lane batch-result-lane-ocr" aria-labelledby="batch-ocr-heading">
           <h3 id="batch-ocr-heading">OCR completeness</h3>
           <p id="batch-ocr-summary" role="status"></p>
+          <p id="batch-exact-summary" class="muted" hidden></p>
         </section>
         <section id="batch-detection-lane" class="batch-result-lane batch-result-lane-detection" aria-labelledby="batch-detection-heading" hidden>
           <h3 id="batch-detection-heading">Detection outcome</h3>
           <p id="batch-detection-summary" role="status"></p>
         </section>
       </div>
+      <p id="batch-evaluation-rule" class="muted"></p>
       <div class="catalog-toolbar"><label><input id="only-failures" type="checkbox"> Only OCR-incomplete or failed images</label><select id="report-category" aria-label="Filter report by category"><option value="">All categories</option></select></div>
       <div id="batch-images" class="table-scroll"></div>
       <details id="batch-aggregate-details" class="evaluation-more">
@@ -177,7 +179,7 @@
         <a id="category-summary-link" class="small category-jump" href="#category-summary" hidden>Category summary ↓</a>
         <section id="category-summary" class="category-summary" hidden aria-labelledby="category-heading">
           <div class="section-heading"><div><p class="eyebrow">THIS RUN · BY CATEGORY</p><h2 id="category-heading">Category comparison.</h2></div></div>
-          <p class="muted">Share of selected images with a fully recognized reference. Additional OCR text is allowed. Select a category to view its images in the report.</p>
+          <p class="muted">Share of selected images passing this report's OCR metric. New evaluations allow minor spelling errors and report exact-word fidelity separately. Additional OCR text is allowed. Select a category to view its images.</p>
           <div class="category-legend" aria-label="Legend"><span><i class="category-valid"></i> Valid</span><span><i class="category-invalid"></i> Incomplete</span><span><i class="category-error"></i> Technical error</span></div>
           <div id="category-chart" class="category-chart"></div>
           <p class="muted category-note">Percentage base: valid + incomplete + technically failed images. Pending and cancelled images are excluded. The count for each category appears beside its bar.</p>

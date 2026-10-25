@@ -553,21 +553,29 @@ function renderEvaluation(evaluation) {
     card.querySelector('.step-score')?.remove();
     const score = evaluation?.steps[card.dataset.step]; if (!score) continue;
     const label = document.createElement('span'); label.className = 'step-score';
-    label.textContent = `${score.valid ? 'Valid' : 'Incomplete'} · ${(score.coverage * 100).toFixed(1)}% reference`;
+    label.textContent = `${score.valid ? 'Complete' : 'Incomplete'} · ${(score.coverage * 100).toFixed(1)}% ${evaluation.version >= 3 ? 'words' : 'reference'}${score.exact ? ` · ${(score.exact.coverage * 100).toFixed(1)}% exact` : ''}`;
     card.querySelector('.label').after(label);
   }
   if (!evaluation) return;
-  $('evaluation-heading').textContent = evaluation.final.valid ? 'Reference found in final text.' : 'Reference incomplete in final text.';
-  $('evaluation-rule').textContent = `Additional text is allowed. Case and whitespace are ignored; recognition errors count as missing. ${evaluation.method === 'word_regions' ? 'TextOCR: word regions have no fixed reading order; recognition across variants may be combined.' : 'The complete reference text must appear in one variant or in the final text.'} Annotation quality: ${evaluation.reference.quality}.`;
+  const wordCoverage = evaluation.version >= 3;
+  $('evaluation-heading').textContent = evaluation.final.valid ? 'Reference covered in final text.' : 'Reference incomplete in final text.';
+  $('evaluation-rule').textContent = wordCoverage
+    ? `Pass: all reference words are covered in the final scanner text. Minor OCR errors are allowed: one edit for words of 2–9 characters; up to ${100 * evaluation.policy.word_error_rate}% for longer words. Single characters must match after normalization. Case and punctuation are ignored for coverage; exact words retain literal case and attached symbols. Split OCR fragments may cover one reference word. Additional text is allowed. ${evaluation.method === 'word_regions' ? 'Matches must overlap annotated word locations.' : 'Reference word order is preserved.'} Scope: ${evaluation.reference.scope}. Annotation quality: ${evaluation.reference.quality}.`
+    : `Legacy evaluation v${evaluation.version}: exact normalized tokens, including punctuation. It has not been rescored with tolerant word coverage. Annotation quality: ${evaluation.reference.quality}.`;
   $('evaluation-scores').replaceChildren();
-  for (const [name,score] of [['Original',evaluation.original],['Pipeline',evaluation.detection],['Final text',evaluation.final]]) {
+  for (const [name,score] of [['Original',evaluation.original],['Pipeline diagnostic',evaluation.detection],['Final text (primary)',evaluation.final]]) {
     const panel = document.createElement('div'); panel.className = 'evaluation-score';
     const title = document.createElement('span'); title.textContent = name;
     const value = document.createElement('strong'); value.textContent = `${(score.coverage * 100).toFixed(1)} %`;
     const state = document.createElement('span'); state.textContent = score.valid ? 'Valid' : 'Incomplete';
     panel.append(title,value,state); $('evaluation-scores').append(panel);
+    if (score.exact) {
+      const fidelity = document.createElement('span');
+      fidelity.textContent = `${(score.exact.coverage * 100).toFixed(1)}% exact words`;
+      panel.append(fidelity);
+    }
   }
-  $('evaluation-missing').textContent = evaluation.detection.missing.length ? `Missing: ${evaluation.detection.missing.join(' ')}` : `${evaluation.valid_step_ids.length} variants contain the full reference.`;
+  $('evaluation-missing').textContent = evaluation.final.missing.length ? `Missing from final text: ${evaluation.final.missing.join(' ')}` : `${evaluation.valid_step_ids.length} variants also cover the full reference.`;
   $('reference-text').textContent = evaluation.reference.text;
   renderEffects($('evaluation-effects'), evaluation.effects);
   const {element,body} = table(['View','Original','Grayscale','CLAHE','Inverted','Threshold','Color contrast']);
@@ -581,7 +589,8 @@ function renderEvaluation(evaluation) {
       const step = filters[filter], score = step && evaluation.steps[step.id], td = cell(row, '');
       if (!score) { td.textContent = '—'; continue; }
       const button = document.createElement('button'); button.type = 'button'; button.className = 'table-link';
-      button.textContent = `${(score.coverage * 100).toFixed(1)} %${score.valid ? ' ✓' : ''}`; button.title = step.label;
+      button.textContent = `${(score.coverage * 100).toFixed(1)} %${score.valid ? ' ✓' : ''}`;
+      button.title = `${step.label}${score.exact ? ` · ${(score.exact.coverage * 100).toFixed(1)}% exact words` : ''}`;
       button.onclick = () => inspectStep(step.id); td.append(button);
     }
     body.append(row);
@@ -763,7 +772,11 @@ function renderOCRStatus(item) {
   const state = item.state === 'cancelled' ? 'Cancelled' : item.state === 'running' ? 'Running' : item.state === 'failed' ? 'Failed' : item.state === 'queued' ? 'Pending' : item.valid ? 'Complete' : 'Incomplete';
   const badge = document.createElement('span'); badge.className = `result-badge ocr-${state.toLowerCase()}`; badge.textContent = state; cell.append(badge);
   if (item.coverage !== undefined) {
-    const coverage = document.createElement('span'); coverage.className = 'result-detail'; coverage.textContent = `${(item.coverage * 100).toFixed(1)}% reference`; cell.append(coverage);
+    const coverage = document.createElement('span'); coverage.className = 'result-detail'; coverage.textContent = `${(item.coverage * 100).toFixed(1)}% ${item.evaluation_version >= 3 ? 'words' : 'reference'}`; cell.append(coverage);
+  }
+  if (item.exact_coverage != null) {
+    const exact = document.createElement('span'); exact.className = 'result-detail';
+    exact.textContent = `${(item.exact_coverage * 100).toFixed(1)}% exact words`; cell.append(exact);
   }
   return cell;
 }
@@ -805,7 +818,15 @@ function renderBatch(data) {
   }
   $('batch-heading').textContent = data.state === 'cancelled' ? 'Batch cancelled.' : data.cancel_requested && batchRunning ? 'Stopping batch …' : data.state === 'completed' ? 'Evaluation.' : data.state === 'failed' ? 'Run interrupted.' : 'Checking images.';
   $('batch-progress').textContent = `${data.completed} / ${data.total} images processed`;
-  $('batch-ocr-summary').textContent = `${data.summary.valid} complete · ${data.summary.invalid} incomplete · ${data.summary.errors} errors · ${data.summary.cancelled || 0} cancelled · ${data.summary.pending} pending`;
+  const wordCoverage = data.evaluation_policy?.version >= 3;
+  const percent = value => value == null ? '—' : `${(value * 100).toFixed(1)}%`;
+  $('batch-ocr-heading').textContent = wordCoverage ? 'OCR word coverage' : 'Legacy exact-token coverage';
+  $('batch-ocr-summary').textContent = `${percent(data.summary.pass_rate)} pass rate · ${data.summary.valid} complete · ${data.summary.invalid} incomplete · ${data.summary.errors} errors · ${data.summary.cancelled || 0} cancelled · ${data.summary.pending} pending`;
+  $('batch-exact-summary').hidden = !wordCoverage;
+  $('batch-exact-summary').textContent = `${percent(data.summary.exact_pass_rate)} exact-word pass rate · ${data.summary.exact_valid || 0} / ${data.summary.exact_evaluated || 0} processed images · ${percent(data.summary.mean_exact_word_coverage)} mean exact word coverage`;
+  $('batch-evaluation-rule').textContent = wordCoverage
+    ? `A case passes when all annotated reference words are covered in the final scanner text, allowing minor spelling errors. Mean word coverage: ${percent(data.summary.mean_word_coverage)}. Exact words are scored separately with literal case and attached symbols. Pending and cancelled images are excluded; technical errors count as failed cases. References may cover only the annotated payload, not every visible text region.`
+    : 'Historical exact-token results are preserved. Start a new evaluation to measure tolerant word coverage and separate exact-word fidelity.';
   $('download-report').href = `/api/batches/${data.batch_id}/report.json`;
   renderDetectionEvaluation(data);
   renderEffects($('batch-effects'), data.summary.effects);
@@ -816,7 +837,7 @@ function renderBatch(data) {
   const withDetection = !!data.detection_options;
   $('batch-detection-lane').hidden = !withDetection;
   $('batch-detection-summary').textContent = withDetection ? detectionBatchSummary(data) : '';
-  const {element,body} = table(['Image','OCR completeness','Detection outcome','Details']);
+  const {element,body} = table(['Image',wordCoverage ? 'Word coverage / exact words' : 'Legacy OCR completeness','Detection outcome','Details']);
   for (const item of data.items) {
     if ($('only-failures').checked && !(item.state === 'completed' && item.valid === false) && item.state !== 'failed') continue;
     if ($('report-category').value && item.category !== $('report-category').value) continue;

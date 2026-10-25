@@ -8,7 +8,11 @@ from concurrent.futures import CancelledError
 from pathlib import Path
 
 from vipi.ocr.engine_pool import EnginePool
-from research.ocr_eval.evaluation.metrics import summarize
+from research.ocr_eval.evaluation.metrics import (
+    EVALUATION_VERSION,
+    evaluation_policy,
+    summarize,
+)
 from research.ocr_eval.evaluation.runner import extract
 from research.detection_eval.evaluation.metrics import summarize as detection_summary
 from research.detection_eval.evaluation.runner import run_cases
@@ -49,6 +53,7 @@ class Batch:
                     "state": "queued",
                     "run_id": None,
                     "valid": None,
+                    "evaluation_version": EVALUATION_VERSION,
                 }
             )
             if dataset == "detection_evaluation":
@@ -77,6 +82,7 @@ class Batch:
             "total": len(items),
             "current_run_id": None,
             "items": items,
+            "evaluation_policy": evaluation_policy(),
         }
         if detection_options:
             if dataset == "detection_evaluation":
@@ -227,8 +233,12 @@ class Batch:
                         state="running",
                         recognized_text=result.get("text", ""),
                         valid=evaluation["valid"],
-                        coverage=evaluation["detection"]["coverage"],
-                        missing=evaluation["detection"]["missing"],
+                        coverage=evaluation["final"]["coverage"],
+                        missing=evaluation["final"]["missing"],
+                        exact_valid=evaluation["final"]["exact"]["valid"],
+                        exact_coverage=evaluation["final"]["exact"]["coverage"],
+                        exact_missing=evaluation["final"]["exact"]["missing"],
+                        pipeline_coverage=evaluation["detection"]["coverage"],
                         final_valid=evaluation["final"]["valid"],
                         best_step_id=evaluation["best_step_id"],
                         effects=evaluation["effects"],

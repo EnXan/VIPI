@@ -154,9 +154,10 @@ def main(argv=None):
             if result.get("evaluation"):
                 evaluation = result["evaluation"]
                 print(
-                    f"Reference: {'valid' if evaluation['valid'] else 'incomplete'} "
-                    f"({evaluation['detection']['coverage']:.0%}); "
-                    f"final text: {'valid' if evaluation['final']['valid'] else 'incomplete'}",
+                    f"Reference words in final text: "
+                    f"{evaluation['final']['coverage']:.0%} "
+                    f"({'complete' if evaluation['valid'] else 'incomplete'}); "
+                    f"exact words: {evaluation['final']['exact']['coverage']:.0%}",
                     file=sys.stderr,
                 )
         if detection_options and (

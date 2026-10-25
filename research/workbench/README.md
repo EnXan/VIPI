@@ -151,16 +151,28 @@ The active selection, reference scope, quality, word regions and source details
 come from `research/ocr_eval/catalog.json`. Images and annotations are never
 modified or passed to OCR as hints.
 
-Valid means the full reference is recognized in a variant or the assembled text.
-Extra OCR text is allowed, including background/UI text. Comparison normalizes
-Unicode, case and whitespace, preserves punctuation and spelling, and allows
-extra tokens between reference tokens. TextOCR uses one-to-one exact token matches
-in overlapping word-region bounds (at least 50% of the smaller box), ignoring
-global reading order; words found across variants can complete the reference.
-Ignored regions are excluded.
+Evaluation v3 uses **tolerant word coverage in the final scanner text** as the
+primary metric. A case passes when every annotated reference word is covered.
+Small spelling errors are accepted: one edit for normalized words of 2–9
+characters, and 20% rounded down for longer words; single characters must match.
+Coverage normalizes NFKC, case and punctuation. **Exact-word coverage** and its
+own image pass rate separately measure literal case-sensitive words, including
+attached symbols. Neither metric changes OCR output or detector behavior.
+
+Words are whitespace-delimited units containing word characters. Adjacent OCR
+fragments can cover one reference word, including a visually wrapped long string.
+Each observed fragment is used once, so missing/repeated words cannot be replaced
+by unrelated text or raw word counts. Known reference order is preserved. TextOCR
+additionally requires one-to-one word matches in overlapping annotated regions
+(at least 50% of the smaller box); global reading order is ignored. Ignored
+regions are excluded. Extra background/UI text is allowed and does not improve
+coverage unless it matches reference words. References can cover only the payload;
+their coverage does not prove every visible image text region was detected.
+See [ADR 0023](../../adr-code/0023-tolerant-ocr-word-coverage.md).
 
 The report separates pipeline detection from final-text retention. It shows
-missing reference tokens, each variant's coverage and paired effect comparisons:
+missing reference words, each variant's word coverage and exact-word fidelity,
+and paired effect comparisons:
 filters versus the same unfiltered view; scaling, rotation and tiles versus the
 unfiltered original. Filter effects require an unfiltered version of the same
 view. Variants without that control still contribute to OCR coverage, but not
@@ -172,6 +184,10 @@ to inspect its variants. Source/Silver references may themselves be incomplete.
 At the end, a category chart shows valid/incomplete/error counts and the valid
 share of processed images in this selection. Pending images are excluded;
 cancelled images are also excluded, and untested categories have no percentage.
+Technical failures count as failed cases. Mean coverages use scored completed
+images only. JSON reports retain the evaluation version and matching policy.
+Historical reports are labeled as legacy exact-token evaluations and are not
+silently rescored; restart the workbench and start a new evaluation for v3.
 Click a category to filter the image
 report. These counts are also included in `summary.categories` in its JSON.
 

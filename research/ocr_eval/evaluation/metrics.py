@@ -1,12 +1,29 @@
-"""Reference coverage: extra OCR text is allowed; spelling errors are not."""
+"""Tolerant reference-word coverage and separate literal word fidelity."""
 
 import re
 import unicodedata
 from collections import Counter
 
 from vipi.ocr.merge import bounds
+from .words import WORD_ERROR_RATE, word_distance, word_matches, words
 
-EVALUATION_VERSION = 2
+EVALUATION_VERSION = 3
+
+
+def evaluation_policy():
+    return {
+        "version": EVALUATION_VERSION,
+        "primary": "final_word_coverage",
+        "words": "whitespace-delimited units containing Unicode word characters",
+        "word_error_rate": WORD_ERROR_RATE,
+        "short_words": "one edit for words of two or more characters; single characters exact",
+        "normalization": "NFKC, casefold and punctuation removal for tolerant coverage only",
+        "exact": "literal case-sensitive words including attached symbols; standalone punctuation excluded",
+        "word_splits": "adjacent OCR fragments may cover one reference word",
+        "reference_scope": "annotated reference only, not necessarily all visible image text",
+    }
+
+
 EFFECT_LABELS = {
     "scaling": "Scaling",
     "rotation": "Rotation",
@@ -114,38 +131,48 @@ def final_observations(regions, variants):
     return observations
 
 
-def region_matches(reference, observations):
+def region_matches(
+    reference, observations, *, word_mode=False, exact=False, cache=None
+):
     """One-to-one token matching in overlapping input-coordinate word regions."""
+    tokenize = words if word_mode else tokens
     expected = [
         (token, bounds(region["input_polygon"]))
         for region in reference["regions"]
-        for token in tokens(region["text"])
+        for token in tokenize(region["text"])
     ]
     observed = [
         (token, bounds(region["input_polygon"]))
         for region in observations
         if region.get("input_polygon")
-        for token in tokens(region["text"])
+        for token in tokenize(region["text"])
     ]
 
     edges = []
     ordered_positions, offset = set(), 0
     for region in reference["regions"]:
-        unit = tokens(region["text"])
+        unit = tokenize(region["text"])
         local = [
             token
             for token, box in observed
             if box_overlap(bounds(region["input_polygon"]), box) >= 0.5
         ]
-        ordered_positions.update(
-            offset + index for index in ordered_matches(unit, local)
+        matched = (
+            word_matches(unit, local, exact=exact, cache=cache)
+            if word_mode
+            else ordered_matches(unit, local)
         )
+        ordered_positions.update(offset + index for index in matched)
         offset += len(unit)
     for index, (token, box) in enumerate(expected):
         scores = [
             (box_overlap(box, candidate), j)
             for j, (text, candidate) in enumerate(observed)
-            if text == token
+            if (
+                word_distance(token, text, exact=exact, cache=cache) is not None
+                if word_mode
+                else text == token
+            )
         ]
         edges.append(
             [j for score, j in sorted(scores, reverse=True) if score >= 0.5]
@@ -182,6 +209,7 @@ def score(expected, matched):
 
 
 def compare(reference, text, regions):
+    """Legacy normalized exact-token comparison for historical experiments."""
     if reference["reading_order_known"]:
         expected = tokens(reference["text"])
         matched = ordered_matches(expected, tokens(text))
@@ -190,6 +218,23 @@ def compare(reference, text, regions):
             raise ValueError("Unordered references require annotated word regions.")
         expected, matched = region_matches(reference, regions)
     return score(expected, matched), expected, matched
+
+
+def compare_words(reference, text, regions, *, cache=None):
+    if reference["reading_order_known"]:
+        expected, observed = words(reference["text"]), words(text)
+        matched = word_matches(expected, observed, cache=cache)
+        exact = word_matches(expected, observed, exact=True)
+    else:
+        if not reference["regions"]:
+            raise ValueError("Unordered references require annotated word regions.")
+        expected, matched = region_matches(
+            reference, regions, word_mode=True, cache=cache
+        )
+        _, exact = region_matches(reference, regions, word_mode=True, exact=True)
+    result = score(expected, matched)
+    result["exact"] = score(expected, exact)
+    return result, expected, matched
 
 
 def effect_summary(evaluations, variants):
@@ -235,9 +280,11 @@ def effect_summary(evaluations, variants):
 
 
 def evaluate(reference, text, regions, variants):
-    evaluations, all_matched = {}, set()
+    evaluations, all_matched, cache = {}, set(), {}
     for step in variants:
-        result, expected, matched = compare(reference, step["text"], step["regions"])
+        result, expected, matched = compare_words(
+            reference, step["text"], step["regions"], cache=cache
+        )
         evaluations[step["id"]] = result
         all_matched.update(matched)
     final_regions = (
@@ -245,7 +292,9 @@ def evaluate(reference, text, regions, variants):
         if reference["reading_order_known"]
         else final_observations(regions, variants)
     )
-    final, expected, final_matched = compare(reference, text, final_regions)
+    final, expected, final_matched = compare_words(
+        reference, text, final_regions, cache=cache
+    )
     best = max(
         variants, key=lambda step: (evaluations[step["id"]]["matched"], -step["index"])
     )
@@ -254,13 +303,20 @@ def evaluate(reference, text, regions, variants):
         detection = final if final["matched"] > best_score["matched"] else best_score
     else:
         detection = score(expected, all_matched | final_matched)
+        # Geometry diagnostics may combine distinct locations across views.
+        # Literal fidelity is measured on actual texts, not an invented union.
+        detection["exact"] = max(
+            [final["exact"], *(value["exact"] for value in evaluations.values())],
+            key=lambda value: value["matched"],
+        )
     return {
         "version": EVALUATION_VERSION,
         "reference": reference,
-        "method": "ordered_tokens"
+        "policy": evaluation_policy(),
+        "method": "ordered_words"
         if reference["reading_order_known"]
         else "word_regions",
-        "valid": detection["valid"],
+        "valid": final["valid"],
         "detection": detection,
         "final": final,
         "original": evaluations[variants[0]["id"]],
@@ -271,6 +327,50 @@ def evaluate(reference, text, regions, variants):
         ],
         "steps": evaluations,
         "effects": effect_summary(evaluations, variants),
+    }
+
+
+def word_summary(items):
+    completed = [item for item in items if item["state"] == "completed"]
+    processed = [
+        item
+        for item in items
+        if item["state"] == "failed"
+        or (item["state"] == "completed" and isinstance(item.get("valid"), bool))
+    ]
+    exact = [
+        item
+        for item in items
+        if (item["state"] == "completed" and isinstance(item.get("exact_valid"), bool))
+        or (
+            item["state"] == "failed"
+            and item.get("evaluation_version") == EVALUATION_VERSION
+        )
+    ]
+    coverage = [
+        item["coverage"]
+        for item in completed
+        if item.get("coverage") is not None
+        and item.get("evaluation_version") == EVALUATION_VERSION
+    ]
+    fidelity = [
+        item["exact_coverage"]
+        for item in completed
+        if item.get("exact_coverage") is not None
+    ]
+    return {
+        "pass_rate": sum(item.get("valid") is True for item in processed)
+        / len(processed)
+        if processed
+        else None,
+        "mean_word_coverage": sum(coverage) / len(coverage) if coverage else None,
+        "exact_valid": sum(item.get("exact_valid") is True for item in exact),
+        "exact_evaluated": len(exact),
+        "exact_pass_rate": sum(item.get("exact_valid") is True for item in exact)
+        / len(exact)
+        if exact
+        else None,
+        "mean_exact_word_coverage": sum(fidelity) / len(fidelity) if fidelity else None,
     }
 
 
@@ -303,6 +403,7 @@ def category_summary(items):
                 "cancelled": sum(item["state"] == "cancelled" for item in records),
                 "processed": processed,
                 "success_rate": valid / processed if processed else None,
+                **word_summary(records),
             }
         )
     return categories
@@ -335,6 +436,7 @@ def summarize(items):
                 effects[effect["id"]][key] += effect[key]
     return {
         "total": len(items),
+        **word_summary(items),
         "valid": sum(
             item["state"] == "completed" and item.get("valid") is True for item in items
         ),

@@ -21,6 +21,7 @@ Temporary planning and review queues belong in `.llm-plans/`.
 | [0020](0020-ocr-assembly-geometry-and-reading-order.md) | Oriented OCR line matching and paragraph column order, implemented for review |
 | [0021](0021-low-contrast-ocr-profile.md) | Native CLAHE and color-derived contrast in the default OCR profile |
 | [0022](0022-optional-mistral-ocr-backend.md) | Explicit one-request-per-image hosted Mistral OCR backend for the CLI |
+| [0023](0023-tolerant-ocr-word-coverage.md) | Primary tolerant final-word coverage and separate case-sensitive word fidelity |
 
 When revising an agreed decision, write its replacement with a summary of the
 old ADR (identifier, decision, rationale and reason for revision), then delete
