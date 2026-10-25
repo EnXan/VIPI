@@ -150,7 +150,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - uses: EnXan/VIPI@v0.4.0
+      - uses: EnXan/VIPI@v0.4.1
         with:
           detector: prompt-guard
         env:

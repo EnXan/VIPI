@@ -19,6 +19,7 @@ Temporary planning and review queues belong in `.llm-plans/`.
 | [0017](0017-multi-classifier-workbench-cli.md) | Repeatable CLI classifier selection and guided workbench setup |
 | [0018](0018-workbench-scan-and-evaluation-pages.md) | Separate scan setup from evaluation reports |
 | [0019](0019-workbench-progress-and-image-reports.md) | Live scan progress and compact per-image evaluation details |
+| [0020](0020-ocr-assembly-geometry-and-reading-order.md) | Oriented OCR line matching and paragraph column order, implemented for review |
 
 When revising an agreed decision, write its replacement with a summary of the
 old ADR (identifier, decision, rationale and reason for revision), then delete

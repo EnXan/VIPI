@@ -1,8 +1,9 @@
 """Select observed readings per location; retain competing readings separately."""
 
 from functools import lru_cache
+from math import hypot
 
-ASSEMBLY_VERSION = 4
+ASSEMBLY_VERSION = 5
 TERMINAL_PUNCTUATION = ".,;:!?"
 
 
@@ -16,6 +17,24 @@ def rectangle(polygons):
     x, y = min(box[0] for box in boxes), min(box[1] for box in boxes)
     right, bottom = max(box[2] for box in boxes), max(box[3] for box in boxes)
     return [[x, y], [right, y], [right, bottom], [x, bottom]]
+
+
+def line_polygon(polygons):
+    """Enclose native words without discarding their text-line orientation."""
+    polygons = list(polygons)
+    dx = sum(p[1][0] - p[0][0] for p in polygons)
+    dy = sum(p[1][1] - p[0][1] for p in polygons)
+    length = hypot(dx, dy)
+    if not length:
+        return rectangle(polygons)
+    ux, uy = dx / length, dy / length
+    points = [(x * ux + y * uy, -x * uy + y * ux) for p in polygons for x, y in p]
+    left, top = min(x for x, _ in points), min(y for _, y in points)
+    right, bottom = max(x for x, _ in points), max(y for _, y in points)
+    return [
+        [x * ux - y * uy, x * uy + y * ux]
+        for x, y in [(left, top), (right, top), (right, bottom), (left, bottom)]
+    ]
 
 
 @lru_cache(maxsize=4096)
@@ -38,8 +57,7 @@ def similarity(first: str, second: str) -> float:
     return 1 - levenshtein(first, second) / max(1, len(first), len(second))
 
 
-def location_match(first, second):
-    a, b = bounds(first), bounds(second)
+def box_match(a, b):
     ah, bh = max(1, a[3] - a[1]), max(1, b[3] - b[1])
     centers = abs((a[1] + a[3]) / 2 - (b[1] + b[3]) / 2)
     if centers > min(ah, bh) * 0.65:
@@ -47,6 +65,30 @@ def location_match(first, second):
     overlap = max(0, min(a[2], b[2]) - max(a[0], b[0]))
     fraction = overlap / max(1, min(a[2] - a[0], b[2] - b[0]))
     return fraction if fraction >= 0.5 else 0
+
+
+def location_match(first, second):
+    a, b = bounds(first), bounds(second)
+    if a[2] <= b[0] or b[2] <= a[0] or a[3] <= b[1] or b[3] <= a[1]:
+        return 0
+    if all(p[0][1] == p[1][1] for p in (first, second)):
+        return box_match(a, b)
+    scores = []
+    for anchor in (first, second):
+        dx, dy = anchor[1][0] - anchor[0][0], anchor[1][1] - anchor[0][1]
+        length = hypot(dx, dy)
+        if not length:
+            return 0
+        ux, uy = dx / length, dy / length
+        a, b = [
+            bounds([(x * ux + y * uy, -x * uy + y * ux) for x, y in polygon])
+            for polygon in (first, second)
+        ]
+        score = box_match(a, b)
+        if not score:
+            return 0
+        scores.append(score)
+    return min(scores)
 
 
 def line_candidates(steps):
@@ -75,8 +117,8 @@ def line_candidates(steps):
                 {
                     "text": " ".join(text.split()),
                     "words": words,
-                    "polygon": rectangle(word["polygon"] for word in words),
-                    "input_polygon": rectangle(word["input_polygon"] for word in words),
+                    "polygon": line_polygon(word["polygon"] for word in words),
+                    "input_polygon": line_polygon(word["input_polygon"] for word in words),
                     "confidence": confidence,
                     "step_id": step["id"],
                     "view_id": step.get("view_id", step["id"]),
@@ -97,9 +139,18 @@ def group_locations(candidates):
         candidates,
         key=lambda item: (-item["confidence"], item["step_id"], item["ordinal"]),
     ):
+        compatible = [
+            (i, group)
+            for i, group in enumerate(groups)
+            if all(
+                item["step_id"] != candidate["step_id"]
+                or location_match(item["input_polygon"], candidate["input_polygon"])
+                for item in group
+            )
+        ]
         matches = [
             (location_match(candidate["input_polygon"], group[0]["input_polygon"]), i)
-            for i, group in enumerate(groups)
+            for i, group in compatible
         ]
         score, index = max(matches, default=(0, 0))
         if score:
@@ -109,7 +160,7 @@ def group_locations(candidates):
             # reading as evidence instead of emitting a third overlapping line.
             box = bounds(candidate["input_polygon"])
             covered = []
-            for i, group in enumerate(groups):
+            for i, group in compatible:
                 anchor = bounds(group[0]["input_polygon"])
                 horizontal = max(0, min(box[2], anchor[2]) - max(box[0], anchor[0]))
                 vertical = max(0, min(box[3], anchor[3]) - max(box[1], anchor[1]))
@@ -218,7 +269,7 @@ def choose_reading(candidates):
     return chosen, alternatives
 
 
-def additions_to_line(chosen, candidates):
+def additions_to_line(chosen, candidates, other_words=()):
     selected_box = bounds(chosen["input_polygon"])
     additions = []
     for candidate in candidates:
@@ -237,6 +288,12 @@ def additions_to_line(chosen, candidates):
             # Extend a partially recognized line without splicing replacements
             # or arbitrary fragments inside an already covered text span.
             if box[2] <= selected_box[0] or box[0] >= selected_box[2]:
+                if any(
+                    location_match(word["input_polygon"], other["input_polygon"])
+                    and similarity(word["text"], other["text"]) >= 0.75
+                    for other in other_words
+                ):
+                    continue
                 additions.append(
                     {
                         **word,
@@ -251,11 +308,88 @@ def additions_to_line(chosen, candidates):
     return sorted(selected, key=lambda word: bounds(word["input_polygon"])[0])
 
 
+def whitespace_groups(items, axis):
+    """Separate boxes only where a whitespace gap crosses the whole block."""
+    groups, end = [], None
+    for item in sorted(items, key=lambda item: bounds(item["input_polygon"])[axis]):
+        box = bounds(item["input_polygon"])
+        if end is None or box[axis] >= end:
+            groups.append([])
+        groups[-1].append(item)
+        end = max(end, box[axis + 2]) if end is not None else box[axis + 2]
+    return groups
+
+
+def reading_rows(items):
+    rows = []
+    for item in sorted(
+        items,
+        key=lambda item: (
+            bounds(item["input_polygon"])[1],
+            bounds(item["input_polygon"])[0],
+            item["text"],
+        ),
+    ):
+        box = bounds(item["input_polygon"])
+        center, height = (box[1] + box[3]) / 2, max(1, box[3] - box[1])
+        row = next(
+            (
+                row
+                for row in rows
+                if abs(row["center"] - center) <= min(row["height"], height) / 2
+            ),
+            None,
+        )
+        if row is None:
+            rows.append({"center": center, "height": height, "items": [item]})
+        else:
+            row["items"].append(item)
+    return [
+        sorted(row["items"], key=lambda item: bounds(item["input_polygon"])[0])
+        for row in sorted(rows, key=lambda row: row["center"])
+    ]
+
+
+def reading_layout(items):
+    """Read separate horizontal bands, then columns within connected bands."""
+    rows = reading_rows(items)
+    if len(rows) <= 1:
+        return rows, []
+    for axis in (1, 0):
+        groups = whitespace_groups(items, axis)
+        if len(groups) > 1:
+            # A single label beside a paragraph is not evidence of parallel
+            # paragraph flow. Keep such labels and aligned tables in row order.
+            if axis == 0 and any(len(reading_rows(group)) <= 1 for group in groups):
+                return rows, []
+            layouts = [reading_layout(group) for group in groups]
+            return (
+                [row for rows, _ in layouts for row in rows],
+                ([groups] if axis == 0 else [])
+                + [columns for _, splits in layouts for columns in splits],
+            )
+    return rows, []
+
+
 def assemble(steps: list[dict]) -> tuple[str, list[dict]]:
     occurrences = []
-    for candidates in group_locations(line_candidates(steps)):
-        chosen, alternatives = choose_reading(candidates)
-        additions = additions_to_line(chosen, candidates)
+    groups = group_locations(line_candidates(steps))
+    selected = [choose_reading(candidates) for candidates in groups]
+    _, splits = reading_layout([chosen for chosen, _ in selected])
+    neighboring_words = {id(chosen): [] for chosen, _ in selected}
+    for columns in splits:
+        for column in columns:
+            words = [
+                word
+                for other in columns
+                if other is not column
+                for line in other
+                for word in line["words"]
+            ]
+            for chosen in column:
+                neighboring_words[id(chosen)].extend(words)
+    for candidates, (chosen, alternatives) in zip(groups, selected):
+        additions = additions_to_line(chosen, candidates, neighboring_words[id(chosen)])
         left = [
             word["text"]
             for word in additions
@@ -301,34 +435,9 @@ def assemble(steps: list[dict]) -> tuple[str, list[dict]]:
                 "additions": [evidence(word) for word in additions],
             }
         )
-    rows = []
-    for item in sorted(
-        occurrences,
-        key=lambda item: (
-            bounds(item["input_polygon"])[1],
-            bounds(item["input_polygon"])[0],
-            item["text"],
-        ),
-    ):
-        box = bounds(item["input_polygon"])
-        center, height = (box[1] + box[3]) / 2, max(1, box[3] - box[1])
-        row = next(
-            (
-                row
-                for row in rows
-                if abs(row["center"] - center) <= min(row["height"], height) / 2
-            ),
-            None,
-        )
-        if row is None:
-            rows.append({"center": center, "height": height, "items": [item]})
-        else:
-            row["items"].append(item)
     ordered, lines = [], []
-    # Row insertion order follows top edges. A tall box in another column can
-    # create a lower-baseline row before a short line above it is encountered.
-    for row in sorted(rows, key=lambda row: row["center"]):
-        items = sorted(row["items"], key=lambda item: bounds(item["input_polygon"])[0])
+    rows, _ = reading_layout(occurrences)
+    for items in rows:
         ordered.extend(items)
         lines.append(" ".join(item["text"] for item in items))
     return "\n".join(lines), ordered

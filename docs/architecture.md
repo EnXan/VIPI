@@ -53,6 +53,11 @@ detectors; dataset references never become classifier evidence.
 `OcrEngine.recognize(image)` returns text and regions in raster coordinates.
 Transformation/assembly code uses this contract rather than a provider-specific
 result. `OcrSession` owns the engine pool, model verification and artifact details.
+Assembly preserves native line orientation and reads independent paragraph
+columns within horizontal bands; simple aligned tables retain row order.
+It keeps competing readings as evidence and records its assembly version.
+See [ADR 0020](../adr-code/0020-ocr-assembly-geometry-and-reading-order.md)
+for the geometry rules and validation boundary.
 `OCR_MODES`, `REQUIRED` and `model_files.json` map the public speed/quality modes
 to checksum-pinned models. Setup and scan use that same description. A model
 replacement changes this package/adapter, not input selection or detector code.
