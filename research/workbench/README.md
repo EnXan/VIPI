@@ -238,6 +238,21 @@ run from the repository root; the public `vipi` command keeps its simpler interf
 
 ## Saved results
 
+Workbench reports are saved automatically; downloading them in the browser is
+optional. With the default settings, they stay inside the repository's `runs/`
+directory, which is excluded by `.gitignore`:
+
+| Report | Repository path |
+| --- | --- |
+| Single-image OCR | `runs/<run-id>/result.json` |
+| Selection evaluation (OCR and optional scanner results) | `runs/batches/<batch-id>/report.json` |
+| Scanner check | `runs/<run-id>/detection/<check-id>/result.json` |
+
+Each run has its own identifier, so later runs preserve earlier reports.
+`--runs-dir` overrides this location; use a directory inside the repository if
+reports should remain there. Separately generated analysis reports can also be
+retained under `runs/reports/`.
+
 Each run writes `runs/<run-id>/`: `images/` contains every adjusted PNG,
 `steps.jsonl` the immediately saved text, native boxes, input-coordinate mappings
 and OCR preprocessing details. `events.jsonl` supports live event replay;
