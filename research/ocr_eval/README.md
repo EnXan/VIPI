@@ -27,3 +27,11 @@ The workbench reads references without modifying them. Preserve exact source
 transcripts, provenance and reference annotations. Submit changes to images and
 labels together as a dataset PR following the
 [image contribution instructions](../README.md#add-images).
+
+The current improvement goals are a 90% OCR quality line and a separately
+measured 90% scanner recall line. These are targets, not achieved quality claims.
+Report final payload word coverage per image, exact completion, encoded-text
+character fidelity and additional text separately; choose and record aggregation
+and test splits before making a target claim. OCR coverage does not measure
+scanner recall. See [ADR 0021](../../adr-code/0021-low-contrast-ocr-profile.md)
+for the contrast improvement and its measured limits.

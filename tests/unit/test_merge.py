@@ -93,6 +93,54 @@ def test_aligned_table_rows_are_not_read_as_paragraph_columns():
     assert assemble(observations)[0] == "First 12\nSecond 34"
 
 
+def test_confident_coarse_reading_cannot_bridge_original_paragraph_columns():
+    words = [
+        word("Left first", 0, y=40, width=100, line="0"),
+        word("Right first", 200, y=50, width=100, line="1"),
+        word("Left second", 0, y=65, width=100, line="2"),
+        word("Right second", 200, y=75, width=100, line="3"),
+    ]
+    coarse = [
+        {**native, "line_id": str(index // 2), "confidence": 0.99}
+        for index, native in enumerate(words)
+    ]
+    observations = [step(1, words), step(2, coarse)]
+    assert assemble(observations)[0] == (
+        "Left first\nLeft second\nRight first\nRight second"
+    )
+
+
+def test_word_edge_jitter_does_not_merge_neighboring_long_lines():
+    words = []
+    for line, texts in enumerate(
+        [("Release", "review", "complete."), ("Checks", "remain", "visible.")]
+    ):
+        for index, text in enumerate(texts):
+            native = word(text, 10 + index * 200, y=10 + line * 20, line=str(line))
+            polygon = [point[:] for point in native["polygon"]]
+            polygon[1][1] += 2
+            polygon[2][1] += 2
+            native["polygon"] = native["input_polygon"] = polygon
+            words.append(native)
+    text, regions = assemble([step(1, words)])
+    assert text == "Release review complete.\nChecks remain visible."
+    assert len(regions) == 2
+
+
+def test_fragments_of_one_native_line_do_not_duplicate_a_complete_reading():
+    observations = [
+        step(
+            1,
+            [
+                word("Release", 10, width=60, line="0"),
+                word("Enablement", 90, width=100, line="1"),
+            ],
+        ),
+        step(2, [word("Release Enablement", 10, width=180, confidence=1)]),
+    ]
+    assert assemble(observations)[0] == "Release Enablement"
+
+
 def test_actual_saved_readings_do_not_interleave_noise():
     observations = json.loads(
         (Path(__file__).parents[1] / "fixtures")

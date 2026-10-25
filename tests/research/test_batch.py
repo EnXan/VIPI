@@ -31,10 +31,10 @@ def test_selected_images_evaluation_failures_continuation_and_restore(
 
         def recognize(self, image):
             self.calls += 1
-            if self.index == 0 and self.calls <= 5:
+            if self.index == 0 and self.calls <= len(FILTERS):
                 entered.set()
                 assert release.wait(timeout=10)
-            if self.index == 0 and self.calls == 6:
+            if self.index == 0 and self.calls == len(FILTERS) + 1:
                 raise RuntimeError("native inference failed")
             text = "background REQUIRED extra" if self.index == 0 else "Missing"
             polygon = [[0, 0], [12, 0], [12, 8], [0, 8]]
@@ -276,7 +276,7 @@ def test_batch_reuses_engines_on_their_own_threads_and_releases_run_cache(
     )
     assert batch.snapshot()["state"] == "completed"
     assert len(created) == 2 and all(engine.calls > 0 for engine in created)
-    assert sum(engine.calls for engine in created) == 30
+    assert sum(engine.calls for engine in created) == len(catalog.items) * 2 * len(FILTERS)
     assert jobs == {}
     # A mismatched shared pool is rejected before any partial run gets created.
     from vipi.ocr.engine_pool import EnginePool

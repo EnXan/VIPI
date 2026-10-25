@@ -2,7 +2,7 @@
 
 Accepted package boundaries are recorded in [ADR 0002](../adr-code/0002-product-and-research-boundaries.md).
 The public scan contract is recorded in [ADR 0003](../adr-code/0003-public-cli-contract.md).
-The current OCR behavior and evaluation boundary are recorded in [ADR 0007](../adr-code/0007-reduced-ocr-transforms.md).
+The current OCR profile and evaluation boundary are recorded in [ADR 0021](../adr-code/0021-low-contrast-ocr-profile.md).
 Research module ownership and dataset distribution are recorded in
 [ADR 0012](../adr-code/0012-hugging-face-evaluation-dataset.md).
 

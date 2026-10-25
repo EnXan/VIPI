@@ -126,9 +126,10 @@ models by default, or only the requested mode/model when either setup option is
 provided. `--ocr-model` currently accepts registered PP-OCRv6 IDs; adding a model
 from another OCR family requires registering its adapter and pinned files first.
 
-The OCR transformation pipeline runs the `reduced-transforms-v1` profile on CPU
-with one worker: 13 passes per image, or 12 when the 2× raster would exceed 8
-megapixels. Images run sequentially, reusing the selected OCR model session. The
+The OCR transformation pipeline runs the `reduced-transforms-v2` profile on CPU
+with one worker: 15 passes per image, or 14 when the 2× raster would exceed 8
+megapixels. It includes native-size CLAHE and a color-derived contrast reading
+for faint text. Images run sequentially, reusing the selected OCR model session. The
 mode and resolved model are recorded in the scan report; run artifacts identify
 their resolved model, profile and pass count. Backend, filter and worker options
 remain internal.

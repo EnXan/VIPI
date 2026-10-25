@@ -11,8 +11,8 @@ from PIL import Image, ImageOps
 
 MAX_INPUT_PIXELS = 40_000_000
 MAX_VIEW_PIXELS = 80_000_000
-FILTERS = ("unchanged", "grayscale", "clahe", "inverted", "threshold")
-OCR_PROFILE = "reduced-transforms-v1"
+FILTERS = ("unchanged", "grayscale", "clahe", "inverted", "threshold", "color-contrast")
+OCR_PROFILE = "reduced-transforms-v2"
 TWO_TIMES_MAX_PIXELS = 8_000_000
 OCR_PROFILE_PASSES = (
     ("original-unchanged-1x", "unchanged"),
@@ -28,6 +28,8 @@ OCR_PROFILE_PASSES = (
     ("original-unchanged-1x", "inverted"),
     ("opencv-nearest-0.125x", "grayscale"),
     ("pillow-nearest-0.125x", "unchanged"),
+    ("original-unchanged-1x", "clahe"),
+    ("original-unchanged-1x", "color-contrast"),
 )
 _tensorflow_lock = threading.Lock()
 
@@ -249,6 +251,14 @@ def apply_filter(image: Image.Image, name: str) -> Image.Image:
         result = cv2.adaptiveThreshold(
             gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 31, 11
         )
+    elif name == "color-contrast":
+        saturation = cv2.cvtColor(pixels, cv2.COLOR_RGB2HSV)[:, :, 1]
+        strokes = cv2.morphologyEx(
+            saturation,
+            cv2.MORPH_BLACKHAT,
+            cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (61, 61)),
+        )
+        result = 255 - cv2.normalize(strokes, None, 0, 255, cv2.NORM_MINMAX)
     else:
         raise ValueError(f"Unknown filter: {name}")
     return Image.fromarray(result).convert("RGB")

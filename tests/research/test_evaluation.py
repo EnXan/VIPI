@@ -111,6 +111,17 @@ def test_effects_use_paired_baselines_and_detect_assembly_loss():
     assert effects["scaling"]["improved"] == effects["scaling"]["recovered"] == 1
 
 
+def test_color_contrast_effect_uses_the_original_control():
+    variants = [
+        variant(1, "original", "unchanged", "weather"),
+        variant(2, "original", "color-contrast", "weather is rainy"),
+    ]
+    result = evaluate(reference("weather is rainy"), "weather is rainy", [], variants)
+    effect = next(row for row in result["effects"] if row["id"] == "color-contrast")
+    assert result["final"]["valid"]
+    assert effect["comparisons"] == effect["improved"] == effect["recovered"] == 1
+
+
 def test_partial_variants_cannot_create_a_fictitious_payload():
     variants = [
         variant(1, "original", "unchanged", "read"),

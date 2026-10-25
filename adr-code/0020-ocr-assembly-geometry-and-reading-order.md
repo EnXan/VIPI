@@ -29,12 +29,16 @@ reference transcripts or OCR transformation selection.
 ## Decision
 
 - Preserve native line orientation when enclosing its word polygons. Estimate
-  direction from the sum of native word top-edge vectors, so a short word's
-  pixel rounding does not determine an entire long line's angle.
+  direction between the first and last word centers, using the native edge for
+  a single word. Small top-edge rounding errors must not set a long line's angle.
 - Compare line locations in both lines' oriented coordinate systems. Keep the
   existing center-distance and overlap heuristics, and the horizontal fast path.
-  A broad anchor must also agree with other observations from the same OCR step
-  before grouping another native line as an alternative.
+  A fragment outside an anchor's horizontal extent can join the same baseline
+  only when an existing observation contains an identical word at the same
+  coordinates. This avoids duplicating full readings around native fragments.
+- Use paragraph gutters from the first native reading to divide later coarse
+  observations at existing word boundaries before voting. Never cut through a
+  native word or infer positions inside an opaque line box.
 - Read separated horizontal bands first. Within a connected band, read columns
   independently when whitespace separates them and each column spans multiple
   geometric rows. Otherwise preserve row order. This structural requirement
@@ -45,7 +49,7 @@ reference transcripts or OCR transformation selection.
   same location. Keep the coarse observation in evidence.
 - Continue selecting observed spellings and retaining alternatives, native
   words and provenance. No reference text participates in assembly. Increment
-  the recorded assembly version to 5; saved runs change only on explicit
+  the recorded assembly version to 6; saved runs change only on explicit
   reassembly. Text detectors continue to consume only the final text.
 
 ## Alternatives
@@ -80,9 +84,9 @@ Regression tests use saved native readings for slanted lines and columns, plus
 synthetic spanning headers/footers and aligned table rows. Existing assembly,
 reassembly, product and research tests remain applicable.
 
-Offline replay of the 113-image batch increases complete final payloads from
-38 to 40 and improves ordered coverage on nine images. Both collages reach
-100%; the RMA image improves from 46.7% to 86.7%. One strict coverage decrease
+The initial assembly-v5 replay of the 113-image batch increased complete final
+payloads from 38 to 40 and improved ordered coverage on nine images. Both collages
+reached 100%; the RMA image improved from 46.7% to 86.7%. One strict coverage decrease
 is in `api_pagination.png` (84.4% to 82.2%): the reference inserts a period after
 the endpoint where the image has none. Removing a duplicate phrase removes an
 accidental later match for that period; ordered word matches remain 33 in both
@@ -95,6 +99,8 @@ seven complete images in both cases. That small set includes an Anamorpher
 payload related to other development samples; it is not proof of generalization
 to every unseen payload or layout.
 
-No OCR inference or live detection requests are repeated by these replays.
+Those initial replays did not repeat OCR inference or live detection requests.
+Subsequent contrast inference and assembly-v6 checks are recorded in
+[ADR 0021](0021-low-contrast-ocr-profile.md).
 Detection accuracy after changing final text remains unmeasured. Windows and
 Linux execution of this fix remains unverified until CI runs there.

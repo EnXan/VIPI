@@ -15,6 +15,7 @@ EFFECT_LABELS = {
     "clahe": "CLAHE",
     "inverted": "Inversion",
     "threshold": "Threshold",
+    "color-contrast": "Color contrast",
 }
 
 

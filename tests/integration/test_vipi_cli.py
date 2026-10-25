@@ -230,9 +230,9 @@ def test_scan_runs_shared_pipeline_sequentially_and_emits_json(
     assert report["ocr"]["mode"] == "quality"
     assert report["ocr_mode"] == "quality"
     assert report["ocr_model"] == "ppocr-v6"
-    assert report["ocr"]["ocr_profile"] == "reduced-transforms-v1"
+    assert report["ocr"]["ocr_profile"] == "reduced-transforms-v2"
     assert report["ocr"]["workers"] == 1 and report["ocr"]["backend"] == "cpu"
-    assert report["files"][0]["ocr_profile"] == "reduced-transforms-v1"
+    assert report["files"][0]["ocr_profile"] == "reduced-transforms-v2"
     assert report["files"][0]["ocr_passes"] == 1
     assert len(engines) == 1  # One model session is reused across both images.
     assert len(provider.calls) == 2

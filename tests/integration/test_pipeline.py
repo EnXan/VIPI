@@ -74,9 +74,9 @@ def test_every_pass_is_saved_before_next_ocr(tmp_path):
 
     engine = CheckingEngine()
     result = extract(image, "test", engine=engine, store=store, workers=1)
-    assert len(result["variants"]) == engine.calls == 13
+    assert len(result["variants"]) == engine.calls == 15
     assert result["ocr_profile"] == OCR_PROFILE
-    assert len(list((store.directory / "images").glob("*.png"))) == 13
+    assert len(list((store.directory / "images").glob("*.png"))) == 15
     names = [event["type"] for event in store.events]
     assert names[1:6] == [
         "step_started",
@@ -87,7 +87,7 @@ def test_every_pass_is_saved_before_next_ocr(tmp_path):
     ]
     assert names[-2:] == ["assembling", "run_completed"]
     assert store.status["ocr_profile"] == OCR_PROFILE
-    assert store.status["completed"] == store.status["total"] == 13
+    assert store.status["completed"] == store.status["total"] == 15
     assert json.loads((store.directory / "result.json").read_text()) == result
     assert (store.directory / "result.txt").read_text() == ""
     restored = RunStore.restore(store.directory)
@@ -212,7 +212,7 @@ def test_parallel_engines_persist_independently_and_keep_variant_order(
     assert all(engine.calls > 0 for engine in engines)
     assert sum(engine.calls for engine in engines) == workers * len(FILTERS)
     assert [step["index"] for step in result["variants"]] == list(
-        range(1, workers * 5 + 1)
+        range(1, workers * len(FILTERS) + 1)
     )
     records = [
         json.loads(line)
@@ -223,7 +223,7 @@ def test_parallel_engines_persist_independently_and_keep_variant_order(
         step["id"] for step in result["variants"]
     }
     assert store.snapshot()["variants"] == result["variants"]
-    assert store.status["completed"] == store.status["total"] == workers * 5
+    assert store.status["completed"] == store.status["total"] == workers * len(FILTERS)
     assert store.status["active_steps"] == {}
     assert [event["id"] for event in store.events] == list(
         range(1, len(store.events) + 1)

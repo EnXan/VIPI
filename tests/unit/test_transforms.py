@@ -19,7 +19,7 @@ from vipi.ocr.transforms import (
 def test_sequence_and_tile_edge_coverage():
     views = views_for_size(1301, 1103)
     assert len([view for view in views if view.backend != "tile"]) == 32
-    assert len(FILTERS) == 5
+    assert len(FILTERS) == 6
     assert tile_starts(1) == [0]
     assert tile_starts(2500) == [0, 896, 1476]
     for factor in (1, 2):
@@ -38,12 +38,12 @@ def test_sequence_and_tile_edge_coverage():
 
 def test_reduced_transform_profile_and_large_image_skip():
     passes = production_passes_for_size(16, 12)
-    assert OCR_PROFILE == "reduced-transforms-v1"
+    assert OCR_PROFILE == "reduced-transforms-v2"
     assert [(view.id, name) for view, name in passes] == list(OCR_PROFILE_PASSES)
-    assert len(passes) == 13
-    assert len(production_passes_for_size(3200, 3200)) == 12
-    assert len(production_passes_for_size(2000, 1000)) == 13
-    assert len(production_passes_for_size(2001, 1000)) == 12
+    assert len(passes) == 15
+    assert len(production_passes_for_size(3200, 3200)) == 14
+    assert len(production_passes_for_size(2000, 1000)) == 15
+    assert len(production_passes_for_size(2001, 1000)) == 14
     assert all(view.backend not in {"tile", "pytorch", "tensorflow"} for view, _ in passes)
 
 
@@ -93,6 +93,23 @@ def test_filters_start_independently_and_keep_geometry():
         assert result.mode == "RGB" and result.size == image.size
         assert np.array_equal(np.array(image), before)
     assert apply_filter(image, "inverted").getpixel((0, 0)) == (225, 155, 55)
+
+
+def test_color_contrast_separates_faint_achromatic_strokes_from_color_background():
+    pixels = np.full((81, 121, 3), (180, 30, 30), dtype=np.uint8)
+    pixels[20:61, 50:55] = (190, 65, 65)
+    image = Image.fromarray(pixels)
+    result = apply_filter(image, "color-contrast")
+    assert result.getpixel((52, 40)) == (0, 0, 0)
+    assert result.getpixel((10, 40)) == (255, 255, 255)
+    assert np.array_equal(np.asarray(image), pixels)
+
+
+def test_color_contrast_is_blank_when_achromatic_pixels_have_no_saturation_signal():
+    pixels = np.full((81, 121, 3), 255, dtype=np.uint8)
+    pixels[20:61, 50:55] = 80
+    result = apply_filter(Image.fromarray(pixels), "color-contrast")
+    assert np.all(np.asarray(result) == 255)
 
 
 def test_tensorflow_resize_leaves_gpu_memory_to_ocr(monkeypatch):

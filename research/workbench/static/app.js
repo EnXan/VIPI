@@ -570,14 +570,14 @@ function renderEvaluation(evaluation) {
   $('evaluation-missing').textContent = evaluation.detection.missing.length ? `Missing: ${evaluation.detection.missing.join(' ')}` : `${evaluation.valid_step_ids.length} variants contain the full reference.`;
   $('reference-text').textContent = evaluation.reference.text;
   renderEffects($('evaluation-effects'), evaluation.effects);
-  const {element,body} = table(['View','Original','Grayscale','CLAHE','Inverted','Threshold']);
+  const {element,body} = table(['View','Original','Grayscale','CLAHE','Inverted','Threshold','Color contrast']);
   const views = new Map();
   for (const step of [...steps.values()].sort((a,b) => a.index - b.index)) {
     if (!views.has(step.view_id)) views.set(step.view_id, {}); views.get(step.view_id)[step.filter] = step;
   }
   for (const [name,filters] of views) {
     const row = document.createElement('tr'); cell(row, name);
-    for (const filter of ['unchanged','grayscale','clahe','inverted','threshold']) {
+    for (const filter of ['unchanged','grayscale','clahe','inverted','threshold','color-contrast']) {
       const step = filters[filter], score = step && evaluation.steps[step.id], td = cell(row, '');
       if (!score) { td.textContent = '—'; continue; }
       const button = document.createElement('button'); button.type = 'button'; button.className = 'table-link';
