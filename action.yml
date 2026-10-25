@@ -32,7 +32,7 @@ runs:
   using: composite
   steps:
     - name: Install uv and Python
-      uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9
+      uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e
       with:
         python-version: "3.12"
         enable-cache: true
