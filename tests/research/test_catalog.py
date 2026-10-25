@@ -1,10 +1,9 @@
-import hashlib
 import json
 
 import pytest
 from PIL import Image
 
-from research.datasets.catalog import Catalog
+from research.ocr_eval.evaluation.catalog import Catalog
 from research.workbench.datasets import DatasetBrowser
 
 
@@ -17,7 +16,7 @@ def test_catalog_filter_search_pagination_and_stable_ids(dataset_repository):
     assert browser.listing(query="missing")["items"][0]["name"] == "1.png"
     identifier = result["items"][0]["id"]
     assert catalog.for_path(catalog.path(identifier))["text"] == "Required"
-    index = dataset_repository / "research/datasets/data/catalog/ocr/ocr_metadata.json"
+    index = dataset_repository / "research/ocr_eval/catalog.json"
     before = index.read_bytes()
     index.write_text(json.dumps(list(reversed(json.loads(before)))))
     assert set(Catalog(dataset_repository).items) == set(catalog.items)
@@ -27,20 +26,19 @@ def test_catalog_filter_search_pagination_and_stable_ids(dataset_repository):
         browser.listing("unknown")
 
 
-def test_catalog_ids_keep_their_logical_dataset_path(dataset_repository):
+def test_catalog_preserves_explicit_ids(dataset_repository):
+    index = dataset_repository / "research/ocr_eval/catalog.json"
+    records = json.loads(index.read_text())
+    records[0]["id"] = "stable-id"
+    index.write_text(json.dumps(records))
     catalog = Catalog(dataset_repository)
-    identifier = next(iter(catalog.items))
-    item = catalog.get(identifier)
-    assert item["image"].startswith("research/datasets/data/")
-    assert identifier == hashlib.sha256(
-        item["image"].replace("research/datasets/data/", "datasets/").encode()
-    ).hexdigest()[:16]
+    assert catalog.get("stable-id")["image"] == "images/0.png"
 
 
 def test_catalog_cannot_serve_indexed_paths_outside_datasets(dataset_repository):
-    index = dataset_repository / "research/datasets/data/catalog/ocr/ocr_metadata.json"
+    index = dataset_repository / "research/ocr_eval/catalog.json"
     records = json.loads(index.read_text())
-    records[0]["image"] = "research/datasets/data/../../outside.txt"
+    records[0]["image"] = "images/../../outside.txt"
     index.write_text(json.dumps(records))
     catalog = Catalog(dataset_repository)
     identifier = next(iter(catalog.items))
@@ -49,26 +47,25 @@ def test_catalog_cannot_serve_indexed_paths_outside_datasets(dataset_repository)
 
 
 def test_reference_word_regions_follow_exif_orientation(dataset_repository):
-    directory = dataset_repository / "research/datasets/data/catalog/ocr"
-    image = dataset_repository / "research/datasets/data/external/examples/oriented.jpg"
+    directory = dataset_repository / "research/ocr_eval"
+    image = dataset_repository / "research/ocr_eval/images/oriented.jpg"
     exif = Image.Exif()
     exif[274] = 6
     Image.new("RGB", (100, 60)).save(image, exif=exif)
-    path = image.relative_to(dataset_repository).as_posix()
-    (directory / "ocr_metadata.json").write_text(
-        json.dumps([{"image": path, "text": "hello", "category": "textocr"}])
-    )
-    (directory / "ocr_selection_report.json").write_text(
+    path = image.relative_to(directory).as_posix()
+    (directory / "catalog.json").write_text(
         json.dumps(
-            {
-                "selected_references": [
-                    {
-                        "image": path,
-                        "reading_order_known": False,
-                        "regions": [{"text": "hello", "bbox_xywh": [10, 20, 30, 10]}],
-                    }
-                ]
-            }
+            [
+                {
+                    "image": path,
+                    "text": "hello",
+                    "category": "textocr",
+                    "reading_order_known": False,
+                    "regions": [
+                        {"text": "hello", "bbox_xywh": [10, 20, 30, 10]}
+                    ],
+                }
+            ]
         )
     )
     catalog = Catalog(dataset_repository)

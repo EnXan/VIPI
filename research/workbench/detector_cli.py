@@ -55,7 +55,7 @@ def main(argv=None):
         return (
             2
             if any(x["status"] != "completed" for x in result["answers"])
-            or (result["missing_text_evidence"] and args.text_classifier != "off")
+            or (result["missing_text_evidence"] and args.text_classifier)
             else 0
         )
     except (Exception, KeyboardInterrupt) as error:

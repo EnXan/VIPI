@@ -9,16 +9,18 @@ The user approved consolidation of the previous `vipi`, `ocr_pipeline` and
 remaining dataset scripts with research code. Those scripts handle data
 import, generation, review, catalog building and inventory; none are part of
 the public runtime. The implementation is shown by [package configuration](../pyproject.toml),
-[scanner](../src/vipi/scanner.py), [research dataset tools](../research/datasets/)
+[scanner](../src/vipi/scanner.py), [OCR evaluation](../research/ocr_eval/)
 and [architecture documentation](../docs/architecture.md).
 
 ## Decision
 
 Publish one `vipi` package. Keep input selection, OCR, detection, reporting and
 storage distinct. Put the local web workbench, reference evaluation and
-experiments in `research/`, importing the product in one direction only. Put
-dataset import, generation, review and inventory tools in `research/datasets/`;
-keep raw sources and catalogs under `research/datasets/data/`.
+experiments in `research/`, importing the product in one direction only. The
+current OCR catalog and evaluation support live in `research/ocr_eval/`; the
+workbench lives in `research/workbench/`; image-detection fixtures live in
+`research/detection_eval/`. Dataset import and generation tools are no longer
+retained in the repository.
 Use typed OCR/detection/scan boundaries and pass fresh OCR results directly to
 text detection. Keep saved-run replay as an explicit adapter. Share small file
 and event operations while preserving distinct OCR and detection states.

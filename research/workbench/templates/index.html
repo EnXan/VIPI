@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="de">
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -12,141 +12,222 @@
 </head>
 <body>
   <header class="topbar">
-    <a href="/" aria-label="VIPI Startseite"><img class="logo" src="/static/brand/logo.svg" alt="VIPI" width="104"></a>
+    <a href="/" aria-label="VIPI home"><img class="logo" src="/static/brand/logo.svg" alt="VIPI" width="104"></a>
     <span class="mono">IMAGE → TEXT</span>
   </header>
   <main>
     <section class="intro">
-      <div><p class="eyebrow">IMAGE → TEXT → DETECTION</p><h1>Ein Bild. Ein Ergebnis.</h1><p class="muted">Text erkennen und optional auf Prompt-Injection prüfen.</p></div>
+      <div><p class="eyebrow">IMAGE → TEXT → DETECTION</p><h1>OCR and prompt injection detection</h1><p class="muted">Recognize text and optionally check for prompt injection.</p></div>
     </section>
-    <form id="upload-form" class="scan-form">
-      <section class="input-section">
-        <div class="section-heading"><div><p class="eyebrow">01 · BILD AUSWÄHLEN</p><h2>Was möchtest du prüfen?</h2></div><button id="choose-dataset" class="small" type="button">Datensatz auswählen</button></div>
+    <nav class="workbench-tabs" role="tablist" aria-label="Workbench pages">
+      <button id="tab-scan" class="workbench-tab" type="button" role="tab" aria-selected="true" aria-controls="scan-page">Scan</button>
+      <button id="tab-evaluation" class="workbench-tab" type="button" role="tab" aria-selected="false" aria-controls="evaluation-page">Evaluation</button>
+    </nav>
+    <p id="error" class="error" role="alert" hidden></p>
+    <div class="run-actions">
+      <button id="cancel-run" class="small" type="button" hidden>Stop scan</button>
+      <span id="cancellation-note" class="muted" role="status" hidden>Stopping after the current operation finishes. Completed results are saved.</span>
+    </div>
+    <section id="run-progress" class="run-progress" hidden>
+      <div class="scan-activity">
+        <div id="scan-image-frame" class="scan-image-frame" data-stage="idle" aria-label="Scan activity">
+          <img id="scan-activity-image" alt="Image being scanned" hidden>
+          <span class="scan-beam" aria-hidden="true"></span>
+          <span id="scan-activity-label" class="scan-activity-label">Ready</span>
+        </div>
+        <div class="scan-progress-content">
+          <div class="progress-header">
+            <span id="status" role="status" aria-live="polite">Ready</span>
+            <span id="counter" class="mono muted"></span>
+          </div>
+          <progress id="progress" value="0" max="1" aria-label="Completed OCR steps"></progress>
+          <p id="estimated-time" class="mono muted" role="status">Estimated time appears once processing starts.</p>
+          <button id="open-ocr-details" type="button" class="small">View OCR steps</button>
+        </div>
+      </div>
+    </section>
+    <section id="scan-page" class="workbench-page" role="tabpanel" aria-labelledby="tab-scan" tabindex="0">
+    <form id="upload-form" class="scan-form" novalidate>
+      <nav class="scan-steps" aria-label="Scan setup">
+        <span id="step-indicator-1" aria-current="step">1 · Input</span>
+        <span id="step-indicator-2">2 · Options</span>
+        <span id="step-indicator-3">3 · Review</span>
+      </nav>
+      <section id="step-input" class="input-section scan-step">
+        <div class="section-heading"><div><p class="eyebrow">STEP 1 OF 3</p><h2>Choose input</h2></div><button id="choose-dataset" class="small" type="button">Browse dataset</button></div>
         <div class="input-grid">
           <label id="dropzone" class="dropzone" tabindex="0">
             <input id="image-input" type="file" accept="image/png,image/jpeg,image/webp">
-            <img id="input-preview" alt="Ausgewähltes Originalbild" hidden>
-            <span id="file-label">Bild hochladen, hierher ziehen oder einfügen</span><span class="mono muted">PNG · JPEG · WEBP</span>
+            <img id="input-preview" alt="Selected source image" hidden>
+            <span id="file-label">Upload, drag and drop, or paste an image</span><span class="mono muted">PNG · JPEG · WEBP</span>
           </label>
-          <div class="scan-settings">
-            <label>OCR-Modell<select id="model" aria-label="OCR-Modell"></select></label>
-            <section id="detector-controls" class="detector-controls">
-              <label>Text auf Prompt-Injection prüfen<select id="text-classifier"><option value="off">Aus · nur OCR</option><option value="jev">Jev</option><option value="openai">OpenAI Decisions</option><option value="prompt-guard">Prompt Guard 2 · lokal</option><option value="compare">Alle drei vergleichen</option></select></label>
-              <p class="muted setting-note">Die Detektoren prüfen ausschließlich den finalen OCR-Text.</p>
-              <button id="detect-saved" class="small" type="button" hidden disabled>Erkannten Text prüfen</button>
-            </section>
-            <details class="scan-advanced"><summary>Weitere Einstellungen</summary>
-              <div class="advanced-fields">
-                <label>Hardware<select id="backend" aria-label="Hardware-Backend"></select></label><p id="backend-note" class="muted runtime-note"></p>
-                <label>Parallele Worker<select id="workers" aria-label="Parallele Worker">{% for count in range(1, max_workers + 1) %}<option value="{{ count }}"{% if count == default_workers %} selected{% endif %}>{{ count }}</option>{% endfor %}</select></label>
-                <label>Originalbild zusätzlich prüfen<select id="image-check"><option value="off">Aus</option><option value="openai">OpenAI Decisions</option></select></label>
-                <label>Bild + finaler Text + Kontext prüfen<select id="context-check"><option value="off">Aus</option><option value="openai">OpenAI Decisions</option></select></label>
-                <p id="detector-availability" class="muted"></p>
-                <label>Beabsichtigte Verwendung<input id="detector-task" type="text" placeholder="Optional, z. B. Produktinformationen ablesen"></label><p id="context-note" class="muted">Kein Nutzerauftrag angegeben · Kontext unbekannt.</p>
-                <label>Zusätzlicher Kontext als JSON<textarea id="detector-context" rows="3" placeholder='{"expected_behavior":"…","allowed_actions":[]}'></textarea></label>
-                <label>Schwellenwerte als JSON<textarea id="detector-thresholds" rows="3" placeholder='{"version":"…","signals":{"jev":{"low":0.1,"high":0.9}}}'></textarea></label>
-                <p class="muted">Platzhalter zeigen das Format. Ohne konfigurierte Schwellenwerte zeigen wir Scores und ein offenes Urteil.</p>
-                <label><input id="detector-reuse" type="checkbox" checked> Gespeicherte Antworten wiederverwenden</label>
-                <p class="muted">API-Prüfungen senden Inhalte an den gewählten Anbieter. API-Schlüssel werden im Server gesetzt.</p>
-              </div>
-            </details>
-            <button id="start" class="primary" type="submit" disabled>Scan starten ↗</button>
-          </div>
         </div>
+        <p id="dataset-mode-note" class="muted setting-note" hidden>The scanner runs without context. Catalog context describes the expected labels only. Context-dependent misclassifications count normally.</p>
+        <div class="wizard-actions"><button id="input-next" class="primary" type="button" disabled>Choose options →</button></div>
+      </section>
+      <section id="step-options" class="input-section scan-step" hidden>
+        <div class="section-heading"><div><p class="eyebrow">STEP 2 OF 3</p><h2>Configure scan</h2><p class="muted">These options match the local workbench CLI.</p></div></div>
+        <div class="option-grid">
+          <label>OCR model<select id="model" aria-label="OCR model" required></select></label>
+          <label>Hardware<select id="backend" aria-label="Hardware backend" required></select><span id="backend-note" class="muted runtime-note"></span></label>
+          <label>Parallel workers<select id="workers" aria-label="Parallel workers" required>{% for count in range(1, max_workers + 1) %}<option value="{{ count }}"{% if count == default_workers %} selected{% endif %}>{{ count }}</option>{% endfor %}</select></label>
+          <fieldset id="text-classifiers" class="classifier-checklist">
+            <legend>Text classifiers</legend>
+            <label><input class="text-classifier" type="checkbox" value="jev"> Jev</label>
+            <label><input class="text-classifier" type="checkbox" value="openai"> OpenAI Decisions</label>
+            <label><input class="text-classifier" type="checkbox" value="prompt-guard"> Prompt Guard 2 · local</label>
+          </fieldset>
+        </div>
+        <section id="detector-controls" class="detector-controls">
+          <p class="muted setting-note">Text classifiers check the final OCR text. Leave all unchecked for OCR only. Detection evaluation requires at least one.</p>
+          <p id="dataset-mode-note-options" class="muted setting-note" hidden>Caller context is not supported in detection evaluation. Catalog context is ground truth only.</p>
+          <div id="threshold-settings" class="advanced-fields" hidden>
+            <label>Threshold set version<input id="detector-threshold-version" type="text" required placeholder="e.g. calibration-2026-10"></label>
+            <div id="threshold-controls" class="threshold-controls"></div>
+            <p id="threshold-required-note" class="muted">Set one score threshold for each enabled check. Scores at or above it are flagged; lower complete scores are not flagged. Calibrate against labeled data.</p>
+          </div>
+          <details class="scan-advanced"><summary>Other CLI options</summary>
+            <div class="advanced-fields">
+              <label>Also inspect source image<select id="image-check"><option value="off">Off</option><option value="openai">OpenAI Decisions</option></select></label>
+              <label id="context-check-option">Inspect image + final text + context<select id="context-check"><option value="off">Off</option><option value="openai">OpenAI Decisions</option></select></label>
+              <p id="detector-availability" class="muted"></p>
+              <label id="caller-context-option">Additional context as JSON<textarea id="detector-context" rows="3" placeholder='{"expected_behavior":"…","allowed_actions":[]}'></textarea></label>
+              <label><input id="detector-reuse" type="checkbox" checked> Reuse saved answers</label>
+              <p class="muted">API checks send content to the selected provider. Set API keys on the server.</p>
+            </div>
+          </details>
+          <button id="detect-saved" class="small" type="button" hidden disabled>Check recognized text</button>
+        </section>
+        <div id="wizard-error" class="error" role="alert" hidden></div>
+        <div class="wizard-actions"><button id="options-back" class="small" type="button">← Input</button><button id="options-next" class="primary" type="button">Review →</button></div>
+      </section>
+      <section id="step-review" class="input-section scan-step" hidden>
+        <div class="section-heading"><div><p class="eyebrow">STEP 3 OF 3</p><h2>Review and scan</h2></div></div>
+        <dl id="scan-review" class="scan-review"></dl>
+        <div class="wizard-actions"><button id="review-back" class="small" type="button">← Options</button><button id="start" class="primary" type="submit" disabled>Start scan ↗</button></div>
       </section>
     </form>
-    <p id="error" class="error" role="alert" hidden></p>
-    <section id="run-progress" class="run-progress" hidden>
-      <div class="progress-header">
-        <span id="status" role="status" aria-live="polite">Bereit</span>
-        <span id="counter" class="mono muted"></span>
-      </div>
-      <progress id="progress" value="0" max="1" aria-label="Abgeschlossene OCR-Schritte"></progress>
-      <button id="open-ocr-details" type="button" class="small">OCR-Schritte ansehen</button>
-    </section>
     <section id="final" class="final" hidden>
-      <div class="section-heading"><div><p class="eyebrow">02 · OCR-ERGEBNIS</p><h2>Erkannter Text.</h2></div><div class="actions"><button id="copy-final" type="button" class="small">Kopieren</button><a id="download-txt" class="small" download>TXT ↓</a><a id="download-json" class="small" download>JSON ↓</a></div></div>
+      <div class="section-heading"><div><p class="eyebrow">02 · OCR RESULT</p><h2>Recognized text.</h2></div><div class="actions"><button id="copy-final" type="button" class="small">Copy</button><a id="download-txt" class="small" download>TXT ↓</a><a id="download-json" class="small" download>JSON ↓</a></div></div>
       <pre id="final-text" tabindex="0"></pre>
     </section>
     <section id="detection" class="detection" hidden>
-      <div class="section-heading"><div><p class="eyebrow">03 · DETEKTOR-ERGEBNISSE</p><h2 id="detection-verdict">Prüfung läuft.</h2></div><a id="download-detection" class="small" hidden download>Bericht JSON ↓</a></div>
+      <div class="section-heading"><div><p class="eyebrow">03 · DETECTOR RESULTS</p><h2 id="detection-verdict">Check in progress.</h2></div><a id="download-detection" class="small" hidden download>JSON report ↓</a></div>
       <p id="detection-status" class="mono" role="status" aria-live="polite"></p>
       <p id="detection-scope" class="muted"></p>
       <div id="detection-signals" class="detection-signals"></div>
-      <details class="result-details"><summary>Prüfdetails und frühere Ergebnisse</summary>
-        <label>Gespeicherte Prüfung <select id="detection-history" aria-label="Gespeicherte Detektorprüfungen"></select></label>
+      <details class="result-details"><summary>Check details and history</summary>
+        <label>Saved check <select id="detection-history" aria-label="Saved detector checks"></select></label>
         <p id="detection-note" class="muted"></p>
         <div id="detection-readings" class="detection-readings"></div>
         <div id="detection-answers" class="table-scroll"></div>
       </details>
     </section>
+    </section>
+    <section id="evaluation-page" class="workbench-page" role="tabpanel" aria-labelledby="tab-evaluation" tabindex="0" hidden>
+      <section id="evaluation-empty" class="evaluation-empty">
+        <p class="eyebrow">EVALUATION</p>
+        <h2>No evaluation report yet.</h2>
+        <p class="muted">Choose an evaluation dataset from the Scan page, configure the run, and start it. Results will appear here.</p>
+        <button id="open-scan-setup" class="small" type="button">Go to Scan</button>
+      </section>
     <section id="evaluation" class="evaluation" hidden>
-      <div class="section-heading"><div><p class="eyebrow">REFERENZPRÜFUNG</p><h2 id="evaluation-heading">Die Auswertung.</h2></div><button id="best-variant" class="small" type="button">Beste Variante ansehen</button></div>
-      <details><summary>Referenz und Auswertungsdetails</summary>
+      <div class="section-heading"><div><p class="eyebrow">REFERENCE CHECK</p><h2 id="evaluation-heading">Evaluation.</h2></div><button id="best-variant" class="small" type="button">View best variant</button></div>
+      <details><summary>Reference and evaluation details</summary>
       <p id="evaluation-rule" class="muted"></p>
       <div id="evaluation-scores" class="evaluation-scores"></div>
       <p id="evaluation-missing" class="mono"></p>
       <div id="evaluation-effects" class="table-scroll"></div>
-      <p class="muted">Filter gegen dieselbe Ansicht ohne Filter; andere Ansichten gegen das Original ohne Filter. Δ zeigt die mittlere Änderung der Referenzabdeckung in Prozentpunkten.</p>
-      <details><summary>Referenztext und Vergleich aller Varianten</summary><pre id="reference-text"></pre><div id="evaluation-matrix" class="table-scroll"></div></details>
+      <p class="muted">Filtered images are compared with the same unfiltered view when available; other views are compared with the unfiltered original. Unpaired variants still contribute to OCR coverage. Δ shows the mean change in reference coverage, in percentage points.</p>
+      <details><summary>Reference text and comparison of all variants</summary><pre id="reference-text"></pre><div id="evaluation-matrix" class="table-scroll"></div></details>
       </details>
     </section>
-    <details id="batch-details" class="result-details" hidden><summary>Datensatz-Auswertung</summary>
-    <section id="batch-report" class="batch-report" hidden>
-      <div class="section-heading"><div><p class="eyebrow">DATENSATZAUSWAHL</p><h2 id="batch-heading">Der Lauf.</h2></div><a id="download-report" class="small" download>Bericht JSON ↓</a></div>
-      <p id="batch-progress" class="mono" role="status"></p>
-      <div id="batch-effects" class="table-scroll"></div>
-      <p class="muted">Effektzahlen zählen Variantenvergleiche: Filter gegen dieselbe Ansicht ohne Filter, andere Ansichten gegen das Original. Δ zeigt Prozentpunkte Referenzabdeckung.</p>
-      <div class="catalog-toolbar"><label><input id="only-failures" type="checkbox"> Nur unvollständige / fehlgeschlagene Bilder</label><select id="report-category" aria-label="Bericht nach Kategorie filtern"><option value="">Alle Kategorien</option></select></div>
-      <div id="batch-images" class="table-scroll"></div>
-      <a id="category-summary-link" class="small category-jump" href="#category-summary" hidden>Kategorienübersicht ↓</a>
+    <section id="detection-evaluation" class="evaluation" hidden>
+      <h2>Detection evaluation</h2>
+      <p id="detection-evaluation-progress" class="mono" role="status"></p>
+      <p id="detection-evaluation-context" class="muted"></p>
+      <div id="detection-evaluation-key-metrics" class="detection-key-metrics"></div>
+      <details class="evaluation-more">
+        <summary>Aggregate detector metrics and case breakdown</summary>
+        <p class="muted">Combined verdicts are flagged if any selected detector flags, and not flagged only when every selected detector says not flagged. Accuracy is correct / decided cases. Detection rate is decided / completed cases; unresolved results and errors are in its denominator. Pending and cancelled cases are excluded. Verdicts require configured thresholds.</p>
+        <div id="detection-evaluation-summary" class="table-scroll"></div>
+        <details><summary>Results by image and context</summary><div id="detection-evaluation-cases" class="table-scroll"></div></details>
+      </details>
     </section>
-    <section id="category-summary" class="category-summary" hidden aria-labelledby="category-heading">
-      <div class="section-heading"><div><p class="eyebrow">DIESER LAUF · NACH KATEGORIE</p><h2 id="category-heading">Kategorien im Vergleich.</h2></div></div>
-      <p class="muted">Anteil vollständig erkannter Referenzen in den ausgewählten Bildern. Zusätzlicher OCR-Text ist erlaubt. Kategorie anklicken, um ihre Bilder im Bericht zu sehen.</p>
-      <div class="category-legend" aria-label="Legende"><span><i class="category-valid"></i> Gültig</span><span><i class="category-invalid"></i> Unvollständig</span><span><i class="category-error"></i> Technischer Fehler</span></div>
-      <div id="category-chart" class="category-chart"></div>
-      <p class="muted category-note">Prozentbasis: gültige + unvollständige + technisch fehlgeschlagene Bilder. Noch offene Bilder zählen nicht. Die Anzahl pro Kategorie steht neben dem Balken.</p>
+    <details id="batch-details" class="result-details" hidden><summary>Image results</summary>
+    <section id="batch-report" class="batch-report" hidden>
+      <div class="section-heading"><div><p class="eyebrow">DATASET SELECTION</p><h2 id="batch-heading">Run.</h2></div><a id="download-report" class="small" download>JSON report ↓</a></div>
+      <p id="batch-progress" class="mono" role="status"></p>
+      <div class="batch-result-overview">
+        <section class="batch-result-lane batch-result-lane-ocr" aria-labelledby="batch-ocr-heading">
+          <h3 id="batch-ocr-heading">OCR completeness</h3>
+          <p id="batch-ocr-summary" role="status"></p>
+        </section>
+        <section id="batch-detection-lane" class="batch-result-lane batch-result-lane-detection" aria-labelledby="batch-detection-heading" hidden>
+          <h3 id="batch-detection-heading">Detection outcome</h3>
+          <p id="batch-detection-summary" role="status"></p>
+        </section>
+      </div>
+      <div class="catalog-toolbar"><label><input id="only-failures" type="checkbox"> Only OCR-incomplete or failed images</label><select id="report-category" aria-label="Filter report by category"><option value="">All categories</option></select></div>
+      <div id="batch-images" class="table-scroll"></div>
+      <details id="batch-aggregate-details" class="evaluation-more">
+        <summary>Aggregate effects and category breakdown</summary>
+        <div id="batch-effects" class="table-scroll"></div>
+        <p class="muted">Effect counts represent variant comparisons: filters versus the same unfiltered view when available, and other views versus the original. Unpaired variants still contribute to OCR coverage. Δ shows percentage points of reference coverage.</p>
+        <a id="category-summary-link" class="small category-jump" href="#category-summary" hidden>Category summary ↓</a>
+        <section id="category-summary" class="category-summary" hidden aria-labelledby="category-heading">
+          <div class="section-heading"><div><p class="eyebrow">THIS RUN · BY CATEGORY</p><h2 id="category-heading">Category comparison.</h2></div></div>
+          <p class="muted">Share of selected images with a fully recognized reference. Additional OCR text is allowed. Select a category to view its images in the report.</p>
+          <div class="category-legend" aria-label="Legend"><span><i class="category-valid"></i> Valid</span><span><i class="category-invalid"></i> Incomplete</span><span><i class="category-error"></i> Technical error</span></div>
+          <div id="category-chart" class="category-chart"></div>
+          <p class="muted category-note">Percentage base: valid + incomplete + technically failed images. Pending and cancelled images are excluded. The count for each category appears beside its bar.</p>
+        </section>
+      </details>
     </section>
     </details>
+    </section>
     <dialog id="dataset-dialog" class="detail-dialog dataset-dialog" aria-labelledby="dataset-dialog-title">
-      <div class="dialog-heading"><h2 id="dataset-dialog-title">Bild aus dem Datensatz</h2><button id="close-dataset" class="small" type="button">Auswahl übernehmen</button></div>
+      <div class="dialog-heading"><h2 id="dataset-dialog-title">Dataset image</h2><button id="close-dataset" class="small" type="button">Apply selection</button></div>
     <section id="dataset-picker" class="dataset-picker">
+      <div class="actions dataset-collections" role="group" aria-label="Evaluation dataset">
+        <button id="dataset-ocr" class="small" type="button" aria-pressed="true">ocr_evaluation</button>
+        <button id="dataset-detection" class="small" type="button" aria-pressed="false">detection_evaluation</button>
+      </div>
+      <p id="dataset-purpose" class="muted">Evaluate OCR reference coverage.</p>
       <details id="dataset-details" open>
-        <summary>Datensatzbilder auswählen <span id="catalog-count" class="muted"></span></summary>
-        <p class="muted">Wähle ein Bild und bestätige die Auswahl.</p>
-        <div class="catalog-filters"><label>Kategorie<select id="dataset-category"><option value="">Alle Kategorien</option></select></label><label>Suche<input id="dataset-search" type="search" placeholder="Dateiname oder Referenztext"></label></div>
-        <details class="batch-selection"><summary>Mehrere Bilder testen</summary><label><input id="dataset-multiple" type="checkbox"> Mehrfachauswahl aktivieren</label></details>
-        <div class="catalog-toolbar"><span id="dataset-count" class="mono muted"></span><div class="actions"><button id="select-matching" class="small" type="button" hidden>Alle Treffer wählen</button><button id="clear-selection" class="small" type="button">Auswahl leeren</button></div></div>
+        <summary>Browse dataset images <span id="catalog-count" class="muted"></span></summary>
+        <p class="muted">Choose an image and apply your selection.</p>
+        <div class="catalog-filters"><label>Category<select id="dataset-category"><option value="">All categories</option></select></label><label>Search<input id="dataset-search" type="search" placeholder="Filename or reference text"></label></div>
+        <div class="catalog-toolbar"><span id="dataset-count" class="mono muted"></span><div class="actions"><button id="select-matching" class="small" type="button" hidden>Select all matches</button><button id="clear-selection" class="small" type="button">Clear selection</button></div></div>
         <p id="catalog-error" class="muted" hidden></p>
         <div id="dataset-images" class="dataset-images"></div>
-        <div class="catalog-toolbar"><span id="dataset-selected" class="mono"></span><div class="actions"><button id="dataset-prev" class="small" type="button">← Zurück</button><button id="dataset-next" class="small" type="button">Weiter →</button></div></div>
+        <div class="catalog-toolbar"><span id="dataset-selected" class="mono"></span><div class="actions"><button id="dataset-prev" class="small" type="button">← Previous</button><button id="dataset-next" class="small" type="button">Next →</button></div></div>
       </details>
     </section>
     </dialog>
     <dialog id="ocr-detail-dialog" class="detail-dialog" aria-labelledby="ocr-detail-title">
-      <div class="dialog-heading"><div><p class="eyebrow">OCR · DETAILS</p><h2 id="ocr-detail-title">Transformationen und Einzelbilder</h2></div><button id="close-ocr-details" type="button" class="small">Schließen</button></div>
+      <div class="dialog-heading"><div><p class="eyebrow">OCR · DETAILS</p><h2 id="ocr-detail-title">Transforms and individual images</h2></div><button id="close-ocr-details" type="button" class="small">Close</button></div>
     <section id="workspace" class="workspace" hidden>
-      <div id="worker-status" class="worker-status" aria-label="Worker-Status"></div>
+      <div id="worker-status" class="worker-status" aria-label="Worker status"></div>
       <div class="work-grid">
         <div class="image-panel">
-          <div class="panel-heading"><span id="step-label" class="mono">Original</span><button id="live" type="button" class="small" hidden>Zurück zu Live</button></div>
-          <div class="image-bed"><div id="canvas" class="canvas"><img id="preview" alt="Aktuelle Bildvariante"><svg id="boxes" xmlns="http://www.w3.org/2000/svg" aria-label="Erkannte Textstellen"></svg></div></div>
-          <div class="panel-footer"><span id="dimensions" class="mono muted"></span><label><input id="show-boxes" type="checkbox" checked> Textboxen</label></div>
+          <div class="panel-heading"><span id="step-label" class="mono">Original</span><button id="live" type="button" class="small" hidden>Back to live</button></div>
+          <div class="image-bed"><div id="canvas" class="canvas"><img id="preview" alt="Current image variant"><svg id="boxes" xmlns="http://www.w3.org/2000/svg" aria-label="Recognized text regions"></svg></div></div>
+          <div class="panel-footer"><span id="dimensions" class="mono muted"></span><label><input id="show-boxes" type="checkbox" checked> Text boxes</label></div>
         </div>
         <div class="text-panel">
-          <div class="panel-heading"><span class="eyebrow">ERKANNTER TEXT</span><button id="copy-step" type="button" class="small">Kopieren</button></div>
-          <pre id="step-text" tabindex="0">Noch kein OCR-Ergebnis.</pre>
+          <div class="panel-heading"><span class="eyebrow">RECOGNIZED TEXT</span><button id="copy-step" type="button" class="small">Copy</button></div>
+          <pre id="step-text" tabindex="0">No OCR result yet.</pre>
         </div>
       </div>
     </section>
     <section id="history" class="history" hidden>
-      <div class="section-heading"><div><p class="eyebrow">SCHRITT FÜR SCHRITT</p><h2 id="history-heading">Die Varianten.</h2></div><span id="variant-count" class="mono muted"></span></div>
+      <div class="section-heading"><div><p class="eyebrow">STEP BY STEP</p><h2 id="history-heading">Variants.</h2></div><span id="variant-count" class="mono muted"></span></div>
       <div id="variants" class="variants"></div>
     </section>
       <details id="alternative-readings" hidden>
-        <summary id="alternative-summary">Abweichende Lesarten</summary>
-        <p class="muted">Diese Erkennungen bleiben erhalten. Sie können OCR-Fehler oder andere Texte aus einer Bildvariante enthalten.</p>
+        <summary id="alternative-summary">Alternative readings</summary>
+        <p class="muted">These OCR results are preserved. They may contain recognition errors or other text from an image variant.</p>
         <div id="alternative-list"></div>
       </details>
     </dialog>

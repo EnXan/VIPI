@@ -6,9 +6,9 @@ from PIL import Image
 
 @pytest.fixture
 def dataset_repository(tmp_path):
-    directory = tmp_path / "research/datasets/data/catalog/ocr"
+    directory = tmp_path / "research/ocr_eval"
     directory.mkdir(parents=True)
-    image_root = tmp_path / "research/datasets/data/external/examples"
+    image_root = directory / "images"
     image_root.mkdir(parents=True)
     records = []
     for i, text in enumerate(["Required", "Missing target", "Failure target"]):
@@ -16,10 +16,10 @@ def dataset_repository(tmp_path):
         Image.new("RGB", (16, 12), "white").save(path)
         records.append(
             {
-                "image": path.relative_to(tmp_path).as_posix(),
+                "image": path.relative_to(image_root.parent).as_posix(),
                 "text": text,
                 "category": "vpi_bench" if i < 2 else "mm_safetybench",
             }
         )
-    (directory / "ocr_metadata.json").write_text(json.dumps(records))
+    (directory / "catalog.json").write_text(json.dumps(records))
     return tmp_path

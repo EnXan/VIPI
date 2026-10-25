@@ -1,6 +1,6 @@
 """Local web adapter over the shared scanner, with independent replayable SSE."""
 
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import CancelledError, ThreadPoolExecutor
 import importlib.util
 import json
 import re
@@ -30,12 +30,15 @@ class DetectionService:
             max_workers=1, thread_name_prefix="detector-scan"
         )
 
-    def prepare(self, run_id, options):
+    def prepare(self, run_id, options, *, cancel_event=None):
         options = settings(**options)
         directory = run_directory(self.root, run_id)
         if not (directory / "status.json").is_file():
             raise ValueError("OCR run not found.")
         store = DetectionStore(directory)
+        store.cancel_event = (
+            cancel_event if cancel_event is not None else threading.Event()
+        )
         store.emit("detection_queued", options=options, evidence_scope="final_ocr")
         with self.lock:
             self.stores[run_id, store.id] = store
@@ -50,12 +53,34 @@ class DetectionService:
                     model_dir=self.model_dir,
                     store=store,
                     provider_factory=self.provider_factory,
+                    cancel_event=store.cancel_event,
                 )
+            except CancelledError:
+                if store.status["state"] != "cancelled":
+                    store.emit("detection_cancelled", state="cancelled")
             except Exception as error:
                 if store.status["state"] != "failed":
                     store.emit("detection_failed", state="failed", error=str(error))
 
         return self.executor.submit(worker)
+
+    def cancel(self, run_id):
+        with self.lock:
+            stores = [
+                store
+                for (identifier, _), store in self.stores.items()
+                if identifier == run_id
+            ]
+        requested = False
+        for store in stores:
+            with store.condition:
+                if store.status["state"] in {"completed", "failed", "cancelled"}:
+                    continue
+                store.cancel_event.set()
+                if not store.status.get("cancel_requested"):
+                    store.emit("cancellation_requested", cancel_requested=True)
+                requested = True
+        return requested
 
     def get(self, run_id, check_id):
         directory = run_directory(self.root, run_id)
@@ -99,7 +124,7 @@ def register_routes(app, service):
         except ValueError as error:
             reason = str(error)
         return jsonify(
-            default="jev",
+            default=[],
             providers=[
                 {
                     "id": "jev",
@@ -136,7 +161,7 @@ def register_routes(app, service):
         try:
             directory = run_directory(service.root, run_id)
             status = json.loads((directory / "status.json").read_text())
-            if status["state"] not in {"completed", "failed"}:
+            if status["state"] not in {"completed", "failed", "cancelled"}:
                 return jsonify(
                     error="Wait for OCR to finish before checking saved evidence."
                 ), 409

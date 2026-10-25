@@ -3,7 +3,8 @@
 Accepted package boundaries are recorded in [ADR 0002](../adr-code/0002-product-and-research-boundaries.md).
 The public scan contract is recorded in [ADR 0003](../adr-code/0003-public-cli-contract.md).
 The current OCR behavior and evaluation boundary are recorded in [ADR 0007](../adr-code/0007-reduced-ocr-transforms.md).
-Research module ownership is recorded in [ADR 0008](../adr-code/0008-research-layout.md).
+Research module ownership and dataset distribution are recorded in
+[ADR 0012](../adr-code/0012-hugging-face-evaluation-dataset.md).
 
 VIPI is one installable Python package, `vipi`, with the public commands
 `vipi setup` and `vipi scan`. The repository also contains a separate research
@@ -62,26 +63,26 @@ replacement changes this package/adapter, not input selection or detector code.
 initializers and model metadata imports do not load inference frameworks.
 
 - `research/workbench/`: local Flask UI, dataset browsing, uploads, batches, SSE
-  and diagnostic commands. Dataset labels, API links and thumbnails stay here.
-- `research/datasets/`: active catalog access, reference construction and dataset
-  preparation tools. Dataset files and selection metadata live under `data/`.
-- `research/evaluation/`: OCR reference metrics and an adapter that attaches
-  evaluation to product results.
-- `research/experiments/ocr/` and `research/experiments/anamorpher/`: OCR screening,
-  experiment rounds and Anamorpher image probes.
+  and diagnostic commands.
+- `research/ocr_eval/`: active OCR reference catalog, evaluation metrics and
+  the adapter used by the workbench.
+- `research/detection_eval/`: reviewed image prompt-injection cases, labels and
+  ignored local image files.
 
 OCR and detector stores keep their distinct states. Shared atomic writes, hashes
 and event iteration are consolidated; SSE encoding is a workbench adapter.
 Persisted JSON schemas and run directory layouts are shared across the product
-and research tools. Dataset paths, source transcripts and raw files live under
-`research/datasets/data/`.
+and research tools. OCR paths, source transcripts and local image data live
+under `research/ocr_eval/images/`, indexed by `research/ocr_eval/catalog.json`.
+The catalogs and image files are downloaded from the Hugging Face dataset at
+the commit pinned in `research/dataset.json`; GitHub tracks evaluation code.
 
 ## Dependencies and tests
 
 `ocr` and `ocr-cuda` select alternative OCR runtimes. `detector-local` supplies
-Prompt Guard and its model-download client. `research` supplies Flask, dataset
-validation and dataset-download tools; `test` supplies pytest and Ruff. The
-published CLI does not install Flask or dataset validation by selecting `ocr`.
+Prompt Guard and its model-download client. `research` supplies Flask for the
+local workbench; `test` supplies pytest and Ruff. The published CLI does not
+install Flask by selecting `ocr`.
 
 Tests are grouped into `tests/unit`, `tests/integration` and `tests/research`.
 Boundary tests prevent imports from the product into research/web frameworks and

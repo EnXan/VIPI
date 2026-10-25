@@ -51,7 +51,7 @@ def test_cli_evaluation_uses_dataset_reference(dataset_repository, monkeypatch):
         return {"text": "recognized"}
 
     monkeypatch.setattr("research.workbench.__main__.extract", extract)
-    assert main(["extract", "research/datasets/data/external/examples/0.png", "--evaluate"]) == 0
+    assert main(["extract", "research/ocr_eval/images/0.png", "--evaluate"]) == 0
     assert references[0]["text"] == "Required"
 
 

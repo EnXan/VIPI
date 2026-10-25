@@ -6,11 +6,15 @@ class EventLog:
         while True:
             with self.condition:
                 batch = self.events[after:]
-                terminal = self.status["state"] in {"completed", "failed"}
+                terminal = self.status["state"] in {"completed", "failed", "cancelled"}
                 if not batch and not terminal:
                     self.condition.wait(timeout=15)
                     batch = self.events[after:]
-                    terminal = self.status["state"] in {"completed", "failed"}
+                    terminal = self.status["state"] in {
+                        "completed",
+                        "failed",
+                        "cancelled",
+                    }
             for event in batch:
                 yield event
                 after = event["id"]

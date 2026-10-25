@@ -4,7 +4,7 @@ import sys
 from pathlib import Path
 
 from vipi.ocr.models import DEFAULT_MODEL, PUBLIC_MODEL_NAMES, prepare_models
-from research.evaluation.runner import extract, reassemble
+from research.ocr_eval.evaluation.runner import extract, reassemble
 from vipi.ocr.workers import DEFAULT_WORKERS, worker_count
 from vipi.ocr.runtime import BACKENDS, DEFAULT_BACKEND
 
@@ -41,7 +41,7 @@ def main(argv=None):
     scan.add_argument("--output", type=Path)
     from .detector_options import add_options
 
-    add_options(scan, default=None)
+    add_options(scan)
     scan.add_argument(
         "--evaluate",
         action="store_true",
@@ -73,7 +73,7 @@ def main(argv=None):
     try:
         detection_options = None
         if args.command == "extract" and (
-            args.text_classifier not in {None, "off"}
+            args.text_classifier
             or args.image_check != "off"
             or args.context_check != "off"
         ):
@@ -99,7 +99,7 @@ def main(argv=None):
         else:
             reference = None
             if args.command == "extract" and args.evaluate:
-                from research.datasets.catalog import Catalog
+                from research.ocr_eval.evaluation.catalog import Catalog
 
                 reference = Catalog(Path.cwd()).for_path(args.image)
 

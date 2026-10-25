@@ -38,14 +38,19 @@ uv run vipi scan . --diff origin/main --output report.json
 Research commands, run from the repository root:
 
 ```bash
-uv run python -m research.datasets.setup
+uv run python -m research.download
 uv run python -m research.workbench serve
 uv run python -m research.workbench extract image.png --model ppocr-v6
+uv run python -m research.workbench extract image.png --text-classifier jev --text-classifier openai --thresholds-file thresholds.json
 uv run python -m research.workbench extract image.png --evaluate
 uv run python -m research.workbench reassemble RUN_ID
 uv run python -m research.workbench.detector_cli detect RUN_ID --text-classifier jev
-uv run python -m research.experiments.ocr.ocr_screening --help
 ```
+
+See [download images](../research/README.md#download-images) for individual
+suites, local paths and dataset versioning, and
+[add images](../research/README.md#add-images) for submissions and maintainer
+approval on Hugging Face.
 
 The public CLI uses its user cache. Workbench defaults continue to use the
 repository's `models/ocr`, `models/detector` and `runs` directories, with its
@@ -91,15 +96,15 @@ reuse a version that has already been published.
 ```bash
 uv run pytest -q tests/unit tests/integration
 uv run pytest -q tests/research
-uv run ruff check src/vipi research/workbench research/evaluation research/datasets/catalog.py tests
+uv run ruff check src/vipi research/download.py research/workbench research/ocr_eval/evaluation tests
 uv build
 ```
 
 The research tests use temporary catalog fixtures rather than rebuilding or
-modifying the active dataset. Raw source datasets and current OCR indexes stay
-under `research/datasets/data/`; catalog access and dataset tools live in
-`research/datasets/`. Follow `AGENTS.md` and the
-[catalog guide](../research/datasets/data/catalog/README.md) before changing them.
+modifying the active OCR selection. Catalogs and images are downloaded from the
+Hugging Face dataset at the revision in `research/dataset.json`, and local copies
+are ignored by Git. See the [research guide](../research/README.md) for downloads
+and contributions. Preserve exact OCR source transcripts and provenance.
 
 macOS, Linux and Windows have been tested; see the [platform status](cli.md#platform-validation-status).
 No live paid provider calls are required by the automated suite.

@@ -117,6 +117,6 @@ git push origin v0.1.3
   distinct. Reuse their existing contracts before adding new abstractions.
 - Use [architecture](docs/architecture.md), [CLI usage](docs/cli.md) and
   [development](docs/development.md) for current behavior and commands.
-- For dataset work, read [research/datasets/data/AGENTS.md](research/datasets/data/AGENTS.md) and the relevant
-  catalog/schema before changing data or dataset tools. Preserve raw sources,
+- For OCR reference work, read [research/ocr_eval/README.md](research/ocr_eval/README.md)
+  and the active catalog before changing data. Preserve source files,
   exact reference transcripts and provenance.

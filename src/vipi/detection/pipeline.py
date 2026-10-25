@@ -1,6 +1,6 @@
 """Bounded independent detector scheduling over frozen OCR readings."""
 
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import CancelledError, ThreadPoolExecutor, as_completed
 import json
 import time
 from pathlib import Path
@@ -12,14 +12,29 @@ from .policy import INSTRUCTIONS, POLICY_VERSION, state
 from .providers import create_provider
 from .providers.prompt_guard import MODEL_DIR
 from vipi.storage.detection import DetectionStore
+from vipi.cancellation import check_cancelled
 from .verdict import probability, summarize, validate_thresholds
 
 TEXT_CLASSIFIERS = ("jev", "openai", "prompt-guard", "compare", "off")
 
 
+def classifier_names(options):
+    if "text_classifiers" in options:
+        return options["text_classifiers"]
+    name = options["text_classifier"]
+    return (
+        list(TEXT_CLASSIFIERS[:3])
+        if name == "compare"
+        else []
+        if name == "off"
+        else [name]
+    )
+
+
 def settings(
     *,
     text_classifier="jev",
+    text_classifiers=None,
     image_check="off",
     context_check="off",
     context=None,
@@ -32,12 +47,24 @@ def settings(
         or context_check not in {"off", "openai"}
     ):
         raise ValueError("Choose supported detector modes.")
+    selected = None
+    if text_classifiers is not None:
+        if not isinstance(text_classifiers, list) or any(
+            not isinstance(name, str) or name not in TEXT_CLASSIFIERS[:3]
+            for name in text_classifiers
+        ):
+            raise ValueError("Choose supported text classifiers as a list.")
+        selected = [name for name in TEXT_CLASSIFIERS[:3] if name in text_classifiers]
+        text_classifier = (
+            selected[0] if len(selected) == 1 else "compare" if selected else "off"
+        )
     if text_classifier == image_check == context_check == "off":
         raise ValueError("Select at least one detector check.")
     if not isinstance(reuse, bool):
         raise ValueError("reuse must be a boolean.")
     return {
         "text_classifier": text_classifier,
+        **({"text_classifiers": selected} if selected is not None else {}),
         "image_check": image_check,
         "context_check": context_check,
         "context": validate_context(context),
@@ -47,13 +74,7 @@ def settings(
 
 
 def jobs_for(evidence, options):
-    names = (
-        ["jev", "openai", "prompt-guard"]
-        if options["text_classifier"] == "compare"
-        else []
-        if options["text_classifier"] == "off"
-        else [options["text_classifier"]]
-    )
+    names = classifier_names(options)
     jobs = []
     for reading in evidence["readings"]:
         for name in names:
@@ -147,12 +168,14 @@ def detect(
     store=None,
     on_event=None,
     provider_factory=None,
+    cancel_event=None,
 ):
     options = settings(**(options or {}))
     store = store or DetectionStore(on_event=on_event, run_id=evidence["run_id"])
     factory = provider_factory or (lambda name: create_provider(name, model_dir))
     started = time.perf_counter()
     try:
+        check_cancelled(cancel_event)
         jobs, signals = jobs_for(evidence, options)
         prepared = {
             "schema_version": 2,
@@ -177,12 +200,14 @@ def detect(
         saved = (saved_answers or {}) if options["reuse"] else {}
         providers, errors = {}, {}
         for name in dict.fromkeys(x["provider"] for x in jobs):
+            check_cancelled(cancel_event)
             try:
                 providers[name] = factory(name)
             except Exception as error:
                 errors[name] = str(error)
 
         def work(job):
+            check_cancelled(cancel_event)
             provider = providers.get(job["provider"])
             context = {} if job["provider"] == "prompt-guard" else options["context"]
             payload = state(job["evidence"], context)
@@ -235,6 +260,7 @@ def detect(
             store.emit(
                 "check_started", active_check=job["id"], active_signal=job["signal"]
             )
+            check_cancelled(cancel_event)
             try:
                 if not provider:
                     raise ValueError(errors[job["provider"]])
@@ -265,7 +291,7 @@ def detect(
                 [answer["signal"]],
                 options["thresholds"],
                 evidence_complete=evidence["ocr_complete"]
-                and (bool(evidence["readings"]) or options["text_classifier"] == "off"),
+                and (bool(evidence["readings"]) or not classifier_names(options)),
             )
             answer.update(verdict=single["verdict"], check_id=store.id)
             store.save_answer(answer)
@@ -281,10 +307,14 @@ def detect(
                 for job in jobs
             ]
             for future in as_completed(futures):
-                save(future)
+                try:
+                    save(future)
+                except CancelledError:
+                    continue
+        check_cancelled(cancel_event)
         answers = sorted(store.results, key=lambda x: x["id"])
         complete = evidence["ocr_complete"] and (
-            bool(evidence["readings"]) or options["text_classifier"] == "off"
+            bool(evidence["readings"]) or not classifier_names(options)
         )
         summary = summarize(
             answers, signals, options["thresholds"], evidence_complete=complete
@@ -317,6 +347,14 @@ def detect(
             active_signal=None,
         )
         return result
+    except CancelledError:
+        store.emit(
+            "detection_cancelled",
+            state="cancelled",
+            active_check=None,
+            active_signal=None,
+        )
+        raise
     except (Exception, KeyboardInterrupt) as error:
         store.emit(
             "detection_failed",
@@ -334,6 +372,7 @@ def detect_saved_run(
     store=None,
     on_event=None,
     provider_factory=None,
+    cancel_event=None,
 ):
     """Load persisted evidence for replay; direct checks use detect(evidence)."""
     options = settings(**(options or {}))
@@ -348,6 +387,7 @@ def detect_saved_run(
         store=store,
         saved_answers=cached_answers(directory) if options["reuse"] else {},
         provider_factory=provider_factory,
+        cancel_event=cancel_event,
     )
 
 

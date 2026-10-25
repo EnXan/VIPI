@@ -1,6 +1,6 @@
 """Parallel views, with adjust -> OCR -> persist ordering inside each worker."""
 
-from concurrent.futures import ThreadPoolExecutor, wait
+from concurrent.futures import CancelledError, ThreadPoolExecutor, wait
 from dataclasses import asdict
 import json
 from queue import Empty, Queue
@@ -15,6 +15,7 @@ from .engines import create_engine
 from .merge import ASSEMBLY_VERSION, assemble
 from .models import DEFAULT_MODEL, sha256
 from vipi.storage.ocr import RunStore, write_json
+from vipi.cancellation import check_cancelled
 from .transforms import (
     OCR_PROFILE,
     apply_filter,
@@ -40,6 +41,7 @@ def extract(
     workers=DEFAULT_WORKERS,
     on_result=None,
     backend=DEFAULT_BACKEND,
+    cancel_event=None,
 ):
     workers = worker_count(workers)
     validate_backend(model, backend)
@@ -68,6 +70,7 @@ def extract(
     stop = threading.Event()
     started = time.perf_counter()
     try:
+        check_cancelled(cancel_event)
         original = decode_image(image)
         original.save(store.directory / "input.png", format="PNG")
         passes = production_passes_for_size(*original.size)
@@ -92,6 +95,7 @@ def extract(
 
         def work(worker_id):
             try:
+                check_cancelled(cancel_event)
                 # Stateful OCR adapters are never shared between workers.
                 if engine_pool is not None:
                     local_engine = engine_pool.engine()
@@ -104,6 +108,7 @@ def extract(
                         model, Path(models_dir), backend=backend, threads=threads
                     )
                 while not stop.is_set():
+                    check_cancelled(cancel_event)
                     try:
                         index, view, name = pending.get_nowait()
                     except Empty:
@@ -121,9 +126,7 @@ def extract(
                         "height": view.height,
                         "label": f"{view.id} · {name}",
                     }
-                    store.advance(
-                        worker_id, "step_started", "transforming", current
-                    )
+                    store.advance(worker_id, "step_started", "transforming", current)
                     transform_started = time.perf_counter()
                     base = render_view(original, view)
                     raster = apply_filter(base, name)
@@ -138,19 +141,16 @@ def extract(
                         "image": relative_image,
                     }
                     store.advance(worker_id, "image_ready", "transforming", current)
+                    check_cancelled(cancel_event)
                     store.advance(worker_id, "ocr_started", "ocr", current)
                     ocr_started = time.perf_counter()
                     recognized = local_engine.recognize(raster)
                     ocr_seconds = time.perf_counter() - ocr_started
                     for region in recognized["regions"]:
-                        region["input_polygon"] = view.map_polygon(
-                            region["polygon"]
-                        )
+                        region["input_polygon"] = view.map_polygon(region["polygon"])
                     store.advance(worker_id, "saving", "saving", current)
                     transformation = asdict(view)
-                    transformation["to_input"] = [
-                        list(row) for row in view.to_input
-                    ]
+                    transformation["to_input"] = [list(row) for row in view.to_input]
                     transformation["crop"] = list(view.crop) if view.crop else None
                     step = {
                         **current,
@@ -164,6 +164,9 @@ def extract(
                         },
                     }
                     store.complete_step(worker_id, step)
+            except CancelledError:
+                stop.set()
+                raise
             except (Exception, KeyboardInterrupt):
                 stop.set()
                 if engine_pool is not None:
@@ -186,6 +189,7 @@ def extract(
                 pool.shutdown(wait=True, cancel_futures=True)
             else:
                 wait(futures)
+        check_cancelled(cancel_event)
         steps = store.snapshot()["variants"]
         store.transition(
             "assembling", state="assembling", active_steps={}, completed=len(steps)
@@ -204,8 +208,10 @@ def extract(
             "variants": steps,
             "assembly_version": ASSEMBLY_VERSION,
         }
+        check_cancelled(cancel_event)
         if on_result is not None:
             on_result(result)
+        check_cancelled(cancel_event)
         result["elapsed_seconds"] = time.perf_counter() - started
         write_json(store.directory / "result.json", result)
         (store.directory / "result.txt").write_text(text, encoding="utf-8")
@@ -222,6 +228,15 @@ def extract(
             completed=len(steps),
         )
         return result
+    except CancelledError:
+        store.transition(
+            "run_cancelled",
+            state="cancelled",
+            active_steps={},
+            current=None,
+            completed=store.status["completed"],
+        )
+        raise
     except (Exception, KeyboardInterrupt) as error:
         store.transition(
             "run_failed",

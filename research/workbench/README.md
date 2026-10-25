@@ -34,7 +34,7 @@ UV_PROJECT_ENVIRONMENT=.venv-ocr uv sync --python 3.12 --locked --extra ocr-cuda
 
 Open http://127.0.0.1:8000, choose **NVIDIA CUDA** and start with **1–2 workers**.
 Each worker owns its model sessions and consumes GPU memory. Compare a few scene
-images, screenshots and Anamorpher images before starting all 1,676 records.
+images and screenshots before starting a large selection.
 The default remains CPU; CUDA is always selected explicitly.
 
 The CUDA extra installs `onnxruntime-gpu` and its NVIDIA CUDA/cuDNN libraries.
@@ -68,22 +68,23 @@ uv sync --python 3.12 --locked --extra ocr-cuda --extra research --extra test
 
 ### Move the selected dataset to another computer
 
-Git contains code, the active OCR index, reports and manifests. Local data under
-`research/datasets/data/external/` and `research/datasets/data/derived/`, downloaded models and scan runs are
-excluded. Copy the two data directories separately, preserving paths relative
-to the repository root. The active index can be used as a file list if copying
-only the selected images. For example, on the Mac:
+Git contains the evaluation code and the pinned dataset revision. On the other
+machine, install the research dependencies and download the matching catalog
+and images from Hugging Face:
 
 ```bash
-.venv/bin/python -c 'import json; from pathlib import Path; print("\n".join(item["image"] for item in json.loads(Path("research/datasets/data/catalog/ocr/ocr_metadata.json").read_text())))' > /tmp/vipi-ocr-images.txt
-rsync -av --files-from=/tmp/vipi-ocr-images.txt ./ /path/to/PC/VIPI/
+uv sync --extra research
+uv run python -m research.download ocr_eval
 ```
 
-Replace the destination with your mounted transfer directory or an SSH
-destination. This copies exactly the active images, including filter variants
-and Anamorpher originals; the Git-tracked index retains their transcriptions.
-Do not regenerate the dataset to move it. Create a fresh Python environment on
-the PC and prepare model files there; Mac virtual environments are not portable.
+The catalog and images are local copies ignored by Git. An offline transfer can
+copy `research/ocr_eval/catalog.json` and `research/ocr_eval/images/` together.
+Create a fresh Python environment and prepare model files on the other machine;
+Mac virtual environments are not portable.
+
+For both evaluation suites, download paths and submitting new examples, see the
+[image download](../README.md#download-images) and
+[image contribution](../README.md#add-images) instructions.
 
 ## Web
 
@@ -91,33 +92,64 @@ the PC and prepare model files there; Mac virtual environments are not portable.
 .venv-ocr/bin/python -m research.workbench serve
 ```
 
-Open http://127.0.0.1:8000. Choose a dataset image or upload, drop or paste one.
-Select PP-OCRv6 medium (default) or Tesseract, and optionally a text injection
-detector. **Scan starten** runs OCR, then checks only the final OCR text
-with the selected detectors. The main view shows the original, progress, final
-text with copy/TXT/JSON downloads, and per-detector results.
+Open http://127.0.0.1:8000, choose an image or dataset, then move through **Input**,
+**Options** and **Review**. Choose an OCR model, hardware backend, worker count
+and any combination of Jev, OpenAI Decisions and Prompt Guard 2. Leave all text
+classifiers unchecked for OCR only. Detection requires a threshold set version
+and one score threshold for every selected check; set each threshold with its slider
+or numeric input. A score at or above the threshold is flagged, while lower
+complete scores are not flagged.
+Without thresholds the scanner can only show scores, not verdicts. The **Scan** tab contains setup, progress, recognized text and detector
+results. Dataset reports are shown separately in **Evaluation**; starting a
+dataset run opens that tab.
 
-**OCR-Schritte ansehen** opens a separate detail dialog with adjusted images,
+The run panel stays visible across both tabs. It shows the current image, scan
+phase, and a time estimate based on observed progress. Evaluation reports start
+with a compact per-image table; open a row's details for its reference text,
+recognized text, detector verdicts and exact scores. Aggregate and category
+reports are collapsed until requested.
+
+**View OCR steps** opens a separate detail dialog with adjusted images,
 animated OCR boxes, worker states and variant texts. Images are loaded only after
 you explicitly open it. Competing readings are available there as well.
 Reloading the run URL restores saved results with the detail dialog closed.
 
-**Weitere Einstellungen** contains hardware and 1–8 workers (default 4).
+**Other CLI options** contains image/context checks, caller context and answer reuse.
+These map to the corresponding `research.workbench extract` CLI options. Select
+multiple text classifiers by repeating `--text-classifier` on the command line.
+The dataset browser and evaluation reports are workbench features; detector and
+OCR configuration follows the CLI.
+The worker setting supports 1–8 workers (default 4).
 Each worker has its own OCR instance; CPU threads are divided between workers.
 CPU is default. Apple CoreML is experimental on supported Macs, and can place
 supported operations on CPU, GPU or Neural Engine. NVIDIA CUDA is available on
 supported Linux/Windows installations. Tesseract uses CPU only.
 
+### Stop a scan
+
+**Stop scan** cancels the current uploaded-image scan or its active detector
+checks. **Stop batch** also skips the remaining selected images. The button
+changes to **Stopping …** until current operations return; native OCR and
+provider calls already running finish before cancellation completes. Queued
+work does not start after cancellation is observed.
+
+Completed OCR steps, detector answers and earlier images remain saved and
+inspectable. Cancelled runs have a separate `cancelled` state and retain that
+state after a restart. Cancelled images/cases are reported separately from
+technical errors and excluded from evaluation percentages. After stopping
+finishes, another scan can start normally.
+
 ### Dataset selection and evaluation
 
-Open **Datensatz auswählen**, filter by source category or search by filename
-or reference text. Select one image and confirm with **Auswahl übernehmen**.
-Enable **Mehrere Bilder testen** for multiple images or all matching results.
+Open **Browse dataset**, choose **ocr_evaluation**, then filter by source category
+or search by filename or reference text. Select one image and confirm with
+**Apply selection**.
+Enable **Test multiple images** to select multiple images or all matching results.
 Images run one after another; each uses the chosen 1–8 OCR workers.
 
-The active selection comes from `research/datasets/data/catalog/ocr/ocr_metadata.json`; reference
-scope, quality and word regions come from `ocr_selection_report.json`. Raw images
-and annotations are never modified or passed to OCR as hints.
+The active selection, reference scope, quality, word regions and source details
+come from `research/ocr_eval/catalog.json`. Images and annotations are never
+modified or passed to OCR as hints.
 
 Valid means the full reference is recognized in a variant or the assembled text.
 Extra OCR text is allowed, including background/UI text. Comparison normalizes
@@ -130,14 +162,57 @@ Ignored regions are excluded.
 The report separates pipeline detection from final-text retention. It shows
 missing reference tokens, each variant's coverage and paired effect comparisons:
 filters versus the same unfiltered view; scaling, rotation and tiles versus the
-unfiltered original. Effect counts describe variant comparisons, not image counts.
-Expand **Datensatz-Auswertung** for the selection report with valid, incomplete and technically failed images;
-processing continues after individual errors. Click an image after completion
+unfiltered original. Filter effects require an unfiltered version of the same
+view. Variants without that control still contribute to OCR coverage, but not
+to the paired effect counts. Effect counts describe variant comparisons, not image counts.
+The **Evaluation** tab contains the **Dataset OCR evaluation** report with valid, incomplete
+and technically failed images; processing continues after individual errors.
+Click an image after completion
 to inspect its variants. Source/Silver references may themselves be incomplete.
 At the end, a category chart shows valid/incomplete/error counts and the valid
 share of processed images in this selection. Pending images are excluded;
-untested categories have no percentage. Click a category to filter the image
+cancelled images are also excluded, and untested categories have no percentage.
+Click a category to filter the image
 report. These counts are also included in `summary.categories` in its JSON.
+
+### Detection evaluation
+
+Choose **detection_evaluation** in **Browse dataset** to select images from
+`research/detection_eval/cases.json`. Selection, search, multiple-image scans and
+downloads work as above. Categories are **Injection**, **Benign** or
+**Context dependent**, according to the expected labels of an image's cases.
+Search also includes caller context, techniques and obfuscation labels.
+
+Select at least one detector before **Start scan**. OCR and detection each run
+once per image without caller context. The same scanner verdict is compared
+with every case's expected label. Catalog context describes the ground truth
+and is displayed for review; it is never supplied to the scanner. Manual
+context settings are also ignored. Expected labels and payload transcripts are
+never supplied to OCR or detectors as hints.
+
+Context support is not part of the current scanner evaluation. An image may
+therefore be flagged even when its catalog context makes it benign. These
+misclassifications are intentional evaluation outcomes and count as ordinary
+false positives or false negatives. Contextual cases remain in the scores
+with their original labels. Reports record `detection_context_mode: "none"`;
+older saved reports retain their original results.
+
+The **Evaluation** tab shows true/false positives and true/false negatives,
+unresolved verdicts, errors and pending cases, both overall and per detector.
+Accuracy is correct / decided cases. Decision rate is decided / completed cases,
+including unresolved verdicts and errors in that denominator. Pending and
+cancelled cases are excluded. Without configured
+thresholds, scores remain unresolved and accuracy is unavailable. A provider
+failure is reported as an error; other cases and images continue.
+Expand **Results by image and context**, then click an image to inspect that
+image's shared detector check. The JSON selection report stores these results in
+each image's `cases` and aggregates them under `detection_evaluation`.
+
+The existing OCR evaluation also compares recognized text with each image's
+primary visible payload, including encoded text exactly as cataloged. This
+measures payload coverage rather than a full-image transcript. It is reported
+separately under **Dataset OCR evaluation** and never substitutes for detection
+accuracy.
 
 ## CLI
 

@@ -3,6 +3,15 @@
 Thanks for helping improve VIPI. Contributions are welcome through GitHub pull
 requests.
 
+Evaluation images and labels are contributed through pull requests on the
+[Hugging Face dataset](https://huggingface.co/datasets/EnXan/VIPI-evaluation),
+where maintainers review them together before merging. Follow the
+[local image contribution instructions](research/README.md#add-images) for
+browser and CLI submissions, catalog paths and the approval process.
+The GitHub repository contains evaluation code and a pinned dataset revision;
+see [download images](research/README.md#download-images) to retrieve matching
+local data with `uv run python -m research.download`.
+
 ## Before you start
 
 For a substantial change, open an issue first to discuss the approach. For a

@@ -145,10 +145,9 @@ models/ocr/
 models/detector/
 runs/
 # Local research data; research code and documentation remain trackable.
-/research/datasets/data/external/
-/research/datasets/data/derived/
-/research/datasets/data/.cache/
-/research/experiments/reports/
+/research/ocr_eval/images/
+/research/ocr_eval/catalog.json
+/research/detection_eval/cases.json
 env/
 venv/
 ENV/

@@ -5,9 +5,11 @@
 - [Architecture and package boundaries](architecture.md)
 - [Development setup and checks](development.md)
 - [Research environment and tools](../research/README.md)
-- [Dataset instructions](../research/datasets/data/AGENTS.md) and [active OCR catalog](../research/datasets/data/catalog/README.md)
+- [Download evaluation images](../research/README.md#download-images) and
+  [contribute new images](../research/README.md#add-images)
+- [OCR evaluation and catalog rules](../research/ocr_eval/README.md)
+- [Image detection evaluation suite](../research/detection_eval/README.md)
 
-Current product interfaces belong here. Research guides and experiment reports
-live with their code under `research/`. Dataset build rules live beside the
-dataset catalog. Accepted design decisions are indexed in `adr-code/`; temporary
-plans and TODOs belong under `.llm-plans/`.
+Current product interfaces belong here. Research guides live with their code
+under `research/`. Accepted design decisions are indexed in `adr-code/`;
+temporary plans and TODOs belong under `.llm-plans/`.
