@@ -1,10 +1,12 @@
 # OCR Workbench
 
-Local image-to-text extraction through CLI or a live web interface. Each image
-passes through the fixed scaling, rotation, tiling and filter sequence. OCR runs
-and saves its result after every adjustment. At the end, matching text locations
-are combined into one primary reading; disagreements remain separate. Selected
-dataset images can be checked against their annotated text.
+Local image-to-text extraction through CLI or a live web interface. The default
+**Original only · baseline** profile runs each original decoded image once and
+preserves the backend's text without VIPI transformations or assembly. PP-OCR
+uses native RapidOCR processing with the pinned model weights. Select
+**Previous VIPI pipeline · control** explicitly to replay the existing variant
+and assembly profile. Selected dataset images are checked against their annotated
+text. See the [candidate inventory and experiment protocol](../ocr_eval/BASELINE.md).
 
 ## Setup
 
@@ -16,8 +18,76 @@ UV_PROJECT_ENVIRONMENT=.venv-ocr uv sync --python 3.12 --locked --extra ocr --ex
 .venv-ocr/bin/python -m research.workbench prepare-models
 ```
 
-Model preparation downloads pinned files and verifies SHA-256 checksums.
-Extraction and the repository workbench work locally without downloads.
+PP-OCR and Tesseract model preparation downloads pinned files and verifies
+SHA-256 checksums. Document VLM setup uses upstream model caches. API OCR sends
+images to its selected provider; local OCR uses the prepared model files.
+
+### Optional document VLMs
+
+The Workbench also offers PaddleOCR-VL 1.6 and Granite-Docling 258M. They run
+through their upstream full-page document pipelines and use one worker per run.
+On Apple Silicon PaddleOCR-VL uses its official PaddlePaddle CPU path; Docling
+uses its official Granite Transformers pipeline. These are available in the
+evaluation Workbench only, not in the public `vipi scan` command.
+
+Use a dedicated Workbench environment for the document VLMs. PaddleOCR brings
+its own OpenCV distribution, so this environment intentionally omits VIPI's
+`ocr` extra (and its separate OpenCV wheel). The Workbench selects the standard
+or VLM interpreter per model, so one queue can use both environments.
+Upstream model caches are stored under the ignored `models/ocr/` directory by
+default (override `HF_HOME`, `MODELSCOPE_CACHE` or `PADDLE_PDX_CACHE_HOME` to
+use a different local cache).
+Install both runtimes together, then prepare each model once:
+
+```bash
+UV_PROJECT_ENVIRONMENT=.venv-ocr-vlm uv sync --locked --python 3.12 --extra research --extra test --extra ocr-paddle-vl --extra ocr-granite-docling --extra ocr-lighton
+.venv-ocr-vlm/bin/python -m research.workbench prepare-models --model paddleocr-vl-1.6
+.venv-ocr-vlm/bin/python -m research.workbench prepare-models --model granite-docling-258m
+.venv-ocr/bin/python -m research.workbench serve
+```
+
+The first preparation run downloads model assets through the selected upstream
+pipeline and may take time. PaddleOCR-VL supports a local MLX-VLM inference
+service as an alternative; configure `PADDLEOCR_VL_SERVER_URL` and optionally
+`PADDLEOCR_VL_API_MODEL` to use it. See the official
+[PaddleOCR-VL pipeline guide](https://www.paddleocr.ai/latest/en/version3.x/pipeline_usage/PaddleOCR-VL.html),
+[Apple Silicon setup](https://www.paddleocr.ai/latest/en/version3.x/pipeline_usage/PaddleOCR-VL-Apple-Silicon.html)
+and [Granite-Docling model card](https://huggingface.co/ibm-granite/granite-docling-258M).
+
+LightOnOCR-3 uses its official Transformers classes and image-only transcription
+mode. Prepare each required size through the VLM environment:
+
+```bash
+.venv-ocr-vlm/bin/python -m research.workbench prepare-models --model lightonocr-3-0.8b
+.venv-ocr-vlm/bin/python -m research.workbench prepare-models --model lightonocr-3-1b
+.venv-ocr-vlm/bin/python -m research.workbench prepare-models --model lightonocr-3-4b
+```
+
+Models use `.venv-ocr` or `.venv-ocr-vlm` from the repository root by default;
+override with `VIPI_OCR_PYTHON` and `VIPI_OCR_VLM_PYTHON`. Heavy models run in a
+separate process reused across images and released before the next model.
+See the official [LightOn 1B](https://huggingface.co/lightonai/LightOnOCR-3-1B)
+and [Qwen-based 0.8B/4B](https://huggingface.co/lightonai/LightOnOCR-3-0.8B) cards.
+
+On this Mac, LightOn uses MPS with native eager attention: PyTorch 2.6's fused
+SDPA path crashed on its grouped attention tensors. This setting and dtype are
+recorded with each result; the official 1B MPS path uses float32.
+
+The API adapters read `MISTRAL_API_KEY`, `GOOGLE_CLOUD_API_KEY` (or
+`GOOGLE_API_KEY`), and `OPENAI_API_KEY` through the existing credential resolver.
+Google and Luna adapters are shared with the public CLI's `--modus cloud`;
+the Workbench keeps explicit model selection for comparisons.
+Run the functional **Round 0** check before the full manual baseline:
+
+```bash
+.venv-ocr/bin/python -m research.workbench check-models
+```
+
+This sends one common image to each active model/API. `--model` is repeatable;
+`--image` overrides the synthetic input. Reports are saved in
+`runs/reports/ocr-round0/<id>/`; readiness lives in
+`models/ocr/workbench-readiness.json`. Failed models show their reason and are
+disabled until a successful explicit retry. This check does not measure accuracy.
 
 ### Ubuntu with an NVIDIA GPU
 
@@ -93,7 +163,7 @@ For both evaluation suites, download paths and submitting new examples, see the
 ```
 
 Open http://127.0.0.1:8000, choose an image or dataset, then move through **Input**,
-**Options** and **Review**. Choose an OCR model, hardware backend, worker count
+**Options** and **Review**. Choose one or more OCR models, hardware backend, worker count
 and any combination of Jev, OpenAI Decisions and Prompt Guard 2. Leave all text
 classifiers unchecked for OCR only. Detection requires a threshold set version
 and one score threshold for every selected check; set each threshold with its slider
@@ -102,6 +172,28 @@ complete scores are not flagged.
 Without thresholds the scanner can only show scores, not verdicts. The **Scan** tab contains setup, progress, recognized text and detector
 results. Dataset reports are shown separately in **Evaluation**; starting a
 dataset run opens that tab.
+
+The OCR profile appears in Review and the saved selection report. Baseline uses
+one worker because it makes one model call per image. Models may still resize,
+locate text and classify orientation inside their native processing. To select
+the old research behavior from the CLI, pass `--ocr-profile transforms`;
+`--ocr-profile baseline` is the default. Historical reports keep their profiles.
+
+Selected models run sequentially in the displayed order: model A scans every
+selected image before model B loads. Both dataset collections can be combined;
+all selected detection images receive OCR even with detectors off. Keep the
+server running and computer awake for overnight runs; the browser tab may close.
+Restarting the server marks an unfinished queue interrupted rather than resuming.
+
+Evaluation includes a per-model comparison and per-image OCR duration, inference
+and initialization time, and estimated API cost. Raw usage and pricing assumptions
+are retained in JSON and image details. Missing cost remains unknown. Local API
+fees are zero, excluding electricity/hardware. Estimates use dated standard list
+prices, not invoices: [OpenAI](https://developers.openai.com/api/docs/models/gpt-6-luna),
+[Google](https://cloud.google.com/vision/pricing), [Mistral](https://docs.mistral.ai/models/ocr-4-1).
+Google free quota and account volume/discounts are unknown. Models without word
+positions are **Unscored** for unordered spatial references; compare scored
+denominators alongside pass rates. Text, timing and cost are still saved.
 
 The run panel stays visible across both tabs. It shows the current image, scan
 phase, and a time estimate based on observed progress. Evaluation reports start
@@ -119,7 +211,7 @@ These map to the corresponding `research.workbench extract` CLI options. Select
 multiple text classifiers by repeating `--text-classifier` on the command line.
 The dataset browser and evaluation reports are workbench features; detector and
 OCR configuration follows the CLI.
-The worker setting supports 1–8 workers (default 4).
+The transformation profile supports 1–8 workers (default 4); baseline uses one.
 Each worker has its own OCR instance; CPU threads are divided between workers.
 CPU is default. Apple CoreML is experimental on supported Macs, and can place
 supported operations on CPU, GPU or Neural Engine. NVIDIA CUDA is available on
@@ -130,7 +222,8 @@ supported Linux/Windows installations. Tesseract uses CPU only.
 **Stop scan** cancels the current uploaded-image scan or its active detector
 checks. **Stop batch** also skips the remaining selected images. The button
 changes to **Stopping …** until current operations return; native OCR and
-provider calls already running finish before cancellation completes. Queued
+provider calls already running finish before cancellation completes. Heavy model
+workers owned by the queue are terminated on cancellation. Queued
 work does not start after cancellation is observed.
 
 Completed OCR steps, detector answers and earlier images remain saved and
@@ -141,15 +234,19 @@ finishes, another scan can start normally.
 
 ### Dataset selection and evaluation
 
-Open **Browse dataset**, choose **ocr_evaluation**, then filter by source category
-or search by filename or reference text. Select one image and confirm with
-**Apply selection**.
-Enable **Test multiple images** to select multiple images or all matching results.
-Images run one after another; each uses the chosen 1–8 OCR workers.
+Open **Browse dataset** and select images from **ocr_evaluation** and/or
+**detection_evaluation**. Switching between the two catalogs keeps the current
+selection, so one batch can contain images from both. Filter by category or
+search by filename or reference text, then confirm with **Apply selection**.
+Images run one after another; each uses the chosen 1–8 OCR workers. Leave all
+detector checks off to run OCR only, including on detection-dataset images.
+When a detector is enabled, labeled detection cases run only for images selected
+from `detection_evaluation`.
 
-The active selection, reference scope, quality, word regions and source details
-come from `research/ocr_eval/catalog.json`. Images and annotations are never
-modified or passed to OCR as hints.
+Each selection's reference scope, quality, word regions and source details come
+from its own catalog: `research/ocr_eval/catalog.json` or
+`research/detection_eval/cases.json`. Images and annotations are never modified
+or passed to OCR as hints.
 
 Evaluation v3 uses **tolerant word coverage in the final scanner text** as the
 primary metric. A case passes when every annotated reference word is covered.
@@ -199,12 +296,13 @@ downloads work as above. Categories are **Injection**, **Benign** or
 **Context dependent**, according to the expected labels of an image's cases.
 Search also includes caller context, techniques and obfuscation labels.
 
-Select at least one detector before **Start scan**. OCR and detection each run
-once per image without caller context. The same scanner verdict is compared
-with every case's expected label. Catalog context describes the ground truth
-and is displayed for review; it is never supplied to the scanner. Manual
-context settings are also ignored. Expected labels and payload transcripts are
-never supplied to OCR or detectors as hints.
+Leave detector checks off for OCR-only scans of these images. To evaluate their
+labeled cases, enable one or more detectors before **Start scan**. OCR runs once
+per image and the enabled detection checks run without caller context; the same
+scanner verdict is compared with every case's expected label. Catalog context
+describes the ground truth and is displayed for review; it is never supplied
+to the scanner. Manual context settings are also ignored. Expected labels and
+payload transcripts are never supplied to OCR or detectors as hints.
 
 Context support is not part of the current scanner evaluation. An image may
 therefore be flagged even when its catalog context makes it benign. These
@@ -241,7 +339,8 @@ accuracy.
 .venv-ocr/bin/python -m research.workbench extract ANNOTATED_IMAGE --evaluate --json
 ```
 
-Model IDs: `ppocr-v6`, `tesseract`. Progress goes to stderr;
+Active model IDs are listed in [the comparison protocol](../ocr_eval/BASELINE.md).
+Progress goes to stderr;
 recognized text or JSON goes to stdout. `--output` also saves that output.
 `extract --workers 1` runs sequentially; the default is 4 and the maximum is 8.
 `--evaluate` uses the active annotation for the supplied dataset image. Evaluation

@@ -141,6 +141,7 @@ celerybeat.pid
 .venv
 .venv-anamorpher/
 .venv-ocr/
+.venv-ocr-vlm/
 models/ocr/
 models/detector/
 runs/

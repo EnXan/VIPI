@@ -5,6 +5,7 @@ import sys
 import threading
 
 from .workers import worker_count
+from vipi.config import CLOUD_OCR_MODELS, WORKBENCH_OCR_MODELS
 
 DEFAULT_BACKEND = "cpu"
 BACKENDS = ("cpu", "coreml", "cuda")
@@ -56,6 +57,13 @@ def validate_backend(model, backend):
         raise ValueError("Choose the cpu, coreml or cuda backend.")
     if model == "tesseract" and backend != "cpu":
         raise ValueError("Tesseract supports only the CPU backend.")
+    if model in WORKBENCH_OCR_MODELS and backend != "cpu":
+        raise ValueError(
+            "Document VLMs use their upstream pipeline; VIPI's hardware backend "
+            "does not apply. Select the CPU option in the Workbench."
+        )
+    if model in CLOUD_OCR_MODELS and backend != "cpu":
+        raise ValueError("Cloud OCR runs through its API. Select the CPU option.")
     if backend == "coreml":
         if not coreml_available():
             raise ValueError(

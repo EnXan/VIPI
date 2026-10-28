@@ -54,6 +54,8 @@ def scan(
     threshold=DEFAULT_THRESHOLD,
     ocr_mode=DEFAULT_OCR_MODE,
     ocr_model=None,
+    ocr_execution_mode=None,
+    ocr_provider=None,
     diff=None,
     exclude_patterns=(),
     output=None,
@@ -80,8 +82,12 @@ def scan(
             progress(message)
 
     try:
-        options = ScanOptions(detector, threshold, ocr_mode, ocr_model)
-        report["ocr_mode"] = options.ocr_mode
+        options = ScanOptions(
+            detector, threshold, ocr_mode, ocr_model, ocr_execution_mode, ocr_provider
+        )
+        report["ocr_mode"] = options.resolved_ocr_mode
+        report["ocr_execution_mode"] = options.resolved_ocr_execution_mode
+        report["ocr_provider"] = options.resolved_ocr_provider
         report["ocr_model"] = options.resolved_ocr_model
         selection = select_images(
             paths,

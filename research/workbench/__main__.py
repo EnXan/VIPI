@@ -3,8 +3,18 @@ import json
 import sys
 from pathlib import Path
 
-from vipi.ocr.models import DEFAULT_MODEL, PUBLIC_MODEL_NAMES, prepare_models
+from vipi.config import WORKBENCH_OCR_MODELS
+from vipi.ocr.models import (
+    DEFAULT_MODEL,
+    prepare_models,
+)
+from .model_registry import (
+    MODEL_NAMES as PUBLIC_MODEL_NAMES,
+    validate_model,
+    LIGHTON_MODELS,
+)
 from research.ocr_eval.evaluation.runner import extract, reassemble
+from research.ocr_eval.evaluation.profiles import DEFAULT_PROFILE, PROFILES
 from vipi.ocr.workers import DEFAULT_WORKERS, worker_count
 from vipi.ocr.runtime import BACKENDS, DEFAULT_BACKEND
 
@@ -20,15 +30,25 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description="VIPI local image-to-text pipeline")
     subparsers = parser.add_subparsers(dest="command", required=True)
     prepare = subparsers.add_parser(
-        "prepare-models", help="Download pinned OCR models explicitly"
+        "prepare-models", help="Prepare OCR model files explicitly"
     )
     prepare.add_argument("--model", choices=PUBLIC_MODEL_NAMES)
     prepare.add_argument("--models-dir", type=Path, default=Path("models/ocr"))
+    check = subparsers.add_parser(
+        "check-models", help="Round 0: one image per selected OCR model"
+    )
+    check.add_argument("--model", action="append", choices=PUBLIC_MODEL_NAMES)
+    check.add_argument("--image", type=Path)
+    check.add_argument("--models-dir", type=Path, default=Path("models/ocr"))
+    check.add_argument(
+        "--reports-dir", type=Path, default=Path("runs/reports/ocr-round0")
+    )
     scan = subparsers.add_parser(
-        "extract", help="Run all fixed transformations and OCR"
+        "extract", help="Run OCR on the original image or with transformations"
     )
     scan.add_argument("image", type=Path)
     scan.add_argument("--model", choices=PUBLIC_MODEL_NAMES, default=DEFAULT_MODEL)
+    scan.add_argument("--ocr-profile", choices=PROFILES, default=DEFAULT_PROFILE)
     scan.add_argument(
         "--backend",
         choices=BACKENDS,
@@ -51,7 +71,7 @@ def main(argv=None):
         "--workers",
         type=parse_workers,
         default=DEFAULT_WORKERS,
-        help="Parallel OCR workers, 1–8 (default: 4)",
+        help="Transformation workers, 1–8 (default: 4); baseline uses one worker",
     )
     merge = subparsers.add_parser(
         "reassemble", help="Reassemble saved OCR results without rerunning OCR"
@@ -81,7 +101,35 @@ def main(argv=None):
 
             detection_options = read_options(args)
         if args.command == "prepare-models":
-            prepare_models(args.models_dir, args.model)
+            if args.model in LIGHTON_MODELS:
+                from huggingface_hub import snapshot_download
+
+                label = args.model.removeprefix("lightonocr-3-").upper()
+                snapshot_download(
+                    f"lightonai/LightOnOCR-3-{label}",
+                    local_dir=args.models_dir / "candidates" / args.model,
+                )
+            elif args.model in {"google-cloud-vision", "gpt-6-luna"}:
+                validate_model(args.model, args.models_dir)
+                print("API credentials configured; no model download required.")
+            elif args.model in WORKBENCH_OCR_MODELS:
+                from .ocr_models import prepare_model
+
+                print(
+                    f"Preparing {PUBLIC_MODEL_NAMES[args.model]} "
+                    "with its official pipeline"
+                )
+                prepare_model(args.model, args.models_dir)
+                marker = args.models_dir / args.model / "READY"
+                marker.parent.mkdir(parents=True, exist_ok=True)
+                marker.write_text("Prepared through the official upstream pipeline.\n")
+                print(f"Ready: {PUBLIC_MODEL_NAMES[args.model]}")
+            else:
+                prepare_models(args.models_dir, args.model)
+        elif args.command == "check-models":
+            from .round0 import run
+
+            return run(args.model, args.image, args.models_dir, args.reports_dir)
         elif args.command == "serve":
             from .web import create_app
 
@@ -97,6 +145,10 @@ def main(argv=None):
                 load_dotenv=False,
             )
         else:
+            if args.command == "extract" and (
+                args.model in WORKBENCH_OCR_MODELS or args.model in LIGHTON_MODELS
+            ):
+                validate_model(args.model, args.models_dir)
             reference = None
             if args.command == "extract" and args.evaluate:
                 from research.ocr_eval.evaluation.catalog import Catalog
@@ -122,9 +174,15 @@ def main(argv=None):
                     args.image,
                     args.model,
                     progress,
+                    ocr_profile=args.ocr_profile,
                     models_dir=args.models_dir,
                     runs_dir=args.runs_dir,
-                    workers=args.workers,
+                    workers=(
+                        1
+                        if args.model in WORKBENCH_OCR_MODELS
+                        or args.ocr_profile == "baseline"
+                        else args.workers
+                    ),
                     reference=reference,
                     backend=args.backend,
                 )

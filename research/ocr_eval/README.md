@@ -11,6 +11,8 @@ uv run python -m research.download ocr_eval
 ```
 
 The catalog loader and evaluation modules are grouped under `evaluation/`.
+The [baseline protocol and complete candidate inventory](BASELINE.md) describe
+the original-image comparison and subsequent measured improvement rounds.
 
 The catalog preserves exact transcripts, source references, rights, reference
 scope and word regions. Catalog image paths are relative to this directory.

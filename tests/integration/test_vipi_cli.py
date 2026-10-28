@@ -161,7 +161,7 @@ def test_single_threshold_boundaries(threshold, score, verdict):
 def scanner_runtime(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     monkeypatch.setenv("XDG_CACHE_HOME", str(tmp_path / "cache"))
-    monkeypatch.setattr("vipi.ocr.models.validate_model", lambda *args, **kwargs: None)
+    monkeypatch.setattr("vipi.ocr.session.validate_model", lambda *args, **kwargs: None)
     # Keep real image decoding, orchestration, persistence, assembly and detection;
     # replace inference and limit views so tests do not require model weights.
     from vipi.ocr.transforms import views_for_size
@@ -250,7 +250,8 @@ def test_scan_runs_shared_pipeline_sequentially_and_emits_json(
             "fast",
             "ppocr-v6",
         ),
-        (["--ocr-model", "mistral-ocr-4-1"], "quality", "mistral-ocr-4-1"),
+        (["--ocr-model", "mistral-ocr-4-1"], None, "mistral-ocr-4-1"),
+        (["--modus", "local", "--ocr-mode", "speed"], "speed", "ppocr-v6-tiny"),
     ],
 )
 def test_scan_selects_ocr_mode_and_explicit_model_override(
@@ -397,9 +398,7 @@ def test_setup_only_prepares_default_ocr_and_selected_local_detector(
     assert calls[-1][1]["revision"] == "a8ded8e697ce7c355e395a0df51f94adb4a2fd27"
 
 
-def test_setup_mistral_does_not_prepare_local_ocr_model(
-    tmp_path, monkeypatch, capsys
-):
+def test_setup_mistral_does_not_prepare_local_ocr_model(tmp_path, monkeypatch, capsys):
     monkeypatch.setenv("XDG_CACHE_HOME", str(tmp_path))
     calls = []
     monkeypatch.setattr(

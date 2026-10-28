@@ -13,7 +13,13 @@ MAX_INPUT_PIXELS = 40_000_000
 MAX_VIEW_PIXELS = 80_000_000
 FILTERS = ("unchanged", "grayscale", "clahe", "inverted", "threshold", "color-contrast")
 OCR_PROFILE = "reduced-transforms-v2"
+BASELINE_OCR_PROFILE = "original-only-v1"
 MISTRAL_OCR_PROFILE = "mistral-single-pass-v1"
+CLOUD_OCR_PROFILES = {
+    "mistral-ocr-4-1": MISTRAL_OCR_PROFILE,
+    "google-cloud-vision": "google-vision-single-pass-v1",
+    "gpt-6-luna": "openai-luna-single-pass-v1",
+}
 TWO_TIMES_MAX_PIXELS = 8_000_000
 OCR_PROFILE_PASSES = (
     ("original-unchanged-1x", "unchanged"),
@@ -166,8 +172,7 @@ def production_passes_for_size(width: int, height: int) -> list[tuple[View, str]
         profile = [item for item in profile if item[0] != "pillow-bicubic-2x"]
     view_ids = {view_id for view_id, _ in profile}
     views = {
-        view.id: view
-        for view in views_for_size(width, height, selected_ids=view_ids)
+        view.id: view for view in views_for_size(width, height, selected_ids=view_ids)
     }
     return [(views[view_id], filter_name) for view_id, filter_name in profile]
 

@@ -7,6 +7,12 @@ const steps = new Map();
 const workerStates = new Map();
 let workerCount = 4, selectedWorker = null;
 const selectedDatasets = new Set();
+function selectedOCRModels() { return [...document.querySelectorAll('.ocr-model:checked')].map(input => input.value); }
+function ocrModelLabel(id) { return [...$('model').options].find(option => option.value === id)?.textContent || id; }
+function selectedModelChanged() { $('model').value = selectedOCRModels()[0] || ''; updateBackend(); busy(running); }
+function imageThumbnail(item,data) { return item.dataset === 'upload' ? `/api/batches/${data.batch_id}/input` : `/api/datasets/${encodeURIComponent(item.dataset_id)}/thumbnail?dataset=${encodeURIComponent(item.dataset || data.dataset || 'ocr_evaluation')}`; }
+function duration(value) { return Number.isFinite(value) ? `${value.toFixed(2)} s` : '—'; }
+function money(value) { return Number.isFinite(value) ? `$${value.toFixed(6)}` : '—'; }
 const datasetLabels = new Map();
 const datasetItems = new Map();
 let catalogPage, catalogOffset = 0, catalogRequest = 0, searchTimer;
@@ -110,18 +116,29 @@ function selectWorkbenchPage(page) {
   try { sessionStorage.setItem('vipi-workbench-page', page); } catch {}
 }
 
+function datasetSelectionKey(dataset, id) { return `${dataset}|${id}`; }
+function selectionFromKey(key) {
+  const separator = key.indexOf('|');
+  return {dataset:key.slice(0,separator),id:key.slice(separator + 1)};
+}
+function hasDetectionSelection() {
+  return [...selectedDatasets].some(key => selectionFromKey(key).dataset === 'detection_evaluation');
+}
 function selectedInputLabel() {
-  if (selectedDatasets.size) return `${selectedDatasets.size} image${selectedDatasets.size === 1 ? '' : 's'} from ${activeDataset}`;
+  if (selectedDatasets.size) {
+    const collections = new Set([...selectedDatasets].map(key => selectionFromKey(key).dataset));
+    return `${selectedDatasets.size} image${selectedDatasets.size === 1 ? '' : 's'} from ${collections.size > 1 ? 'both datasets' : collections.has('detection_evaluation') ? 'detection_evaluation' : 'ocr_evaluation'}`;
+  }
   return selectedFile?.name || '';
 }
 function updateWizard() {
   $('input-next').disabled = running || batchRunning || (!selectedFile && !selectedDatasets.size);
   $('start').disabled = running || batchRunning || setupStep !== 3;
-  const evaluation = activeDataset === 'detection_evaluation' && selectedDatasets.size > 0;
+  const evaluation = hasDetectionSelection();
   $('text-classifiers').disabled = running || batchRunning;
   $('dataset-mode-note-options').hidden = !evaluation;
   $('threshold-required-note').textContent = evaluation
-    ? 'Required for detection evaluation. Set a score threshold for every selected classifier and calibrate against labeled data.'
+    ? 'Required when detection is enabled. Set a score threshold for every selected classifier and calibrate against labeled data.'
     : 'Required when detection is enabled. Set a score threshold for every selected check and calibrate against labeled data.';
 }
 function setSetupStep(step) {
@@ -142,14 +159,15 @@ function renderScanReview() {
   const selectedClassifiers = [...document.querySelectorAll('.text-classifier:checked')].map(input => classifierLabels[input.value]);
   const entries = [
     ['Input',selectedInputLabel()],
-    ['Dataset mode', selectedDatasets.size ? (activeDataset === 'detection_evaluation' ? 'Detection evaluation' : 'OCR evaluation') : 'Single image'],
-    ['OCR model',$('model').selectedOptions[0]?.textContent || '—'],
+    ['Dataset mode', selectedDatasets.size ? (hasDetectionSelection() && new Set([...selectedDatasets].map(key => selectionFromKey(key).dataset)).size > 1 ? 'OCR + detection datasets' : hasDetectionSelection() ? 'Detection evaluation' : 'OCR evaluation') : 'Single image'],
+    ['OCR models',selectedOCRModels().map(ocrModelLabel).join(' → ') || '—'],
+    ['OCR profile',$('ocr-profile').selectedOptions[0]?.textContent || '—'],
     ['Hardware',$('backend').selectedOptions[0]?.textContent || '—'],
     ['Parallel workers',$('workers').value],
     ['Text classifiers',selectedClassifiers.length ? selectedClassifiers.join(', ') : 'None · OCR only'],
     ['Image check',$('image-check').value === 'openai' ? 'OpenAI Decisions' : 'Off'],
     ['Context check',$('context-check').value === 'openai' ? 'OpenAI Decisions' : 'Off'],
-    ['Caller context',selectedDatasets.size && activeDataset === 'detection_evaluation' ? 'Not used for detection evaluation' : $('detector-context').value.trim() ? 'Configured' : 'None'],
+    ['Caller context',hasDetectionSelection() ? 'Not used for detection evaluation' : $('detector-context').value.trim() ? 'Configured' : 'None'],
     ['Threshold set',$('detector-threshold-version').value.trim() || 'Not configured'],
     ['Reuse saved answers',$('detector-reuse').checked ? 'Yes' : 'No'],
   ];
@@ -161,14 +179,10 @@ function renderScanReview() {
 }
 function validateOptions() {
   const showError = message => { $('wizard-error').textContent = message; $('wizard-error').hidden = false; };
-  if (!$('model').value || !$('backend').value || !$('workers').value) {
+  if (!selectedOCRModels().length || !$('backend').value || !$('workers').value) {
     showError('Choose an OCR model, hardware and worker count.'); return false;
   }
-  const evaluation = activeDataset === 'detection_evaluation' && selectedDatasets.size > 0;
-  const selectedClassifiers = [...document.querySelectorAll('.text-classifier:checked')].map(input => input.value);
-  if (evaluation && !selectedClassifiers.length) {
-    showError('Choose at least one text classifier for detection evaluation.'); return false;
-  }
+  const evaluation = hasDetectionSelection();
   try {
     const detection = window.vipiDetection?.options(evaluation);
     if (detection && (detection.text_classifiers.length || detection.image_check !== 'off' || detection.context_check !== 'off')) {
@@ -208,9 +222,10 @@ function error(message) { $('error').textContent = message; $('error').hidden = 
 function busy(value) {
   running = value || batchRunning;
   $('start').textContent = selectedDatasets.size ? selectedDatasets.size === 1 ? 'Scan image ↗' : `Scan ${selectedDatasets.size} images ↗` : 'Start scan ↗';
-  for (const id of ['model','backend','workers','image-input','dataset-category','dataset-search','select-matching','clear-selection','choose-dataset','dataset-ocr','dataset-detection','text-classifiers','image-check','context-check','detector-context','detector-threshold-version','detector-reuse','input-next','options-back','options-next','review-back']) $(id).disabled = running;
+  for (const id of ['model','ocr-profile','backend','workers','image-input','dataset-category','dataset-search','select-matching','clear-selection','choose-dataset','dataset-ocr','dataset-detection','text-classifiers','image-check','context-check','detector-context','detector-threshold-version','detector-reuse','input-next','options-back','options-next','review-back']) $(id).disabled = running;
   for (const input of $('threshold-controls').querySelectorAll('input')) input.disabled = running;
-  const withoutContext = activeDataset === 'detection_evaluation' && selectedDatasets.size > 0;
+  for (const input of document.querySelectorAll('.ocr-model')) input.disabled = running || input.dataset.available !== 'true';
+  const withoutContext = hasDetectionSelection();
   $('detector-context').disabled = $('context-check').disabled = running || withoutContext;
   $('caller-context-option').hidden = $('context-check-option').hidden = withoutContext;
   $('dataset-mode-note').hidden = $('dataset-mode-note-options').hidden = !withoutContext;
@@ -408,6 +423,7 @@ async function restore(id, connect = true) {
   if (!response.ok) throw new Error('Could not load the saved run.');
   const state = await response.json(); runId = id; total = state.total; completed = state.completed;
   $('model').value = state.model;
+  $('ocr-profile').value = state.ocr_profile === 'original-only-v1' ? 'baseline' : 'transforms';
   $('backend').value = state.backend || 'cpu'; updateBackend();
   workerCount = state.workers || 1;
   if (state.workers) $('workers').value = state.workers;
@@ -453,17 +469,31 @@ for (const name of ['dragleave','drop']) $('dropzone').addEventListener(name, ev
 $('dropzone').addEventListener('drop', event => selectFile(event.dataTransfer.files[0]));
 document.addEventListener('paste', event => { const item = [...(event.clipboardData?.items || [])].find(item => item.type.startsWith('image/')); if (item) { event.preventDefault(); selectFile(item.getAsFile()); } });
 function updateBackend() {
+  const selected = selectedOCRModels();
+  const documentVlm = selected.some(id => ['paddleocr-vl-1.6','granite-docling-258m'].includes(id) || id.startsWith('lightonocr-3-'));
+  const apiModel = selected.some(id => ['mistral-ocr-4-1','google-cloud-vision','gpt-6-luna'].includes(id));
+  const hardwareApplies = selected.some(id => id.startsWith('ppocr-v6'));
+  const originalOnly = $('ocr-profile').value === 'baseline';
+  for (const option of $('workers').options) option.disabled = (documentVlm || apiModel || originalOnly) && option.value !== '1';
+  if (documentVlm || apiModel || originalOnly) $('workers').value = '1';
   for (const option of $('backend').options) {
-    option.disabled = option.dataset.available !== 'true' || (option.value !== 'cpu' && $('model').value === 'tesseract');
+    option.disabled = option.dataset.available !== 'true' || (option.value !== 'cpu' && !hardwareApplies);
   }
-  if ($('model').value === 'tesseract') $('backend').value = 'cpu';
-  $('backend-note').textContent = $('backend').value === 'coreml'
+  if (!hardwareApplies) $('backend').value = 'cpu';
+  $('backend-note').textContent = selected.length > 1
+    ? 'Models run sequentially. Hardware applies to PP-OCR; document models and APIs use their own runtime.'
+    : apiModel
+    ? 'Sends each original image to the selected OCR API once.'
+    : documentVlm
+    ? 'The document model uses its own local runtime; Granite uses the Docling Transformers pipeline.'
+    : $('backend').value === 'coreml'
     ? 'Apple selects the CPU, GPU, or Neural Engine. Speed and recognition may vary; not all operations are accelerated.'
     : $('backend').value === 'cuda'
       ? 'OCR runs on the NVIDIA GPU. Start with 1–2 workers; each worker needs its own GPU memory.'
       : 'CPU threads are distributed across workers.';
 }
 $('model').onchange = () => { updateBackend(); busy(running); };
+$('ocr-profile').onchange = () => { updateBackend(); updateWizard(); };
 $('backend').onchange = () => { updateBackend(); updateWizard(); };
 $('show-boxes').onchange = () => { $('boxes').toggleAttribute('hidden', !$('show-boxes').checked); };
 $('live').onclick = () => { followLive = true; selectedWorker = null; renderWorkers(); if (latestStep?.image_url) showStep(latestStep); };
@@ -485,15 +515,20 @@ $('upload-form').onsubmit = async event => {
   steps.clear(); $('variants').replaceChildren(); $('history').hidden = $('final').hidden = true;
   renderEvaluation(null);
   $('ocr-detail-dialog').close(); progress('queued'); if (source) source.close();
-  const body = new FormData(); body.append('image', selectedFile, selectedFile.name || 'clipboard.png'); body.append('model', $('model').value);
+  const body = new FormData(); body.append('image', selectedFile, selectedFile.name || 'clipboard.png'); body.append('model', selectedOCRModels()[0]); body.append('models', JSON.stringify(selectedOCRModels()));
   body.append('workers', $('workers').value);
   body.append('backend', $('backend').value);
+  body.append('ocr_profile', $('ocr-profile').value);
   try {
     const detectionOptions = window.vipiDetection?.options();
     if (detectionOptions) body.append('detection', JSON.stringify(detectionOptions));
     window.vipiDetection?.reset();
     const response = await fetch('/api/runs', {method:'POST',body}); const data = await response.json();
     if (!response.ok) throw new Error(data.error || 'Could not start the pipeline.');
+    if (data.batch_id) {
+      batchRunning = true; history.replaceState(null,'',`/?batch=${data.batch_id}`);
+      selectWorkbenchPage('evaluation'); await observeBatch(data.batch_id); return;
+    }
     runId = data.run_id; updateCancelControl(); window.vipiDetection?.observeRun(runId, false); history.replaceState(null, '', `/?run=${runId}`); subscribe();
   } catch (failure) { error(failure.message); busy(false); progress('Could not start scan.'); }
 };
@@ -503,9 +538,17 @@ async function initialize() {
     for (const model of data.models) {
       const option = new Option(model.label + (model.available ? '' : ' · not prepared'), model.id);
       option.disabled = !model.available; option.title = model.reason || ''; $('model').append(option);
+      const label = document.createElement('label'), checkbox = document.createElement('input');
+      checkbox.type = 'checkbox'; checkbox.className = 'ocr-model'; checkbox.value = model.id;
+      checkbox.dataset.available = String(model.available); checkbox.disabled = !model.available;
+      checkbox.onchange = selectedModelChanged; label.title = model.reason || '';
+      label.append(checkbox,document.createTextNode(model.label + (model.available ? '' : ' · unavailable')));
+      $('ocr-model-options').append(label);
     }
     const chosen = data.models.find(model => model.id === data.default && model.available) || data.models.find(model => model.available);
     $('model').value = chosen?.id || ''; if (!chosen) error('No OCR models are prepared. Run: uv run python -m research.workbench prepare-models');
+    const checked = [...document.querySelectorAll('.ocr-model')].find(input => input.value === chosen?.id);
+    if (checked) checked.checked = true;
     for (const backend of data.backends) {
       const option = new Option(backend.label + (backend.available ? '' : ' · unavailable'),backend.id);
       option.dataset.available = String(backend.available); option.disabled = !backend.available; $('backend').append(option);
@@ -601,7 +644,9 @@ $('best-variant').onclick = () => { if (currentEvaluation) inspectStep(currentEv
 
 function refreshSelection() {
   for (const input of document.querySelectorAll('.dataset-card input')) input.checked = selectedDatasets.has(input.value);
-  $('dataset-selected').textContent = `${selectedDatasets.size} image${selectedDatasets.size === 1 ? '' : 's'} selected`;
+  const collections = new Set([...selectedDatasets].map(key => selectionFromKey(key).dataset));
+  const source = collections.size > 1 ? 'from both datasets' : collections.has('detection_evaluation') ? 'from detection_evaluation' : collections.has('ocr_evaluation') ? 'from ocr_evaluation' : '';
+  $('dataset-selected').textContent = `${selectedDatasets.size} image${selectedDatasets.size === 1 ? '' : 's'} selected${source ? ` ${source}` : ''}`;
   if (selectedDatasets.size === 1) {
     const item = datasetItems.get([...selectedDatasets][0]);
     $('file-label').textContent = item ? `${item.label} · ${item.name}` : '1 dataset image selected';
@@ -636,12 +681,14 @@ async function loadCatalog() {
     $('dataset-count').textContent = data.total ? `${catalogOffset + 1}–${Math.min(catalogOffset + data.limit,data.total)} of ${data.total} match${data.total === 1 ? '' : 'es'}` : 'No matches';
     $('dataset-images').replaceChildren();
     for (const item of data.items) {
-      datasetItems.set(item.id, item);
+      item.dataset = activeDataset;
+      const key = datasetSelectionKey(activeDataset,item.id);
+      datasetItems.set(key, item);
       const card = document.createElement('label'); card.className = 'dataset-card';
       const image = document.createElement('img'); image.src = item.thumbnail_url; image.alt = `${item.label} · ${item.name}`; image.loading = 'lazy';
       const label = document.createElement('span'); label.className = 'dataset-label';
-      const input = document.createElement('input'); input.type = 'checkbox'; input.value = item.id; input.checked = selectedDatasets.has(item.id); input.setAttribute('aria-label', `${item.label}: ${item.name}`);
-      input.onchange = () => { if (input.checked) { selectedDatasets.add(item.id); selectDataset(item); } else { selectedDatasets.delete(item.id); refreshSelection(); } };
+      const input = document.createElement('input'); input.type = 'checkbox'; input.value = key; input.checked = selectedDatasets.has(key); input.setAttribute('aria-label', `${item.label}: ${item.name}`);
+      input.onchange = () => { if (input.checked) { selectedDatasets.add(key); selectDataset(item); } else { selectedDatasets.delete(key); refreshSelection(); } };
       const name = document.createElement('span'); name.textContent = `${item.label} · ${item.name}${item.case_count ? ` · ${item.case_count} case${item.case_count === 1 ? '' : 's'}` : ''}`; label.append(input,name);
       card.append(image,label); $('dataset-images').append(card);
     }
@@ -652,10 +699,10 @@ $('dataset-category').onchange = () => { catalogOffset = 0; loadCatalog(); };
 $('dataset-search').oninput = () => { clearTimeout(searchTimer); searchTimer = setTimeout(() => { catalogOffset = 0; loadCatalog(); },250); };
 $('dataset-prev').onclick = () => { catalogOffset = Math.max(0,catalogOffset - catalogPage.limit); loadCatalog(); };
 $('dataset-next').onclick = () => { catalogOffset += catalogPage.limit; loadCatalog(); };
-$('select-matching').onclick = () => { if (!catalogPage) return; for (const id of catalogPage.matching_ids) selectedDatasets.add(id); selectedFile = null; if (catalogPage.items[0]) selectDataset(catalogPage.items[0]); else refreshSelection(); };
+$('select-matching').onclick = () => { if (!catalogPage) return; for (const id of catalogPage.matching_ids) selectedDatasets.add(datasetSelectionKey(activeDataset,id)); selectedFile = null; if (catalogPage.items[0]) selectDataset(catalogPage.items[0]); else refreshSelection(); };
 $('clear-selection').onclick = () => { selectedDatasets.clear(); refreshSelection(); };
 async function switchDataset(dataset) {
-  activeDataset = dataset; selectedDatasets.clear(); datasetItems.clear();
+  activeDataset = dataset;
   catalogOffset = 0; catalogPage = null; catalogRequest++;
   clearTimeout(searchTimer); $('dataset-search').value = '';
   $('dataset-category').replaceChildren(new Option('All categories', ''));
@@ -668,7 +715,7 @@ async function switchDataset(dataset) {
     $('context-check').dispatchEvent(new Event('change'));
   }
   $('dataset-purpose').textContent = dataset === 'detection_evaluation'
-    ? 'Scan without context and compare the result with every ground-truth case. Select at least one detector before scanning.'
+    ? 'Choose detection images for OCR-only scanning or enable detectors to evaluate the labeled cases.'
     : 'Evaluate OCR reference coverage.';
   refreshSelection(); await loadCatalog(); updateWizard();
 }
@@ -731,19 +778,19 @@ function appendDetectionDetails(container, item) {
 function renderImageDetails(item,data) {
   const content = document.createElement('div'); content.className = 'image-evaluation-details';
   const image = document.createElement('img'); image.className = 'image-evaluation-preview';
-  image.src = `/api/datasets/${encodeURIComponent(item.dataset_id)}/thumbnail?dataset=${encodeURIComponent(data.dataset || 'ocr_evaluation')}`;
+  image.src = imageThumbnail(item,data);
   image.alt = item.image.split('/').at(-1); image.loading = 'lazy'; content.append(image);
   const text = document.createElement('div'); text.className = 'image-evaluation-text';
   const payload = item.cases?.[0]?.payload;
   const reference = addDetailText(text,'Reference text',item.reference_text || payload || 'Not available in this saved report.');
   const recognized = addDetailText(text,'Recognized text',item.recognized_text ?? (item.state === 'queued' || item.state === 'running' ? 'Waiting for OCR to finish.' : 'Not available in this saved report.'));
-  if ((!item.reference_text && !payload) || (item.recognized_text == null && item.state === 'completed')) {
+  if ((item.reference_available !== false && !item.reference_text && !payload) || (item.recognized_text == null && item.state === 'completed')) {
     const loadText = document.createElement('button'); loadText.type = 'button'; loadText.className = 'small'; loadText.textContent = 'Load saved text';
     loadText.onclick = async () => {
       loadText.disabled = true; loadText.textContent = 'Loading …';
       try {
-        if (!item.reference_text && !payload) {
-          const response = await fetch(`/api/datasets/${encodeURIComponent(item.dataset_id)}/reference?dataset=${encodeURIComponent(data.dataset || 'ocr_evaluation')}`);
+        if (item.reference_available !== false && !item.reference_text && !payload) {
+          const response = await fetch(`/api/datasets/${encodeURIComponent(item.dataset_id)}/reference?dataset=${encodeURIComponent(item.dataset || data.dataset || 'ocr_evaluation')}`);
           const record = await response.json(); if (!response.ok) throw new Error(record.error);
           reference.textContent = record.text || '—';
         }
@@ -758,6 +805,8 @@ function renderImageDetails(item,data) {
     text.append(loadText);
   }
   appendDetectionDetails(text,{...item,detection_options:data.detection_options});
+  if (item.scoring_unavailable) addDetailText(text,'Scoring unavailable',item.scoring_unavailable);
+  if (item.cost) addDetailText(text,'API cost estimate and usage',JSON.stringify(item.cost,null,2));
   if (item.error) addDetailText(text,'Run error',item.error);
   content.append(text);
   if (item.run_id) {
@@ -769,7 +818,7 @@ function renderImageDetails(item,data) {
 }
 function renderOCRStatus(item) {
   const cell = document.createElement('td'); cell.className = 'result-cell result-cell-ocr';
-  const state = item.state === 'cancelled' ? 'Cancelled' : item.state === 'running' ? 'Running' : item.state === 'failed' ? 'Failed' : item.state === 'queued' ? 'Pending' : item.valid ? 'Complete' : 'Incomplete';
+  const state = item.state === 'cancelled' ? 'Cancelled' : item.state === 'running' ? 'Running' : item.state === 'failed' ? 'Failed' : item.state === 'queued' ? 'Pending' : item.valid == null ? 'Unscored' : item.valid ? 'Complete' : 'Incomplete';
   const badge = document.createElement('span'); badge.className = `result-badge ocr-${state.toLowerCase()}`; badge.textContent = state; cell.append(badge);
   if (item.coverage !== undefined) {
     const coverage = document.createElement('span'); coverage.className = 'result-detail'; coverage.textContent = `${(item.coverage * 100).toFixed(1)}% ${item.evaluation_version >= 3 ? 'words' : 'reference'}`; cell.append(coverage);
@@ -817,7 +866,23 @@ function renderBatch(data) {
     openImageDetails.clear(); batchStartedAt ||= Date.now(); batchProgressAtStart = data.completed;
   }
   $('batch-heading').textContent = data.state === 'cancelled' ? 'Batch cancelled.' : data.cancel_requested && batchRunning ? 'Stopping batch …' : data.state === 'completed' ? 'Evaluation.' : data.state === 'failed' ? 'Run interrupted.' : 'Checking images.';
-  $('batch-progress').textContent = `${data.completed} / ${data.total} images processed`;
+  const profileLabel = data.ocr_profile === 'baseline' ? 'Original only · baseline' : data.ocr_profile === 'transforms' ? 'Previous VIPI pipeline' : 'Historical profile';
+  $('batch-progress').textContent = `${data.completed} / ${data.total} model/image runs · ${data.images_per_model || data.total} images × ${(data.models || [data.model]).length} models · ${profileLabel}`;
+  const performanceTable = table(['Model','State','Scored images','Pass rate','Mean / median / P95','Est. API cost','Unknown costs','Cost per passed image']);
+  for (const model of data.model_summaries || []) {
+    const row = document.createElement('tr'), perf = model.performance || {};
+    cell(row,ocrModelLabel(model.model)); cell(row,model.state);
+    cell(row,`${model.summary.valid + model.summary.invalid + model.summary.errors}/${model.summary.total}`);
+    cell(row,model.summary.pass_rate == null ? '—' : `${(100*model.summary.pass_rate).toFixed(1)}%`);
+    cell(row,`${duration(perf.mean_seconds)} / ${duration(perf.median_seconds)} / ${duration(perf.p95_seconds)}`);
+    cell(row,money(perf.estimated_api_cost_usd)); cell(row,perf.cost_unknown_images || 0);
+    cell(row,money(perf.estimated_api_cost_per_pass_usd)); performanceTable.body.append(row);
+  }
+  $('model-comparison').replaceChildren(performanceTable.element);
+  const selectedModel = $('report-model').value;
+  $('report-model').replaceChildren(new Option('All models',''));
+  for (const id of data.models || [data.model]) $('report-model').append(new Option(ocrModelLabel(id),id));
+  $('report-model').value = selectedModel;
   const wordCoverage = data.evaluation_policy?.version >= 3;
   const percent = value => value == null ? '—' : `${(value * 100).toFixed(1)}%`;
   $('batch-ocr-heading').textContent = wordCoverage ? 'OCR word coverage' : 'Legacy exact-token coverage';
@@ -837,21 +902,25 @@ function renderBatch(data) {
   const withDetection = !!data.detection_options;
   $('batch-detection-lane').hidden = !withDetection;
   $('batch-detection-summary').textContent = withDetection ? detectionBatchSummary(data) : '';
-  const {element,body} = table(['Image',wordCoverage ? 'Word coverage / exact words' : 'Legacy OCR completeness','Detection outcome','Details']);
+  const {element,body} = table(['Model','Image','Scan duration','OCR / initialization','Est. API cost',wordCoverage ? 'Word coverage / exact words' : 'Legacy OCR completeness','Detection outcome','Details']);
   for (const item of data.items) {
     if ($('only-failures').checked && !(item.state === 'completed' && item.valid === false) && item.state !== 'failed') continue;
     if ($('report-category').value && item.category !== $('report-category').value) continue;
-    const row = document.createElement('tr'), imageCell = cell(row,''); imageCell.className = 'image-name';
-    const preview = document.createElement('img'); preview.className = 'table-image'; preview.src = `/api/datasets/${encodeURIComponent(item.dataset_id)}/thumbnail?dataset=${encodeURIComponent(data.dataset || 'ocr_evaluation')}`; preview.alt = ''; preview.loading = 'lazy'; imageCell.append(preview);
+    if ($('report-model').value && (item.model || data.model) !== $('report-model').value) continue;
+    const row = document.createElement('tr'); cell(row,ocrModelLabel(item.model || data.model));
+    const imageCell = cell(row,''); imageCell.className = 'image-name';
+    const preview = document.createElement('img'); preview.className = 'table-image'; preview.src = imageThumbnail(item,data); preview.alt = ''; preview.loading = 'lazy'; imageCell.append(preview);
     const imageButton = document.createElement('button'); imageButton.type = 'button'; imageButton.className = 'table-link'; imageButton.textContent = item.image.split('/').at(-1); imageButton.title = item.image; imageButton.disabled = batchRunning || !item.run_id;
     imageButton.onclick = async () => { try { selectWorkbenchPage('scan'); clearRun(); history.replaceState(null,'',`/?batch=${data.batch_id}&run=${item.run_id}`); await restore(item.run_id); } catch (failure) { error(failure.message); } };
     imageCell.append(imageButton);
     const category = document.createElement('span'); category.className = 'muted'; category.textContent = datasetLabels.get(item.category) || item.category; imageCell.append(category);
+    cell(row,duration(item.elapsed_seconds)); cell(row,`${duration(item.inference_seconds)} / ${duration(item.initialization_seconds)}`);
+    const costCell = cell(row,money(item.cost?.estimated_usd)); costCell.title = item.cost?.note || 'Cost unavailable';
     row.append(renderOCRStatus(item));
     row.append(renderDetectionStatus(item,withDetection));
     const detailsCell = cell(row,'');
     const details = document.createElement('details'); details.className = 'image-row-details';
-    const key = `${data.batch_id}:${item.dataset_id}`; details.open = openImageDetails.has(key);
+    const key = `${data.batch_id}:${item.model || data.model}:${item.dataset_id}`; details.open = openImageDetails.has(key);
     const summary = document.createElement('summary'); summary.textContent = 'Text, labels and scores'; details.append(summary,renderImageDetails(item,data));
     details.addEventListener('toggle',() => { if (details.open) openImageDetails.add(key); else openImageDetails.delete(key); });
     detailsCell.append(details); body.append(row);
@@ -859,7 +928,7 @@ function renderBatch(data) {
   if (!body.children.length) {
     const row = document.createElement('tr');
     const empty = cell(row, $('only-failures').checked ? 'No OCR-incomplete or failed images in this selection.' : 'No images in this selection.');
-    empty.colSpan = 4; body.append(row);
+    empty.colSpan = 8; body.append(row);
   }
   $('batch-images').replaceChildren(element);
   const activeItem = data.items.find(item => item.run_id === data.current_run_id) || data.items.find(item => item.state === 'running') || [...data.items].reverse().find(item => item.run_id);
@@ -867,9 +936,9 @@ function renderBatch(data) {
   const imageUrl = activeItem?.run_id ? `/api/runs/${activeItem.run_id}/input` : selectedItem?.thumbnail_url;
   const detectorRunning = activeItem?.detection?.state === 'running' || activeItem?.cases?.some(sample => sample.state === 'running') || (batchRunning && detectionPhaseActive);
   const finalVerdict = activeItem?.detection?.verdict || activeItem?.cases?.[0]?.verdict || (activeItem?.run_id === data.current_run_id ? liveDetectionVerdict : null);
-  $('counter').textContent = `${data.completed} / ${data.total} images`;
+  $('counter').textContent = `${data.completed} / ${data.total} model/image runs`;
   $('progress').setAttribute('aria-label','Completed images'); $('progress').max = data.total || 1; $('progress').value = data.completed;
-  $('status').textContent = data.cancel_requested && batchRunning ? 'Stopping after the current operation …' : ['completed','failed','cancelled'].includes(data.state) ? (data.state === 'completed' ? 'Evaluation complete.' : `Batch ${data.state}.`) : detectorRunning ? 'Running detection checks …' : activeItem?.state === 'running' ? `Scanning ${activeItem.image.split('/').at(-1)} …` : 'Preparing next image …';
+  $('status').textContent = data.cancel_requested && batchRunning ? 'Stopping after the current operation …' : ['completed','failed','cancelled'].includes(data.state) ? (data.state === 'completed' ? 'Evaluation complete.' : `Batch ${data.state}.`) : detectorRunning ? 'Running detection checks …' : activeItem?.state === 'running' ? `${ocrModelLabel(activeItem.model || data.model)} · ${activeItem.image.split('/').at(-1)} …` : 'Preparing next model/image …';
   setScanActivity(imageUrl,detectorRunning ? 'detection' : activeItem?.state === 'completed' ? (finalVerdict || 'ocr_complete') : ['completed','failed','cancelled'].includes(data.state) ? (finalVerdict || (data.state === 'completed' ? 'ocr_complete' : data.state)) : 'scanning',finalVerdict || '');
   etaModel = ['completed','failed','cancelled'].includes(data.state)
     ? {done:data.total,total:data.total,started:batchStartedAt || Date.now(),label:data.state === 'completed' ? 'Complete' : `Batch ${data.state}`,terminal:true}
@@ -940,6 +1009,7 @@ function renderDetectionEvaluation(data) {
 }
 $('only-failures').onchange = () => { if (batchSnapshot) renderBatch(batchSnapshot); };
 $('report-category').onchange = () => { if (batchSnapshot) renderBatch(batchSnapshot); };
+$('report-model').onchange = () => { if (batchSnapshot) renderBatch(batchSnapshot); };
 $('category-summary-link').onclick = () => { $('batch-aggregate-details').open = true; };
 function renderCategories(data) {
   const terminal = ['completed','failed','cancelled'].includes(data.state);
@@ -976,7 +1046,7 @@ async function observeBatch(id, preferredRun = null, preferredCheck = null) {
   try {
     const response = await fetch(`/api/batches/${id}`), data = await response.json();
     if (!response.ok) throw new Error(data.error);
-    if ((data.dataset || 'ocr_evaluation') !== activeDataset) await switchDataset(data.dataset || 'ocr_evaluation');
+    if (['ocr_evaluation','detection_evaluation'].includes(data.dataset) && data.dataset !== activeDataset) await switchDataset(data.dataset);
     batchRunning = !['completed','failed','cancelled'].includes(data.state); cancellationRequested = batchRunning && !!data.cancel_requested; busy(batchRunning); renderBatch(data);
     const nextRun = !batchRunning && preferredRun ? preferredRun : data.current_run_id;
     if (nextRun && runId !== nextRun) {
@@ -993,9 +1063,8 @@ async function observeBatch(id, preferredRun = null, preferredCheck = null) {
 async function startSelection() {
   error(''); clearRun(); cancellationRequested = false; batchId = null; runId = null; batchStartedAt = Date.now(); batchProgressAtStart = 0; progress('queued'); batchRunning = true; busy(true); $('batch-report').hidden = $('category-summary').hidden = $('detection-evaluation').hidden = true; $('report-category').value = '';
   try {
-    const detection = window.vipiDetection?.options(activeDataset === 'detection_evaluation');
-    if (activeDataset === 'detection_evaluation' && !detection) throw new Error('Select at least one detector for detection evaluation.');
-    const response = await fetch('/api/batches',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({dataset:activeDataset,dataset_ids:[...selectedDatasets],model:$('model').value,workers:Number($('workers').value),backend:$('backend').value,...(detection ? {detection} : {})})});
+    const detection = window.vipiDetection?.options(hasDetectionSelection());
+    const response = await fetch('/api/batches',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({selections:[...selectedDatasets].map(selectionFromKey),models:selectedOCRModels(),ocr_profile:$('ocr-profile').value,workers:Number($('workers').value),backend:$('backend').value,...(detection ? {detection} : {})})});
     const data = await response.json(); if (!response.ok) throw new Error(data.error);
     history.replaceState(null,'',`/?batch=${data.batch_id}`); selectWorkbenchPage('evaluation'); await observeBatch(data.batch_id);
   } catch (failure) { batchRunning = false; busy(false); $('run-progress').hidden = true; error(failure.message); }

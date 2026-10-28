@@ -62,6 +62,16 @@ for the geometry rules and validation boundary.
 to checksum-pinned models. Setup and scan use that same description. A model
 replacement changes this package/adapter, not input selection or detector code.
 
+`--modus local|cloud` selects OCR execution. Local profiles are `quality`,
+`balanced` and `speed` (`fast` remains an alias); cloud providers are `google`
+(default), `openai` and `mistral`. `vipi.config` resolves these selections for
+setup, scanning and Python sessions. An explicit legacy cloud model remains an
+opt-in to that provider. Contradictory execution/model/provider choices fail
+before inference. Providers run once per original image and retain raw text;
+they share the same adapters between product and Workbench. OCR provider and
+downstream detector selection are independent. See
+[ADR 0027](../adr-code/0027-local-and-cloud-ocr-selection.md).
+
 ## Research boundary
 
 `research/` imports `vipi`; `vipi` must not import `research` or Flask. Package

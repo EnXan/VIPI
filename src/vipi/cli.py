@@ -16,6 +16,8 @@ from .config import (
     DETECTORS,
     OCR_MODES,
     OCR_MODEL_IDS,
+    OCR_EXECUTION_MODES,
+    CLOUD_OCR_PROVIDERS,
 )
 from .reporting import report_overwrites_input, write_report
 
@@ -145,8 +147,7 @@ def main(argv=None):
     command.add_argument(
         "--ocr-mode",
         choices=tuple(OCR_MODES),
-        default=DEFAULT_OCR_MODE,
-        help=f"OCR mode: fast, balanced or quality (default: {DEFAULT_OCR_MODE})",
+        help=f"Local OCR profile: speed, balanced or quality (default: {DEFAULT_OCR_MODE}); fast is a legacy alias",
     )
     command.add_argument(
         "--ocr-model",
@@ -168,7 +169,23 @@ def main(argv=None):
         action="store_true",
         help="Print the extracted OCR text for each scanned image",
     )
+    for target in (prepare, command):
+        target.add_argument(
+            "--modus",
+            dest="ocr_execution_mode",
+            choices=OCR_EXECUTION_MODES,
+            help="OCR execution: local (default) or cloud; cloud sends images to the selected provider",
+        )
+        target.add_argument(
+            "--ocr-provider",
+            choices=tuple(CLOUD_OCR_PROVIDERS),
+            help="Cloud OCR provider: google (default), openai or mistral; requires --modus cloud",
+        )
     args = parser.parse_args(argv)
+    if args.ocr_execution_mode == "cloud" and args.ocr_mode is not None:
+        parser.error(
+            "--ocr-mode selects a local profile; use --ocr-provider with --modus cloud."
+        )
     if args.command == "scan" and not args.paths and args.diff is None:
         command.error("provide at least one path, or use --diff REFERENCE")
 
@@ -190,12 +207,23 @@ def main(argv=None):
                     args.detector,
                     ocr_mode=args.ocr_mode,
                     ocr_model=args.ocr_model,
+                    ocr_execution_mode=args.ocr_execution_mode,
+                    ocr_provider=args.ocr_provider,
                     progress=lambda message: status.update(Text(message, style="cyan")),
                 )
             console.print(Text("✓ Models ready", style="bold green"))
             console.print(Text(f"Models: {root}", style="dim"))
             next_step = Text("Next: ", style="dim")
-            next_step.append("vipi scan <path>", style="cyan")
+            next_command = "vipi scan <path>"
+            if args.ocr_execution_mode == "cloud":
+                next_command += " --modus cloud"
+                if args.ocr_provider:
+                    next_command += f" --ocr-provider {args.ocr_provider}"
+            if args.ocr_model:
+                next_command += f" --ocr-model {args.ocr_model}"
+            if args.ocr_mode:
+                next_command += f" --ocr-mode {args.ocr_mode}"
+            next_step.append(next_command, style="cyan")
             console.print(next_step)
             return 0
         on_result = None
@@ -213,8 +241,10 @@ def main(argv=None):
                 args.paths or [Path(".")],
                 detector=args.detector,
                 threshold=args.threshold,
-                ocr_mode=args.ocr_mode,
+                ocr_mode=args.ocr_mode or DEFAULT_OCR_MODE,
                 ocr_model=args.ocr_model,
+                ocr_execution_mode=args.ocr_execution_mode,
+                ocr_provider=args.ocr_provider,
                 diff=args.diff,
                 exclude_patterns=args.exclude,
                 output=args.output,

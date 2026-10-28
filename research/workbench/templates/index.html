@@ -68,7 +68,9 @@
       <section id="step-options" class="input-section scan-step" hidden>
         <div class="section-heading"><div><p class="eyebrow">STEP 2 OF 3</p><h2>Configure scan</h2><p class="muted">These options match the local workbench CLI.</p></div></div>
         <div class="option-grid">
-          <label>OCR model<select id="model" aria-label="OCR model" required></select></label>
+          <fieldset class="classifier-checklist" id="ocr-model-selection"><legend>OCR models</legend><div id="ocr-model-options"></div><p class="muted">Selected models run one after another in the order shown. Each model scans all selected images.</p></fieldset>
+          <select id="model" aria-label="Current OCR model" hidden></select>
+          <label>OCR profile<select id="ocr-profile" aria-label="OCR profile" required><option value="baseline" selected>Original only · baseline</option><option value="transforms">Previous VIPI pipeline · control</option></select><span class="muted runtime-note">Baseline uses native OCR once and preserves the model's text. The previous VIPI profile includes its customized processing and assembly.</span></label>
           <label>Hardware<select id="backend" aria-label="Hardware backend" required></select><span id="backend-note" class="muted runtime-note"></span></label>
           <label>Parallel workers<select id="workers" aria-label="Parallel workers" required>{% for count in range(1, max_workers + 1) %}<option value="{{ count }}"{% if count == default_workers %} selected{% endif %}>{{ count }}</option>{% endfor %}</select></label>
           <fieldset id="text-classifiers" class="classifier-checklist">
@@ -79,7 +81,7 @@
           </fieldset>
         </div>
         <section id="detector-controls" class="detector-controls">
-          <p class="muted setting-note">Text classifiers check the final OCR text. Leave all unchecked for OCR only. Detection evaluation requires at least one.</p>
+          <p class="muted setting-note">Text classifiers check the final OCR text. Leave all checks off for OCR-only scans. Detection cases are evaluated only when a detector is enabled.</p>
           <p id="dataset-mode-note-options" class="muted setting-note" hidden>Caller context is not supported in detection evaluation. Catalog context is ground truth only.</p>
           <div id="threshold-settings" class="advanced-fields" hidden>
             <label>Threshold set version<input id="detector-threshold-version" type="text" required placeholder="e.g. calibration-2026-10"></label>
@@ -104,6 +106,7 @@
       <section id="step-review" class="input-section scan-step" hidden>
         <div class="section-heading"><div><p class="eyebrow">STEP 3 OF 3</p><h2>Review and scan</h2></div></div>
         <dl id="scan-review" class="scan-review"></dl>
+        <p class="muted">The queue continues on the server if this tab closes. Keep the server running and the computer awake.</p>
         <div class="wizard-actions"><button id="review-back" class="small" type="button">← Options</button><button id="start" class="primary" type="submit" disabled>Start scan ↗</button></div>
       </section>
     </form>
@@ -155,6 +158,9 @@
       </details>
     </section>
     <details id="batch-details" class="result-details" hidden><summary>Image results</summary>
+      <div id="model-comparison" class="table-scroll"></div>
+      <p class="muted">API cost estimates use recorded list rates and reported usage, not invoices. Local API fees are zero; local electricity and hardware costs are not measured.</p>
+      <label>Show model<select id="report-model"><option value="">All models</option></select></label>
     <section id="batch-report" class="batch-report" hidden>
       <div class="section-heading"><div><p class="eyebrow">DATASET SELECTION</p><h2 id="batch-heading">Run.</h2></div><a id="download-report" class="small" download>JSON report ↓</a></div>
       <p id="batch-progress" class="mono" role="status"></p>
@@ -198,7 +204,7 @@
       <p id="dataset-purpose" class="muted">Evaluate OCR reference coverage.</p>
       <details id="dataset-details" open>
         <summary>Browse dataset images <span id="catalog-count" class="muted"></span></summary>
-        <p class="muted">Choose an image and apply your selection.</p>
+        <p class="muted">Select images from either or both datasets, then apply your selection.</p>
         <div class="catalog-filters"><label>Category<select id="dataset-category"><option value="">All categories</option></select></label><label>Search<input id="dataset-search" type="search" placeholder="Filename or reference text"></label></div>
         <div class="catalog-toolbar"><span id="dataset-count" class="mono muted"></span><div class="actions"><button id="select-matching" class="small" type="button" hidden>Select all matches</button><button id="clear-selection" class="small" type="button">Clear selection</button></div></div>
         <p id="catalog-error" class="muted" hidden></p>

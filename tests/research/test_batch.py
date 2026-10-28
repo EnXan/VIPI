@@ -64,7 +64,13 @@ def test_selected_images_evaluation_failures_continuation_and_restore(
     assert client.get(listing["items"][0]["thumbnail_url"]).mimetype == "image/jpeg"
     assert client.get(listing["items"][0]["image_url"]).mimetype == "image/png"
     response = client.post(
-        "/api/batches", json={"dataset_ids": ids, "workers": 1, "model": "tesseract"}
+        "/api/batches",
+        json={
+            "dataset_ids": ids,
+            "workers": 1,
+            "model": "tesseract",
+            "ocr_profile": "transforms",
+        },
     )
     assert response.status_code == 202
     batch_id = response.json["batch_id"]
@@ -234,6 +240,7 @@ def test_selection_passes_backend_to_each_image(
         "ppocr-v6",
         4,
         backend=backend,
+        ocr_profile="transforms",
     )
     batch.run(dataset_repository / "runs", dataset_repository / "models", catalog, {})
     assert calls == [backend] * 3
@@ -317,7 +324,14 @@ def test_batch_reuses_engines_on_their_own_threads_and_releases_run_cache(
         return engine
 
     catalog = Catalog(dataset_repository)
-    batch = Batch(dataset_repository / "runs", catalog, list(catalog.items), "test", 2)
+    batch = Batch(
+        dataset_repository / "runs",
+        catalog,
+        list(catalog.items),
+        "test",
+        2,
+        ocr_profile="transforms",
+    )
     jobs = {}
     batch.run(
         dataset_repository / "runs",

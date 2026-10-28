@@ -50,6 +50,52 @@ def wait_for_batch(client, identifier):
     pytest.fail("Batch did not finish.")
 
 
+def test_mixed_catalog_baseline_scans_every_image_with_detectors_off(
+    dataset_repository,
+    detection_repository,
+    monkeypatch,
+):
+    from research.ocr_eval.evaluation.catalog import Catalog as OcrCatalog
+
+    root = dataset_repository
+    assert root == detection_repository
+    monkeypatch.setattr("research.workbench.web.validate_model", lambda *args: None)
+    calls = []
+
+    class Engine:
+        def recognize(self, image):
+            calls.append(image.size)
+            return {"text": "Required", "regions": [], "preprocessing": {}}
+
+    def forbidden(*args):
+        pytest.fail("OCR-only batch must not call any detector")
+
+    selections = [
+        {"dataset": dataset, "id": identifier}
+        for dataset, catalog in (
+            ("ocr_evaluation", OcrCatalog(root)),
+            ("detection_evaluation", Catalog(root)),
+        )
+        for identifier in catalog.items
+    ]
+    client = create_app(
+        root / "runs",
+        repository_root=root,
+        engine_factory=lambda *args: Engine(),
+        detector_provider_factory=forbidden,
+    ).test_client()
+    response = client.post(
+        "/api/batches", json={"selections": selections, "model": "test"}
+    )
+    assert response.status_code == 202
+    report = wait_for_batch(client, response.json["batch_id"])
+    assert report["state"] == "completed"
+    assert report["total"] == report["completed"] == len(calls) == 5
+    assert report["ocr_profile"] == "baseline"
+    assert all("cases" not in item for item in report["items"])
+    assert "detection_evaluation" not in report
+
+
 def test_detection_collection_paths_search_and_reordering(detection_repository):
     root = detection_repository
     client = create_app(root / "runs", repository_root=root).test_client()
@@ -133,13 +179,6 @@ def test_cases_share_scan_without_context_and_restore(
         detector_provider_factory=lambda name: Provider(),
     ).test_client()
     identifiers = list(Catalog(root).items)
-    assert (
-        client.post(
-            "/api/batches",
-            json={"dataset": "detection_evaluation", "dataset_ids": identifiers},
-        ).status_code
-        == 400
-    )
     response = client.post(
         "/api/batches",
         json={
@@ -377,6 +416,7 @@ def test_detection_evaluation_completes_with_production_transform_profile(
             "dataset_ids": [next(iter(Catalog(root).items))],
             "model": "test",
             "workers": 1,
+            "ocr_profile": "transforms",
             "detection": {
                 "text_classifier": "jev",
                 "thresholds": {

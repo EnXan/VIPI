@@ -14,7 +14,7 @@ from typing import Protocol
 import cv2
 import numpy as np
 from PIL import Image
-from vipi.config import MISTRAL_OCR_MODEL, api_key
+from vipi.config import MISTRAL_OCR_MODEL, GOOGLE_OCR_MODEL, LUNA_OCR_MODEL, api_key
 
 from .models import FILES, REQUIRED, validate_model
 from .runtime import (
@@ -70,7 +70,9 @@ class MistralEngine:
             method="POST",
         )
         try:
-            with urllib.request.urlopen(request, timeout=self.timeout_seconds) as response:
+            with urllib.request.urlopen(
+                request, timeout=self.timeout_seconds
+            ) as response:
                 payload = json.loads(response.read())
         except urllib.error.HTTPError as error:
             try:
@@ -108,8 +110,10 @@ class MistralEngine:
                     continue
                 texts.append(content)
                 coordinates = [
-                    block.get("top_left_x"), block.get("top_left_y"),
-                    block.get("bottom_right_x"), block.get("bottom_right_y"),
+                    block.get("top_left_x"),
+                    block.get("top_left_y"),
+                    block.get("bottom_right_x"),
+                    block.get("bottom_right_y"),
                 ]
                 if all(isinstance(value, (int, float)) for value in coordinates):
                     left, top, right, bottom = coordinates
@@ -127,7 +131,10 @@ class MistralEngine:
                     confidence = 0.0
                 regions.append(
                     box_region(
-                        content, polygon, confidence, level="line",
+                        content,
+                        polygon,
+                        confidence,
+                        level="line",
                         line_id=f"{page_index}:{len(regions)}",
                     )
                 )
@@ -240,7 +247,13 @@ class TesseractEngine:
 
 class RapidEngine:
     def __init__(
-        self, model: str, directory: Path, *, backend=DEFAULT_BACKEND, threads=1
+        self,
+        model: str,
+        directory: Path,
+        *,
+        backend=DEFAULT_BACKEND,
+        threads=1,
+        native_pipeline=False,
     ):
         validate_backend(model, backend)
         validate_model(model, directory, verify=True)
@@ -304,7 +317,16 @@ class RapidEngine:
             "Cls.ocr_version": OCRVersion.PPOCRV5,
             **rapid_runtime_params(backend, threads, directory),
         }
-        self.ocr = StrictRapidOCR(params=params)
+        self.native_pipeline = native_pipeline
+        if native_pipeline:
+            for key in (
+                "Global.use_cls",
+                "Global.use_preprocess_img",
+                "Global.use_vertical_padding",
+                "Global.text_score",
+            ):
+                params.pop(key)
+        self.ocr = (RapidOCR if native_pipeline else StrictRapidOCR)(params=params)
         self.runtime = {
             "backend": backend,
             "threads_per_worker": threads,
@@ -320,9 +342,23 @@ class RapidEngine:
         detector = self.ocr.text_det
         # The default detector adds an implicit 960/1500/2000 resize. Here only
         # network-required multiples of 32 are applied and recorded explicitly.
-        detector.get_preprocess = lambda _: RasterPreprocess(
-            mean=detector.mean, std=detector.std
-        )
+        if not native_pipeline:
+            detector.get_preprocess = lambda _: RasterPreprocess(
+                mean=detector.mean, std=detector.std
+            )
+        self.detector_shapes = []
+        if native_pipeline:
+            shapes, session = self.detector_shapes, detector.session
+
+            class RecordedSession:
+                def __getattr__(self, name):
+                    return getattr(session, name)
+
+                def __call__(self, tensor):
+                    shapes.append(list(tensor.shape))
+                    return session(tensor)
+
+            detector.session = RecordedSession()
         self.recognizer_shapes = []
         original_resize = self.ocr.text_rec.resize_norm_img
 
@@ -337,6 +373,8 @@ class RapidEngine:
 
     def recognize(self, image: Image.Image) -> dict:
         self.recognizer_shapes.clear()
+        if hasattr(self, "detector_shapes"):
+            self.detector_shapes.clear()
         result = self.ocr(cv2.cvtColor(np.asarray(image), cv2.COLOR_RGB2BGR))
         regions = []
         texts = getattr(result, "txts", None) or ()
@@ -361,25 +399,70 @@ class RapidEngine:
         prep = self.ocr.text_det.preprocess_op
         tensor_w = max(32, round(image.width / 32) * 32)
         tensor_h = max(32, round(image.height / 32) * 32)
+        native = getattr(self, "native_pipeline", False)
+        native_metadata = {}
+        if native:
+            from importlib.metadata import version
+            from omegaconf import OmegaConf
+
+            native_metadata["native_configuration"] = json.loads(
+                json.dumps(
+                    OmegaConf.to_container(
+                        self.ocr.cfg, resolve=True, enum_to_str=True
+                    ),
+                    default=str,
+                )
+            )
+            native_metadata["detector_tensors"] = list(self.detector_shapes)
+            native_metadata["package_versions"] = {
+                name: version(name) for name in ("rapidocr", "onnxruntime")
+            }
         return {
             "text": "\n".join(texts),
             "regions": regions,
             "preprocessing": {
-                "detector_input": [tensor_w, tensor_h],
-                "resize": "OpenCV INTER_LINEAR to nearest multiple of 32 (minimum 32)",
+                "detector_input": None if native else [tensor_w, tensor_h],
+                "resize": "RapidOCR native preprocessing"
+                if native
+                else "OpenCV INTER_LINEAR to nearest multiple of 32 (minimum 32)",
                 "mean": prep.mean.tolist(),
                 "std": prep.std.tolist(),
                 "recognizer_inputs": list(self.recognizer_shapes),
-                "orientation_classifier": False,
+                "orientation_classifier": bool(self.ocr.cfg.Global.use_cls)
+                if native
+                else False,
+                "pipeline": "RapidOCR native" if native else "VIPI RapidOCR adapter",
+                **native_metadata,
                 **getattr(self, "runtime", {}),
             },
         }
 
 
-def create_engine(model: str, directory: Path, *, backend=DEFAULT_BACKEND, threads=1):
+def create_engine(
+    model: str,
+    directory: Path,
+    *,
+    backend=DEFAULT_BACKEND,
+    threads=1,
+    native_pipeline=False,
+):
     validate_backend(model, backend)
+    if model == GOOGLE_OCR_MODEL:
+        from .cloud import GoogleVisionEngine
+
+        return GoogleVisionEngine()
+    if model == LUNA_OCR_MODEL:
+        from .cloud import LunaEngine
+
+        return LunaEngine()
     if model == MISTRAL_OCR_MODEL:
         return MistralEngine()
     if model == "tesseract":
         return TesseractEngine(directory, threads=threads)
-    return RapidEngine(model, directory, backend=backend, threads=threads)
+    return RapidEngine(
+        model,
+        directory,
+        backend=backend,
+        threads=threads,
+        native_pipeline=native_pipeline,
+    )
