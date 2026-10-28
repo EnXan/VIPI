@@ -43,7 +43,7 @@ ocr = [
     "rapidocr==3.9.2",
     "onnxruntime==1.23.2",
     "torch==2.6.0",
-    "tensorflow==2.19.0",
+    "tensorflow==2.21.0",
 ]
 ocr-cuda = [
     "numpy==1.26.4",
@@ -53,7 +53,7 @@ ocr-cuda = [
     "onnxruntime-gpu[cuda,cudnn]==1.23.2; sys_platform == 'linux' or sys_platform == 'win32'",
     "nvidia-cuda-runtime-cu12>=12.8,<13; sys_platform == 'linux' or sys_platform == 'win32'",
     "torch==2.6.0",
-    "tensorflow==2.19.0",
+    "tensorflow==2.21.0",
 ]
 test = ["pytest==8.4.2", "ruff==0.14.0"]
 detector-local = [
