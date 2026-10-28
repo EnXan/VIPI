@@ -59,7 +59,7 @@ test = ["pytest==8.4.2", "ruff==0.14.0"]
 detector-local = [
     "huggingface-hub>=1.32.0",
     "torch==2.6.0",
-    "transformers==5.8.1",
+    "transformers==5.20.2",
     "sentencepiece==0.2.1",
     "safetensors==0.8.0",
 ]
@@ -79,7 +79,7 @@ ocr-granite-docling = [
 ocr-lighton = [
     "Pillow==11.3.0",
     "torch==2.6.0",
-    "transformers==5.8.1",
+    "transformers==5.20.2",
 ]
 
 [project.scripts]
