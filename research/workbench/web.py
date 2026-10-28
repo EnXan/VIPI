@@ -12,12 +12,19 @@ from werkzeug.exceptions import RequestEntityTooLarge
 
 from .presentation import image_links, sse_events
 
-from vipi.ocr.models import DEFAULT_MODEL, model_options, validate_model
+from .model_registry import (
+    DEFAULT_MODEL,
+    model_options,
+    validate_model,
+    backend_for,
+    SINGLE_PASS_MODELS,
+)
 from .batch import Batch
 from research.ocr_eval.evaluation.catalog import Catalog
 from research.detection_eval.evaluation.catalog import Catalog as DetectionCatalog
+from research.ocr_eval.evaluation.runner import extract
+from research.ocr_eval.evaluation.profiles import DEFAULT_PROFILE, validate_profile
 from .datasets import DatasetBrowser
-from vipi.ocr.pipeline import extract
 from vipi.storage.ocr import RunStore
 from vipi.ocr.transforms import decode_image, views_for_size
 from vipi.ocr.workers import DEFAULT_WORKERS, MAX_WORKERS, worker_count
@@ -153,28 +160,67 @@ def create_app(
     @app.post("/api/batches")
     def start_batch():
         data = request.get_json(silent=True)
-        if (
-            not isinstance(data, dict)
-            or not isinstance(data.get("dataset_ids"), list)
-            or not all(
-                isinstance(identifier, str) for identifier in data["dataset_ids"]
-            )
-        ):
-            return jsonify(error="Provide a list of dataset image IDs."), 400
+        if not isinstance(data, dict):
+            return jsonify(error="Provide a dataset image selection."), 400
         try:
-            dataset = data.get("dataset", "ocr_evaluation")
-            if not isinstance(dataset, str):
-                raise ValueError("Choose a dataset collection.")
-            selected = get_catalog(dataset)
-            if len(data["dataset_ids"]) > len(selected.items):
-                raise ValueError("Selection exceeds the dataset catalog.")
+            if "selections" in data:
+                selections = data["selections"]
+                if not isinstance(selections, list) or not all(
+                    isinstance(selection, dict)
+                    and isinstance(selection.get("dataset"), str)
+                    and isinstance(selection.get("id"), str)
+                    for selection in selections
+                ):
+                    raise ValueError("Provide dataset and image ID for each selection.")
+                selected_datasets = {selection["dataset"] for selection in selections}
+                if not selected_datasets or not selected_datasets <= {
+                    "ocr_evaluation",
+                    "detection_evaluation",
+                }:
+                    raise ValueError("Choose a supported dataset collection.")
+                selected = {name: get_catalog(name) for name in selected_datasets}
+                for name in selected_datasets:
+                    if sum(
+                        selection["dataset"] == name for selection in selections
+                    ) > len(selected[name].items):
+                        raise ValueError("Selection exceeds the dataset catalog.")
+                dataset = (
+                    next(iter(selected_datasets))
+                    if len(selected_datasets) == 1
+                    else "mixed"
+                )
+            else:
+                dataset = data.get("dataset", "ocr_evaluation")
+                dataset_ids = data.get("dataset_ids")
+                if (
+                    not isinstance(dataset, str)
+                    or not isinstance(dataset_ids, list)
+                    or not all(
+                        isinstance(identifier, str) for identifier in dataset_ids
+                    )
+                ):
+                    raise ValueError("Provide a list of dataset image IDs.")
+                selected = get_catalog(dataset)
+                selections = [
+                    {"dataset": dataset, "id": identifier} for identifier in dataset_ids
+                ]
+                if len(dataset_ids) > len(selected.items):
+                    raise ValueError("Selection exceeds the dataset catalog.")
             workers = worker_count(data.get("workers", DEFAULT_WORKERS))
-            model = data.get("model", DEFAULT_MODEL)
-            if not isinstance(model, str):
-                raise ValueError("Choose an OCR model.")
-            validate_model(model, models)
+            profile = validate_profile(data.get("ocr_profile", DEFAULT_PROFILE))
+            selected_models = data.get("models", [data.get("model", DEFAULT_MODEL)])
+            if (
+                not isinstance(selected_models, list)
+                or not selected_models
+                or not all(isinstance(model, str) for model in selected_models)
+            ):
+                raise ValueError("Choose one or more OCR models.")
+            if profile == "baseline":
+                workers = 1
             backend = data.get("backend", DEFAULT_BACKEND)
-            validate_backend(model, backend)
+            for model in selected_models:
+                validate_model(model, models)
+                validate_backend(model, backend_for(model, backend))
             detection_options = None
             if data.get("detection") is not None:
                 from vipi.detection.pipeline import settings
@@ -182,10 +228,6 @@ def create_app(
                 if not isinstance(data["detection"], dict):
                     raise ValueError("Detection options must be a JSON object.")
                 detection_options = settings(**data["detection"])
-            if dataset == "detection_evaluation" and detection_options is None:
-                raise ValueError(
-                    "Select at least one detector for detection evaluation."
-                )
         except (ValueError, OSError, TypeError) as error:
             return jsonify(error=str(error)), 400
         if not active.acquire(blocking=False):
@@ -196,12 +238,13 @@ def create_app(
             batch = Batch(
                 root,
                 selected,
-                data["dataset_ids"],
-                model,
+                selections,
+                selected_models,
                 workers,
                 backend=backend,
                 detection_options=detection_options,
                 dataset=dataset,
+                ocr_profile=profile,
             )
             batches[batch.id] = batch
 
@@ -250,6 +293,16 @@ def create_app(
         except (ValueError, OSError):
             return jsonify(error="Selection run not found."), 404
 
+    @app.get("/api/batches/<identifier>/input")
+    def batch_input(identifier):
+        try:
+            batch = get_batch(identifier)
+            return send_file(
+                batch.directory / "input.png", mimetype="image/png", conditional=True
+            )
+        except (ValueError, OSError):
+            return jsonify(error="Uploaded image not found."), 404
+
     @app.post("/api/batches/<identifier>/cancel")
     def cancel_batch(identifier):
         try:
@@ -275,7 +328,20 @@ def create_app(
             return jsonify(error="Choose or paste an image."), 400
         model = request.form.get("model", DEFAULT_MODEL)
         try:
+            selected_models = (
+                json.loads(request.form["models"])
+                if request.form.get("models")
+                else [model]
+            )
+            if (
+                not isinstance(selected_models, list)
+                or not selected_models
+                or not all(isinstance(value, str) for value in selected_models)
+            ):
+                raise ValueError("Choose one or more OCR models.")
+            model = selected_models[0]
             workers = worker_count(request.form.get("workers", DEFAULT_WORKERS))
+            profile = validate_profile(request.form.get("ocr_profile", DEFAULT_PROFILE))
             detection_options = None
             if request.form.get("detection"):
                 from vipi.detection.pipeline import settings
@@ -284,9 +350,19 @@ def create_app(
                 if not isinstance(supplied, dict):
                     raise ValueError("Detection options must be a JSON object.")
                 detection_options = settings(**supplied)
-            validate_model(model, models)
+            if model in SINGLE_PASS_MODELS or profile == "baseline":
+                workers = 1
             backend = request.form.get("backend", DEFAULT_BACKEND)
-            validate_backend(model, backend)
+            for selected in selected_models:
+                validate_model(selected, models)
+                validate_backend(
+                    selected,
+                    backend
+                    if len(selected_models) == 1
+                    else backend_for(selected, backend),
+                )
+            if len(selected_models) == 1:
+                backend = backend_for(model, backend)
         except (ValueError, TypeError) as error:
             return jsonify(error=str(error)), 400
         if not active.acquire(blocking=False):
@@ -301,7 +377,47 @@ def create_app(
                 temporary = Path(file.name)
                 upload.save(file)
             image = decode_image(temporary)
-            views_for_size(*image.size)
+            if profile == "transforms":
+                views_for_size(*image.size)
+            if len(selected_models) > 1:
+                from .uploads import UploadCatalog
+
+                catalog = UploadCatalog(temporary, upload.filename)
+                batch = Batch(
+                    root,
+                    catalog,
+                    ["upload"],
+                    selected_models,
+                    workers,
+                    backend=backend,
+                    detection_options=detection_options,
+                    dataset="upload",
+                    ocr_profile=profile,
+                )
+                catalog.source = batch.directory / "input.png"
+                image.save(catalog.source, format="PNG")
+                temporary.unlink(missing_ok=True)
+                batches[batch.id] = batch
+
+                def run_uploaded_comparison():
+                    try:
+                        batch.run(
+                            root,
+                            models,
+                            catalog,
+                            jobs,
+                            engine_factory,
+                            detection_service=detection,
+                        )
+                    finally:
+                        active.release()
+
+                threading.Thread(
+                    target=run_uploaded_comparison,
+                    daemon=True,
+                    name=f"comparison-{batch.id}",
+                ).start()
+                return jsonify(batch_id=batch.id), 202
             store = RunStore(root, model, workers=workers, backend=backend)
             jobs[store.id] = store
             cancel_event = threading.Event()
@@ -319,6 +435,7 @@ def create_app(
                     extract(
                         temporary,
                         model,
+                        ocr_profile=profile,
                         models_dir=models,
                         store=store,
                         engine_factory=engine_factory,

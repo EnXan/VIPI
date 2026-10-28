@@ -5,7 +5,18 @@ import shutil
 import urllib.request
 from pathlib import Path
 
-from vipi.config import OCR_MODES
+from vipi.config import (
+    CLOUD_OCR_MODELS,
+    GOOGLE_OCR_MODEL,
+    LUNA_OCR_MODEL,
+    GRANITE_DOCLING_MODEL,
+    MISTRAL_OCR_MODEL,
+    OCR_MODES,
+    OCR_API_KEY_NAMES,
+    PADDLEOCR_VL_MODEL,
+    WORKBENCH_OCR_MODELS,
+    api_key,
+)
 from vipi.storage.files import sha256
 
 MODEL_NAMES = {
@@ -15,12 +26,21 @@ MODEL_NAMES = {
     "ppocr-v6-small": "PP-OCRv6 · small",
     "ppocr-v6-tiny": "PP-OCRv6 · tiny",
     "tesseract": "Tesseract · English / best",
+    PADDLEOCR_VL_MODEL: "PaddleOCR-VL 1.6 · document VLM",
+    GRANITE_DOCLING_MODEL: "Granite-Docling 258M · document VLM",
+    MISTRAL_OCR_MODEL: "Mistral OCR 4.1 · API",
+    GOOGLE_OCR_MODEL: "Google Cloud Vision · API",
+    LUNA_OCR_MODEL: "GPT-6 Luna · OCR API",
 }
 PUBLIC_MODEL_NAMES = {
     "ppocr-v6": MODEL_NAMES["ppocr-v6"],
     "ppocr-v6-small": MODEL_NAMES["ppocr-v6-small"],
     "ppocr-v6-tiny": MODEL_NAMES["ppocr-v6-tiny"],
     "tesseract": MODEL_NAMES["tesseract"],
+    **{model: MODEL_NAMES[model] for model in WORKBENCH_OCR_MODELS},
+    MISTRAL_OCR_MODEL: MODEL_NAMES[MISTRAL_OCR_MODEL],
+    GOOGLE_OCR_MODEL: MODEL_NAMES[GOOGLE_OCR_MODEL],
+    LUNA_OCR_MODEL: MODEL_NAMES[LUNA_OCR_MODEL],
 }
 DEFAULT_MODEL = "ppocr-v6"
 FILES = json.loads(Path(__file__).with_name("model_files.json").read_text())
@@ -57,15 +77,48 @@ REQUIRED = {
 def validate_model(model: str, directory: Path, *, verify=False):
     if model not in MODEL_NAMES:
         raise ValueError(f"Unknown OCR model: {model}")
+    if model in CLOUD_OCR_MODELS:
+        names = OCR_API_KEY_NAMES[model]
+        if not api_key(*names):
+            raise ValueError(f"Set {names[0]} to use {MODEL_NAMES[model]}.")
+        return
+    if model in WORKBENCH_OCR_MODELS:
+        from importlib.util import find_spec
+
+        packages = (
+            ("paddleocr", "paddle") if model == PADDLEOCR_VL_MODEL else ("docling",)
+        )
+        if any(find_spec(package) is None for package in packages):
+            raise ValueError(
+                f"Optional {MODEL_NAMES[model]} runtime is missing. "
+                "See research/workbench/README.md."
+            )
+        if not (directory / model / "READY").is_file():
+            raise ValueError(
+                f"{MODEL_NAMES[model]} is not prepared. Run: "
+                f"python -m research.workbench prepare-models --model {model}"
+            )
+        return
+    if model != "tesseract":
+        from importlib.util import find_spec
+
+        if any(find_spec(package) is None for package in ("rapidocr", "onnxruntime")):
+            raise ValueError(
+                "The RapidOCR/ONNX runtime is not installed. "
+                "Install the ocr extra to use PP-OCR models."
+            )
     if model == "tesseract" and not shutil.which("tesseract"):
         raise ValueError("Tesseract is not installed. Install Tesseract 5 separately.")
     for key in REQUIRED[model]:
         info = FILES[key]
         path = directory / info["file"]
         if not path.is_file():
-            raise ValueError(
-                f"Model files missing. Run: vipi setup --ocr-model {model}"
+            command = (
+                "python -m research.workbench prepare-models --model"
+                if model in {"ppocr-v5", "tesseract"}
+                else "vipi setup --ocr-model"
             )
+            raise ValueError(f"Model files missing. Run: {command} {model}")
         if verify and sha256(path) != info["sha256"]:
             raise ValueError(
                 f"Model checksum mismatch: {path.name}. Prepare models again."
@@ -88,6 +141,17 @@ def model_options(directory: Path) -> list[dict]:
 
 def prepare_models(directory: Path, model: str | None = None, on_progress=print):
     directory.mkdir(parents=True, exist_ok=True)
+    if model in CLOUD_OCR_MODELS:
+        validate_model(model, directory)
+        on_progress(
+            f"{MODEL_NAMES[model]} uses the API; no local model files are required."
+        )
+        return
+    if model in WORKBENCH_OCR_MODELS:
+        raise ValueError(
+            f"{MODEL_NAMES[model]} is a research Workbench model. "
+            "Prepare it with `python -m research.workbench prepare-models`."
+        )
     selected_models = [model] if model else tuple(dict.fromkeys(OCR_MODES.values()))
     unknown = sorted(set(selected_models) - set(REQUIRED))
     if unknown:

@@ -46,10 +46,14 @@ uv run vipi scan ./images
 uv run vipi scan ./images --verbose
 uv run vipi scan ./images --detector openai --threshold 90 --output report.json
 uv run vipi scan ./images --exclude 'generated/' --exclude '*.webp'
-uv run vipi scan ./images --ocr-mode fast
+uv run vipi scan ./images --ocr-mode speed
 uv run vipi scan ./images --ocr-mode balanced
 uv run vipi scan ./images --ocr-model ppocr-v6-medium
-uv run vipi setup --ocr-mode fast
+uv run vipi setup --ocr-mode speed
+uv run vipi setup --modus cloud
+uv run vipi scan ./images --modus cloud
+uv run vipi scan ./images --modus cloud --ocr-provider openai
+uv run vipi scan ./images --modus cloud --ocr-provider mistral
 ```
 
 | Scan option | Meaning | Default |
@@ -57,11 +61,42 @@ uv run vipi setup --ocr-mode fast
 | `--diff REFERENCE` | Scan committed images added or modified since the common ancestor with REFERENCE | Scan all supported images under the supplied paths |
 | `--exclude PATTERN` | Exclude a path; repeat to add ordered rules. Prefix with `!` to re-include | No user rules |
 | `--detector NAME` | `jev`, `openai`, `prompt-guard` | `jev` |
-| `--ocr-mode NAME` | `fast`, `balanced`, `quality` | `quality` |
-| `--ocr-model ID` | Override the mode with a supported model ID | Model for the selected mode |
+| `--modus NAME` | OCR execution: `local` or `cloud` | `local`; an explicit cloud model also selects cloud for compatibility |
+| `--ocr-mode NAME` | Local profile: `speed`, `balanced`, `quality`; legacy alias `fast` | `quality` for local OCR |
+| `--ocr-provider NAME` | Cloud OCR: `google`, `openai`, `mistral`; requires `--modus cloud` | `google` in cloud mode |
+| `--ocr-model ID` | Select a supported model directly; cannot be combined with `--ocr-provider` | Model for the selected local profile or cloud provider |
 | `--threshold NUMBER` | Finding threshold on a 0–100 score scale; equality counts as a finding | `80` |
 | `--output FILE` | Also save the JSON report, including partial results and errors | Terminal output |
 | `--verbose` | Print the final extracted OCR text for each scanned image | Off |
+
+`--modus cloud` explicitly sends images to the selected OCR service. Providers
+are selected independently of `--detector`; local OCR can still use a hosted
+detector, and cloud OCR can use local Prompt Guard. Cloud providers have no
+`quality`/`balanced`/`speed` tiers:
+
+| Provider | Model/service | Credential |
+| --- | --- | --- |
+| `google` (default) | Google Cloud Vision `DOCUMENT_TEXT_DETECTION` | `GOOGLE_CLOUD_API_KEY` or `GOOGLE_API_KEY` |
+| `openai` | `gpt-6-luna`, Responses API | `OPENAI_API_KEY` |
+| `mistral` | `mistral-ocr-4-1`, OCR API | `MISTRAL_API_KEY` |
+
+Configure keys in the environment or the existing ignored `.env` file. Setup
+skips local OCR model downloads and makes no billable API request; credentials
+are checked at scan time. A selected local Prompt Guard detector is still
+prepared by setup. Each cloud backend receives one original decoded image per
+request; no VIPI transforms, assembly, automatic retries or provider/local
+fallback are applied. The provider may apply its own preprocessing. Raw text,
+returned geometry, actual model/usage metadata and normal artifacts are saved.
+Missing credentials or provider failures produce incomplete scans (exit 2).
+
+Explicit `--modus local` with a cloud model, `--modus cloud` with a local model,
+and `--ocr-provider` without cloud mode are rejected. `--ocr-mode` is a local
+profile and cannot be supplied with explicit cloud mode. Existing direct
+`--ocr-model mistral-ocr-4-1` calls continue to select cloud OCR.
+
+Provider charges apply; consult [Google pricing](https://cloud.google.com/vision/pricing),
+[OpenAI model documentation](https://developers.openai.com/api/docs/models/gpt-6-luna),
+and [Mistral OCR documentation](https://docs.mistral.ai/models/ocr-4-1).
 
 ## Excluding images from local scans
 
@@ -118,20 +153,24 @@ framed terminal banner and use a live spinner for the current step. VIPI uses
 color when the terminal supports it. Logs and redirected streams get a compact
 one-line name instead of the banner.
 
-The OCR mode mapping is `fast` → PP-OCRv6 Tiny, `balanced` → Small and `quality`
+The local OCR profile mapping is `speed` → PP-OCRv6 Tiny, `balanced` → Small and `quality`
 → Medium. Omitting `--ocr-mode` keeps the previous Medium default by selecting
 `quality`. The explicit model ID overrides the mode; `ppocr-v6-medium` and the
 legacy ID `ppocr-v6` both select Medium. `vipi setup` prepares all three mode
 models by default, or only the requested mode/model when either setup option is
-provided. `--ocr-model` currently accepts registered PP-OCRv6 IDs; adding a model
-from another OCR family requires registering its adapter and pinned files first.
+provided. `fast` remains a compatibility alias for `speed`. `--ocr-model`
+accepts registered PP-OCRv6 IDs and all three cloud model/service IDs.
 
-The OCR transformation pipeline runs the `reduced-transforms-v1` profile on CPU
-with one worker: 13 passes per image, or 12 when the 2× raster would exceed 8
-megapixels. Images run sequentially, reusing the selected OCR model session. The
-mode and resolved model are recorded in the scan report; run artifacts identify
-their resolved model, profile and pass count. Backend, filter and worker options
-remain internal.
+Local OCR runs the `reduced-transforms-v2` profile on CPU with one worker: 15
+passes per image, or 14 when the 2× raster would exceed 8 megapixels. It includes
+native-size CLAHE and a color-derived contrast reading for faint text. Images run
+sequentially, reusing the selected model session. Cloud OCR uses a single pass
+over the original image. Reports record `ocr_execution_mode`, `ocr_provider`,
+`ocr_mode` (null for cloud) and the resolved `ocr_model`; nested `ocr` metadata
+contains matching `execution_mode`, `provider`, `mode` and `model` values. Historical
+reports remain unchanged. Cloud reports no longer imply a local quality profile.
+Run artifacts identify their resolved model, profile and pass count. Backend,
+filter and worker options remain internal.
 
 The threshold applies to the selected detector's normalized score, not a
 calibrated probability of an attack. Detection uses the final assembled OCR

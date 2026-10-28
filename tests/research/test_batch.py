@@ -31,10 +31,10 @@ def test_selected_images_evaluation_failures_continuation_and_restore(
 
         def recognize(self, image):
             self.calls += 1
-            if self.index == 0 and self.calls <= 5:
+            if self.index == 0 and self.calls <= len(FILTERS):
                 entered.set()
                 assert release.wait(timeout=10)
-            if self.index == 0 and self.calls == 6:
+            if self.index == 0 and self.calls == len(FILTERS) + 1:
                 raise RuntimeError("native inference failed")
             text = "background REQUIRED extra" if self.index == 0 else "Missing"
             polygon = [[0, 0], [12, 0], [12, 8], [0, 8]]
@@ -64,7 +64,13 @@ def test_selected_images_evaluation_failures_continuation_and_restore(
     assert client.get(listing["items"][0]["thumbnail_url"]).mimetype == "image/jpeg"
     assert client.get(listing["items"][0]["image_url"]).mimetype == "image/png"
     response = client.post(
-        "/api/batches", json={"dataset_ids": ids, "workers": 1, "model": "tesseract"}
+        "/api/batches",
+        json={
+            "dataset_ids": ids,
+            "workers": 1,
+            "model": "tesseract",
+            "ocr_profile": "transforms",
+        },
     )
     assert response.status_code == 202
     batch_id = response.json["batch_id"]
@@ -98,6 +104,12 @@ def test_selected_images_evaluation_failures_continuation_and_restore(
     assert state["items"][2]["state"] == "completed" and not state["items"][2]["valid"]
     result = client.get(f"/api/runs/{state['items'][0]['run_id']}").json["result"]
     assert result["evaluation"]["valid"] and result["evaluation"]["final"]["valid"]
+    assert state["evaluation_policy"]["version"] == 3
+    assert state["items"][0]["coverage"] == 1
+    assert state["items"][0]["exact_coverage"] == 0
+    assert state["items"][0]["exact_valid"] is False
+    assert state["summary"]["pass_rate"] == pytest.approx(1 / 3)
+    assert state["summary"]["exact_pass_rate"] == 0
     assert result["evaluation"]["reference"]["text"] == "Required"
     assert client.get(f"/api/batches/{batch_id}/report.json").json == state
     restarted = create_app(
@@ -208,7 +220,12 @@ def test_selection_passes_backend_to_each_image(
             "evaluation": {
                 "valid": True,
                 "detection": {"coverage": 1, "missing": []},
-                "final": {"valid": True},
+                "final": {
+                    "valid": True,
+                    "coverage": 1,
+                    "missing": [],
+                    "exact": {"valid": True, "coverage": 1, "missing": []},
+                },
                 "best_step_id": "0001",
                 "effects": [],
             }
@@ -223,12 +240,56 @@ def test_selection_passes_backend_to_each_image(
         "ppocr-v6",
         4,
         backend=backend,
+        ocr_profile="transforms",
     )
     batch.run(dataset_repository / "runs", dataset_repository / "models", catalog, {})
     assert calls == [backend] * 3
     state = batch.snapshot()
     assert state["state"] == "completed" and state["backend"] == backend
     assert state["threads_per_worker"] == 2
+
+
+def test_minor_ocr_errors_pass_but_literal_words_fail_in_saved_batch(
+    dataset_repository, monkeypatch
+):
+    monkeypatch.setattr(
+        "vipi.ocr.pipeline.production_passes_for_size",
+        lambda *size: [(views_for_size(*size)[0], "unchanged")],
+    )
+
+    class Engine:
+        def recognize(self, image):
+            return {
+                "text": "Requ1red",
+                "regions": [
+                    {
+                        "text": "Requ1red",
+                        "confidence": 0.999,
+                        "polygon": [[0, 0], [20, 0], [20, 8], [0, 8]],
+                        "level": "word",
+                    }
+                ],
+                "preprocessing": {},
+            }
+
+    catalog = Catalog(dataset_repository)
+    identifier = next(iter(catalog.items))
+    batch = Batch(dataset_repository / "runs", catalog, [identifier], "test", 1)
+    batch.run(
+        dataset_repository / "runs",
+        dataset_repository / "models",
+        catalog,
+        {},
+        lambda *args: Engine(),
+    )
+    report = batch.snapshot()
+    assert report["state"] == "completed"
+    assert report["items"][0]["coverage"] == 1
+    assert report["items"][0]["exact_coverage"] == 0
+    assert report["summary"]["pass_rate"] == 1
+    assert report["summary"]["exact_pass_rate"] == 0
+    assert json.loads((batch.directory / "report.json").read_text()) == report
+    assert Batch.restore(dataset_repository / "runs", batch.id).snapshot() == report
 
 
 def test_batch_reuses_engines_on_their_own_threads_and_releases_run_cache(
@@ -239,9 +300,7 @@ def test_batch_reuses_engines_on_their_own_threads_and_releases_run_cache(
     monkeypatch.setattr(
         "vipi.ocr.pipeline.production_passes_for_size",
         lambda *args: [
-            (view, name)
-            for view in views_for_size(*args)[:2]
-            for name in FILTERS
+            (view, name) for view in views_for_size(*args)[:2] for name in FILTERS
         ],
     )
     barrier = threading.Barrier(2)
@@ -265,7 +324,14 @@ def test_batch_reuses_engines_on_their_own_threads_and_releases_run_cache(
         return engine
 
     catalog = Catalog(dataset_repository)
-    batch = Batch(dataset_repository / "runs", catalog, list(catalog.items), "test", 2)
+    batch = Batch(
+        dataset_repository / "runs",
+        catalog,
+        list(catalog.items),
+        "test",
+        2,
+        ocr_profile="transforms",
+    )
     jobs = {}
     batch.run(
         dataset_repository / "runs",
@@ -276,7 +342,9 @@ def test_batch_reuses_engines_on_their_own_threads_and_releases_run_cache(
     )
     assert batch.snapshot()["state"] == "completed"
     assert len(created) == 2 and all(engine.calls > 0 for engine in created)
-    assert sum(engine.calls for engine in created) == 30
+    assert sum(engine.calls for engine in created) == len(catalog.items) * 2 * len(
+        FILTERS
+    )
     assert jobs == {}
     # A mismatched shared pool is rejected before any partial run gets created.
     from vipi.ocr.engine_pool import EnginePool

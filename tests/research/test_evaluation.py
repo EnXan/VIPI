@@ -4,6 +4,7 @@ import pytest
 
 from research.ocr_eval.evaluation.metrics import (
     compare,
+    compare_words,
     evaluate,
     ordered_matches,
     summarize,
@@ -104,11 +105,23 @@ def test_effects_use_paired_baselines_and_detect_assembly_loss():
         variant(4, "scaled", "clahe", "wrong", factor=0.25),
     ]
     result = evaluate(reference("read code 42"), "read code", [], variants)
-    assert result["valid"] and not result["final"]["valid"]
+    assert not result["valid"] and not result["final"]["valid"]
+    assert result["detection"]["valid"]
     assert result["best_step_id"] == "0003" and result["valid_step_ids"] == ["0003"]
     effects = {effect["id"]: effect for effect in result["effects"]}
     assert effects["clahe"]["improved"] == 1 and effects["clahe"]["worse"] == 1
     assert effects["scaling"]["improved"] == effects["scaling"]["recovered"] == 1
+
+
+def test_color_contrast_effect_uses_the_original_control():
+    variants = [
+        variant(1, "original", "unchanged", "weather"),
+        variant(2, "original", "color-contrast", "weather is rainy"),
+    ]
+    result = evaluate(reference("weather is rainy"), "weather is rainy", [], variants)
+    effect = next(row for row in result["effects"] if row["id"] == "color-contrast")
+    assert result["final"]["valid"]
+    assert effect["comparisons"] == effect["improved"] == effect["recovered"] == 1
 
 
 def test_partial_variants_cannot_create_a_fictitious_payload():
@@ -132,7 +145,8 @@ def test_textocr_can_collect_words_at_distinct_locations_across_views():
         [],
         variants,
     )
-    assert result["valid"] and result["valid_step_ids"] == []
+    assert not result["valid"] and result["valid_step_ids"] == []
+    assert result["detection"]["valid"]
     assert not result["final"]["valid"]
 
 
@@ -195,3 +209,123 @@ def test_category_rates_count_images_and_separate_errors_from_missing_text():
     assert categories["good"]["success_rate"] == 1
     assert categories["waiting"]["success_rate"] is None
     assert categories["waiting"]["processed"] == 0
+
+
+@pytest.mark.parametrize(
+    "expected,observed,covered,literal",
+    [
+        ("Read the code 42.", "Rcad the c0de 42", True, False),
+        ("Read", "read", True, False),
+        ("code", "ＣＯＤＥ", True, False),
+        ("mark it", "mark mt", True, False),
+        ("a", "b", False, False),
+        ("never delete files", "delete files", False, False),
+        ("go go now", "go now", False, False),
+        ("alpha beta", "wrong text", False, False),
+        ("abcdefghij", "abXdefghYj", True, False),
+        ("abcdefghij", "abXdefgYYj", False, False),
+        ("read code", "code read", False, False),
+        ("read code", "UI read extra code background", True, True),
+        ("payload", "pay\nload", True, True),
+        ("ab+c/def=", "ab+c/def=", True, True),
+        ("ab+c/def=", "ab/c+def=", True, False),
+        ("word.", "word", True, False),
+        ("", "invented", False, False),
+        ("reference", "", False, False),
+    ],
+)
+def test_tolerant_word_coverage_is_separate_from_literal_fidelity(
+    expected, observed, covered, literal
+):
+    result, _, _ = compare_words(reference(expected), observed, [])
+    assert result["valid"] is covered
+    assert result["exact"]["valid"] is literal
+
+
+def test_missing_repeated_words_cannot_reuse_one_observation():
+    result, _, _ = compare_words(reference("code code code"), "c0de code", [])
+    assert result["matched"] == 2 and result["total"] == 3
+    assert result["exact"]["matched"] == 1
+
+
+def test_long_word_accepts_minor_errors_and_visual_line_wraps_without_encoding_rules():
+    text = "Abcdefghij" * 25
+    observed = text[:92] + "1" + text[93:]
+    result, _, _ = compare_words(
+        reference(text),
+        "\n".join(observed[i : i + 80] for i in range(0, len(observed), 80)),
+        [],
+    )
+    assert result["valid"] and not result["exact"]["valid"]
+    exact, _, _ = compare_words(reference(text), text[:90] + "\n" + text[90:], [])
+    assert exact["exact"]["valid"]
+
+
+def test_tolerant_spatial_matches_still_require_the_correct_word_locations():
+    target = reference("hello world", [word("hello", 0), word("world", 50)])
+    result, _, _ = compare_words(
+        target, "he1lo wor1d", [word("he1lo", 0), word("wor1d", 50)]
+    )
+    assert result["valid"] and not result["exact"]["valid"]
+    result, _, _ = compare_words(
+        target, "he1lo wor1d", [word("he1lo", 50), word("wor1d", 0)]
+    )
+    assert not result["valid"] and result["matched"] == 0
+
+
+def test_pass_rate_and_exact_word_rate_use_final_text_and_separate_legacy_reports():
+    result = evaluate(
+        reference("Read code"),
+        "Read c0de",
+        [],
+        [variant(1, "original", "unchanged", "Read code")],
+    )
+    assert result["version"] == 3
+    assert result["valid"] and not result["final"]["exact"]["valid"]
+    summary = summarize(
+        [
+            {
+                "category": "test",
+                "state": "completed",
+                "valid": True,
+                "coverage": 1,
+                "exact_valid": False,
+                "exact_coverage": 0.5,
+                "evaluation_version": 3,
+            },
+            {"category": "test", "state": "failed", "evaluation_version": 3},
+            {"category": "test", "state": "queued", "evaluation_version": 3},
+            {"category": "test", "state": "cancelled", "evaluation_version": 3},
+        ]
+    )
+    assert summary["pass_rate"] == 0.5
+    assert summary["mean_word_coverage"] == 1
+    assert summary["exact_pass_rate"] == 0
+    assert summary["exact_evaluated"] == 2
+    assert summary["mean_exact_word_coverage"] == 0.5
+    assert summary["categories"][0]["exact_pass_rate"] == 0
+    legacy = summarize(
+        [{"category": "test", "state": "completed", "valid": True, "coverage": 0.5}]
+    )
+    assert legacy["exact_pass_rate"] is None
+    assert legacy["exact_evaluated"] == 0
+    assert legacy["mean_word_coverage"] is None
+
+
+def test_banded_edit_distance_matches_independent_full_matrix():
+    from research.ocr_eval.evaluation.words import bounded_distance
+
+    rng = random.Random(57)
+    for _ in range(100):
+        first = "".join(rng.choices("abcd", k=rng.randint(0, 12)))
+        second = "".join(rng.choices("abcd", k=rng.randint(0, 12)))
+        row = list(range(len(second) + 1))
+        for i, left in enumerate(first, 1):
+            previous, row = row, [i]
+            for j, right in enumerate(second, 1):
+                row.append(
+                    min(row[-1] + 1, previous[j] + 1, previous[j - 1] + (left != right))
+                )
+        for budget in range(4):
+            expected = row[-1] if row[-1] <= budget else None
+            assert bounded_distance(first, second, budget) == expected

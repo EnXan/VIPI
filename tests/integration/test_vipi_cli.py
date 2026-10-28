@@ -161,7 +161,7 @@ def test_single_threshold_boundaries(threshold, score, verdict):
 def scanner_runtime(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     monkeypatch.setenv("XDG_CACHE_HOME", str(tmp_path / "cache"))
-    monkeypatch.setattr("vipi.ocr.models.validate_model", lambda *args, **kwargs: None)
+    monkeypatch.setattr("vipi.ocr.session.validate_model", lambda *args, **kwargs: None)
     # Keep real image decoding, orchestration, persistence, assembly and detection;
     # replace inference and limit views so tests do not require model weights.
     from vipi.ocr.transforms import views_for_size
@@ -230,9 +230,9 @@ def test_scan_runs_shared_pipeline_sequentially_and_emits_json(
     assert report["ocr"]["mode"] == "quality"
     assert report["ocr_mode"] == "quality"
     assert report["ocr_model"] == "ppocr-v6"
-    assert report["ocr"]["ocr_profile"] == "reduced-transforms-v1"
+    assert report["ocr"]["ocr_profile"] == "reduced-transforms-v2"
     assert report["ocr"]["workers"] == 1 and report["ocr"]["backend"] == "cpu"
-    assert report["files"][0]["ocr_profile"] == "reduced-transforms-v1"
+    assert report["files"][0]["ocr_profile"] == "reduced-transforms-v2"
     assert report["files"][0]["ocr_passes"] == 1
     assert len(engines) == 1  # One model session is reused across both images.
     assert len(provider.calls) == 2
@@ -250,11 +250,14 @@ def test_scan_runs_shared_pipeline_sequentially_and_emits_json(
             "fast",
             "ppocr-v6",
         ),
+        (["--ocr-model", "mistral-ocr-4-1"], None, "mistral-ocr-4-1"),
+        (["--modus", "local", "--ocr-mode", "speed"], "speed", "ppocr-v6-tiny"),
     ],
 )
 def test_scan_selects_ocr_mode_and_explicit_model_override(
-    tmp_path, scanner_runtime, options, mode, model
+    tmp_path, scanner_runtime, monkeypatch, options, mode, model
 ):
+    monkeypatch.setenv("MISTRAL_API_KEY", "fixture-mistral-key")
     image(tmp_path / "label.png")
     output = tmp_path / "report.json"
 
@@ -393,6 +396,18 @@ def test_setup_only_prepares_default_ocr_and_selected_local_detector(
     assert calls[-1][1] == "ppocr-v6-small"
     assert main(["setup", "--detector", "prompt-guard"]) == 0
     assert calls[-1][1]["revision"] == "a8ded8e697ce7c355e395a0df51f94adb4a2fd27"
+
+
+def test_setup_mistral_does_not_prepare_local_ocr_model(tmp_path, monkeypatch, capsys):
+    monkeypatch.setenv("XDG_CACHE_HOME", str(tmp_path))
+    calls = []
+    monkeypatch.setattr(
+        "vipi.ocr.models.prepare_models",
+        lambda *args, **kwargs: calls.append(args),
+    )
+    assert main(["setup", "--ocr-model", "mistral-ocr-4-1"]) == 0
+    assert calls == []
+    assert "Models ready" in capsys.readouterr().out
 
 
 def test_direct_scan_accepts_bytes_and_does_not_reload_ocr_json(

@@ -12,10 +12,15 @@ def upload():
     content = io.BytesIO()
     Image.new("RGB", (120, 70), "white").save(content, format="PNG")
     content.seek(0)
-    return {"image": (content, "input.png"), "model": "tesseract", "workers": "1"}
+    return {
+        "image": (content, "input.png"),
+        "model": "tesseract",
+        "workers": "1",
+        "ocr_profile": "transforms",
+    }
 
 
-def test_model_list_does_not_offer_ppocr_v5(tmp_path):
+def test_model_list_includes_baseline_comparison_backends(tmp_path):
     response = (
         create_app(tmp_path / "runs", tmp_path / "models")
         .test_client()
@@ -28,6 +33,14 @@ def test_model_list_does_not_offer_ppocr_v5(tmp_path):
         "ppocr-v6-small",
         "ppocr-v6-tiny",
         "tesseract",
+        "paddleocr-vl-1.6",
+        "granite-docling-258m",
+        "mistral-ocr-4-1",
+        "google-cloud-vision",
+        "gpt-6-luna",
+        "lightonocr-3-0.8b",
+        "lightonocr-3-1b",
+        "lightonocr-3-4b",
     ]
 
 
@@ -206,7 +219,7 @@ def test_web_gpu_selection_reaches_the_workers(tmp_path, monkeypatch, backend):
         settings.append(kwargs)
         return Engine()
 
-    monkeypatch.setattr("vipi.ocr.pipeline.create_engine", create)
+    monkeypatch.setattr("vipi.ocr.engines.create_engine", create)
     client = create_app(tmp_path / "runs").test_client()
     data = upload()
     data.update(backend=backend, model="ppocr-v6", workers="4")
@@ -226,4 +239,6 @@ def test_web_gpu_selection_reaches_the_workers(tmp_path, monkeypatch, backend):
             break
         time.sleep(0.01)
     assert state["state"] == "failed"
-    assert settings == [{"backend": backend, "threads": 2}] * 4
+    assert (
+        settings == [{"backend": backend, "threads": 2, "native_pipeline": False}] * 4
+    )

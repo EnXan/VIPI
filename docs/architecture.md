@@ -2,7 +2,7 @@
 
 Accepted package boundaries are recorded in [ADR 0002](../adr-code/0002-product-and-research-boundaries.md).
 The public scan contract is recorded in [ADR 0003](../adr-code/0003-public-cli-contract.md).
-The current OCR behavior and evaluation boundary are recorded in [ADR 0007](../adr-code/0007-reduced-ocr-transforms.md).
+The current OCR profile and evaluation boundary are recorded in [ADR 0021](../adr-code/0021-low-contrast-ocr-profile.md).
 Research module ownership and dataset distribution are recorded in
 [ADR 0012](../adr-code/0012-hugging-face-evaluation-dataset.md).
 
@@ -53,9 +53,24 @@ detectors; dataset references never become classifier evidence.
 `OcrEngine.recognize(image)` returns text and regions in raster coordinates.
 Transformation/assembly code uses this contract rather than a provider-specific
 result. `OcrSession` owns the engine pool, model verification and artifact details.
+Assembly preserves native line orientation and reads independent paragraph
+columns within horizontal bands; simple aligned tables retain row order.
+It keeps competing readings as evidence and records its assembly version.
+See [ADR 0020](../adr-code/0020-ocr-assembly-geometry-and-reading-order.md)
+for the geometry rules and validation boundary.
 `OCR_MODES`, `REQUIRED` and `model_files.json` map the public speed/quality modes
 to checksum-pinned models. Setup and scan use that same description. A model
 replacement changes this package/adapter, not input selection or detector code.
+
+`--modus local|cloud` selects OCR execution. Local profiles are `quality`,
+`balanced` and `speed` (`fast` remains an alias); cloud providers are `google`
+(default), `openai` and `mistral`. `vipi.config` resolves these selections for
+setup, scanning and Python sessions. An explicit legacy cloud model remains an
+opt-in to that provider. Contradictory execution/model/provider choices fail
+before inference. Providers run once per original image and retain raw text;
+they share the same adapters between product and Workbench. OCR provider and
+downstream detector selection are independent. See
+[ADR 0027](../adr-code/0027-local-and-cloud-ocr-selection.md).
 
 ## Research boundary
 

@@ -8,7 +8,8 @@ from PIL import Image
 from vipi.ocr.merge import assemble
 from vipi.ocr.pipeline import extract
 from vipi.storage.ocr import RunStore
-from vipi.ocr.transforms import FILTERS, OCR_PROFILE, views_for_size
+from vipi.config import MISTRAL_OCR_MODEL
+from vipi.ocr.transforms import FILTERS, MISTRAL_OCR_PROFILE, OCR_PROFILE, views_for_size
 
 
 class EmptyEngine:
@@ -74,9 +75,9 @@ def test_every_pass_is_saved_before_next_ocr(tmp_path):
 
     engine = CheckingEngine()
     result = extract(image, "test", engine=engine, store=store, workers=1)
-    assert len(result["variants"]) == engine.calls == 13
+    assert len(result["variants"]) == engine.calls == 15
     assert result["ocr_profile"] == OCR_PROFILE
-    assert len(list((store.directory / "images").glob("*.png"))) == 13
+    assert len(list((store.directory / "images").glob("*.png"))) == 15
     names = [event["type"] for event in store.events]
     assert names[1:6] == [
         "step_started",
@@ -87,13 +88,41 @@ def test_every_pass_is_saved_before_next_ocr(tmp_path):
     ]
     assert names[-2:] == ["assembling", "run_completed"]
     assert store.status["ocr_profile"] == OCR_PROFILE
-    assert store.status["completed"] == store.status["total"] == 13
+    assert store.status["completed"] == store.status["total"] == 15
     assert json.loads((store.directory / "result.json").read_text()) == result
     assert (store.directory / "result.txt").read_text() == ""
     restored = RunStore.restore(store.directory)
     assert restored.snapshot()["result"] == result
     replay = list(restored.iter_events(after=len(store.events) - 1))
     assert [event["type"] for event in replay] == ["run_completed"]
+
+
+def test_mistral_uses_only_one_original_image_pass(tmp_path, monkeypatch):
+    image = tmp_path / "input.png"
+    Image.new("RGB", (16, 12), "white").save(image)
+    monkeypatch.setattr(
+        "vipi.ocr.pipeline.production_passes_for_size",
+        lambda *args: passes_for_views(*args, 4),
+    )
+
+    class CountingEngine(EmptyEngine):
+        calls = 0
+
+        def recognize(self, raster):
+            self.calls += 1
+            return super().recognize(raster)
+
+    engine = CountingEngine()
+    result = extract(
+        image,
+        MISTRAL_OCR_MODEL,
+        engine=engine,
+        runs_dir=tmp_path / "runs",
+        workers=1,
+    )
+    assert engine.calls == len(result["variants"]) == 1
+    assert result["ocr_profile"] == MISTRAL_OCR_PROFILE
+    assert result["variants"][0]["preprocessing"]["resize"] == "none"
 
 
 def test_failure_retains_steps_without_final_result(tmp_path):
@@ -212,7 +241,7 @@ def test_parallel_engines_persist_independently_and_keep_variant_order(
     assert all(engine.calls > 0 for engine in engines)
     assert sum(engine.calls for engine in engines) == workers * len(FILTERS)
     assert [step["index"] for step in result["variants"]] == list(
-        range(1, workers * 5 + 1)
+        range(1, workers * len(FILTERS) + 1)
     )
     records = [
         json.loads(line)
@@ -223,7 +252,7 @@ def test_parallel_engines_persist_independently_and_keep_variant_order(
         step["id"] for step in result["variants"]
     }
     assert store.snapshot()["variants"] == result["variants"]
-    assert store.status["completed"] == store.status["total"] == workers * 5
+    assert store.status["completed"] == store.status["total"] == workers * len(FILTERS)
     assert store.status["active_steps"] == {}
     assert [event["id"] for event in store.events] == list(
         range(1, len(store.events) + 1)

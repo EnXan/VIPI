@@ -18,6 +18,9 @@ class EnginePool:
         self.backend = backend
         self.factory = engine_factory
         self.local = threading.local()
+        self.engines = []
+        self.lock = threading.Lock()
+        self.cancelled = False
         self.executor = ThreadPoolExecutor(
             max_workers=self.workers, thread_name_prefix="ocr"
         )
@@ -34,14 +37,36 @@ class EnginePool:
                     threads=threads_per_worker(self.workers),
                 )
             )
+            with self.lock:
+                self.engines.append(self.local.engine)
+                cancelled = self.cancelled
+            if cancelled and hasattr(self.local.engine, "cancel"):
+                self.local.engine.cancel()
         return self.local.engine
 
     def discard_engine(self):
         if hasattr(self.local, "engine"):
+            engine = self.local.engine
+            if hasattr(engine, "close"):
+                engine.close()
+            with self.lock:
+                self.engines.remove(engine)
             del self.local.engine
+
+    def cancel(self):
+        with self.lock:
+            self.cancelled = True
+            engines = list(self.engines)
+        for engine in engines:
+            if hasattr(engine, "cancel"):
+                engine.cancel()
 
     def __enter__(self):
         return self
 
     def __exit__(self, *exc):
         self.executor.shutdown(wait=True, cancel_futures=True)
+        for engine in self.engines:
+            if hasattr(engine, "close"):
+                engine.close()
+        self.engines.clear()

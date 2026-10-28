@@ -12,7 +12,7 @@ class OcrResult:
     regions: list[dict]
     variants: list[dict]
     input_size: list[int]
-    assembly_version: int
+    assembly_version: int | None
     elapsed_seconds: float
     artifacts: Path | None = None
     image: bytes | None = field(default=None, repr=False)

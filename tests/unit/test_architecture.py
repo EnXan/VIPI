@@ -75,11 +75,13 @@ def test_python_api_validates_threshold_without_cli(threshold):
 def test_ocr_mode_defaults_and_explicit_model_override():
     assert DEFAULT_OCR_MODE == "quality"
     assert OCR_MODES == {
+        "speed": "ppocr-v6-tiny",
         "fast": "ppocr-v6-tiny",
         "balanced": "ppocr-v6-small",
         "quality": "ppocr-v6",
     }
     assert resolve_ocr_model("fast") == "ppocr-v6-tiny"
+    assert resolve_ocr_model("speed") == "ppocr-v6-tiny"
     assert resolve_ocr_model("balanced") == "ppocr-v6-small"
     assert resolve_ocr_model("quality") == "ppocr-v6"
     assert resolve_ocr_model("fast", "ppocr-v6-medium") == "ppocr-v6"

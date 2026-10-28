@@ -26,7 +26,7 @@ def test_cli_forwards_workers(monkeypatch, capsys, workers):
         return {"text": "recognized"}
 
     monkeypatch.setattr("research.workbench.__main__.extract", extract)
-    argv = ["extract", "image.png"]
+    argv = ["extract", "image.png", "--ocr-profile", "transforms"]
     if workers is not None:
         argv += ["--workers", workers]
     assert main(argv) == 0
@@ -69,14 +69,11 @@ def test_cli_forwards_hardware_backend(monkeypatch, backend):
 
 
 @pytest.mark.parametrize("command", ["extract", "prepare-models"])
-def test_cli_does_not_offer_ppocr_v5(capsys, command):
-    argv = [command]
-    if command == "extract":
-        argv.append("image.png")
-    argv += ["--model", "ppocr-v5"]
-
+def test_cli_excludes_removed_models(capsys, command):
     with pytest.raises(SystemExit) as error:
-        main(argv)
+        main([command, "--help"])
 
-    assert error.value.code == 2
-    assert "ppocr-v5" in capsys.readouterr().err
+    assert error.value.code == 0
+    help_text = capsys.readouterr().out
+    for removed in ("ppocr-v5", "florence", "surya", "gpt-6-sol"):
+        assert removed not in help_text

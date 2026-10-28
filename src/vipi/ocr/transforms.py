@@ -11,8 +11,15 @@ from PIL import Image, ImageOps
 
 MAX_INPUT_PIXELS = 40_000_000
 MAX_VIEW_PIXELS = 80_000_000
-FILTERS = ("unchanged", "grayscale", "clahe", "inverted", "threshold")
-OCR_PROFILE = "reduced-transforms-v1"
+FILTERS = ("unchanged", "grayscale", "clahe", "inverted", "threshold", "color-contrast")
+OCR_PROFILE = "reduced-transforms-v2"
+BASELINE_OCR_PROFILE = "original-only-v1"
+MISTRAL_OCR_PROFILE = "mistral-single-pass-v1"
+CLOUD_OCR_PROFILES = {
+    "mistral-ocr-4-1": MISTRAL_OCR_PROFILE,
+    "google-cloud-vision": "google-vision-single-pass-v1",
+    "gpt-6-luna": "openai-luna-single-pass-v1",
+}
 TWO_TIMES_MAX_PIXELS = 8_000_000
 OCR_PROFILE_PASSES = (
     ("original-unchanged-1x", "unchanged"),
@@ -28,6 +35,8 @@ OCR_PROFILE_PASSES = (
     ("original-unchanged-1x", "inverted"),
     ("opencv-nearest-0.125x", "grayscale"),
     ("pillow-nearest-0.125x", "unchanged"),
+    ("original-unchanged-1x", "clahe"),
+    ("original-unchanged-1x", "color-contrast"),
 )
 _tensorflow_lock = threading.Lock()
 
@@ -163,8 +172,7 @@ def production_passes_for_size(width: int, height: int) -> list[tuple[View, str]
         profile = [item for item in profile if item[0] != "pillow-bicubic-2x"]
     view_ids = {view_id for view_id, _ in profile}
     views = {
-        view.id: view
-        for view in views_for_size(width, height, selected_ids=view_ids)
+        view.id: view for view in views_for_size(width, height, selected_ids=view_ids)
     }
     return [(views[view_id], filter_name) for view_id, filter_name in profile]
 
@@ -249,6 +257,14 @@ def apply_filter(image: Image.Image, name: str) -> Image.Image:
         result = cv2.adaptiveThreshold(
             gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 31, 11
         )
+    elif name == "color-contrast":
+        saturation = cv2.cvtColor(pixels, cv2.COLOR_RGB2HSV)[:, :, 1]
+        strokes = cv2.morphologyEx(
+            saturation,
+            cv2.MORPH_BLACKHAT,
+            cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (61, 61)),
+        )
+        result = 255 - cv2.normalize(strokes, None, 0, 255, cv2.NORM_MINMAX)
     else:
         raise ValueError(f"Unknown filter: {name}")
     return Image.fromarray(result).convert("RGB")

@@ -17,14 +17,18 @@ from .models import DEFAULT_MODEL, sha256
 from vipi.storage.ocr import RunStore, write_json
 from vipi.cancellation import check_cancelled
 from .transforms import (
+    BASELINE_OCR_PROFILE,
+    CLOUD_OCR_PROFILES,
     OCR_PROFILE,
     apply_filter,
     decode_image,
     production_passes_for_size,
     render_view,
+    views_for_size,
 )
 from .workers import DEFAULT_WORKERS, worker_count
 from .runtime import DEFAULT_BACKEND, threads_per_worker, validate_backend
+from vipi.config import CLOUD_OCR_MODELS
 
 
 def extract(
@@ -42,8 +46,12 @@ def extract(
     on_result=None,
     backend=DEFAULT_BACKEND,
     cancel_event=None,
+    single_pass=False,
+    baseline=False,
 ):
     workers = worker_count(workers)
+    if model in CLOUD_OCR_MODELS:
+        workers = 1
     validate_backend(model, backend)
     threads = threads_per_worker(workers)
     # Views already run in parallel; nested OpenCV pools compete with OCR threads.
@@ -73,12 +81,25 @@ def extract(
         check_cancelled(cancel_event)
         original = decode_image(image)
         original.save(store.directory / "input.png", format="PNG")
-        passes = production_passes_for_size(*original.size)
+        if baseline or model in CLOUD_OCR_MODELS:
+            view = views_for_size(
+                *original.size, selected_ids={"original-unchanged-1x"}
+            )[0]
+            passes = [(view, "unchanged")]
+            ocr_profile = (
+                BASELINE_OCR_PROFILE if baseline else CLOUD_OCR_PROFILES[model]
+            )
+        else:
+            passes = production_passes_for_size(*original.size)
+            ocr_profile = OCR_PROFILE
+            if single_pass:
+                passes = passes[:1]
+                ocr_profile = "official_full_page_pipeline"
         store.transition(
             "run_started",
             state="preparing",
             model=model,
-            ocr_profile=OCR_PROFILE,
+            ocr_profile=ocr_profile,
             total=len(passes),
             input_size=list(original.size),
             workers=workers,
@@ -94,8 +115,10 @@ def extract(
             pending.put((index, view, filter_name))
 
         def work(worker_id):
+            local_engine = None
             try:
                 check_cancelled(cancel_event)
+                acquire_started = time.perf_counter()
                 # Stateful OCR adapters are never shared between workers.
                 if engine_pool is not None:
                     local_engine = engine_pool.engine()
@@ -107,6 +130,7 @@ def extract(
                     local_engine = create_engine(
                         model, Path(models_dir), backend=backend, threads=threads
                     )
+                engine_acquire_seconds = time.perf_counter() - acquire_started
                 while not stop.is_set():
                     check_cancelled(cancel_event)
                     try:
@@ -128,8 +152,11 @@ def extract(
                     }
                     store.advance(worker_id, "step_started", "transforming", current)
                     transform_started = time.perf_counter()
-                    base = render_view(original, view)
-                    raster = apply_filter(base, name)
+                    raster = (
+                        original
+                        if baseline
+                        else apply_filter(render_view(original, view), name)
+                    )
                     transform_seconds = time.perf_counter() - transform_started
                     relative_image = f"images/{step_id}.png"
                     save_started = time.perf_counter()
@@ -161,9 +188,11 @@ def extract(
                             "transform_seconds": transform_seconds,
                             "image_save_seconds": image_save_seconds,
                             "ocr_seconds": ocr_seconds,
+                            "engine_acquire_seconds": engine_acquire_seconds,
                         },
                     }
                     store.complete_step(worker_id, step)
+                    engine_acquire_seconds = 0
             except CancelledError:
                 stop.set()
                 raise
@@ -172,6 +201,11 @@ def extract(
                 if engine_pool is not None:
                     engine_pool.discard_engine()
                 raise
+            finally:
+                if engine_pool is None and engine is None and local_engine is not None:
+                    close = getattr(local_engine, "close", None)
+                    if close is not None:
+                        close()
 
         pool = (
             engine_pool.executor
@@ -179,7 +213,9 @@ def extract(
             else ThreadPoolExecutor(max_workers=workers, thread_name_prefix="ocr")
         )
         try:
-            futures = [pool.submit(work, i) for i in range(1, workers + 1)]
+            futures = [
+                pool.submit(work, i) for i in range(1, min(workers, len(passes)) + 1)
+            ]
             for future in futures:
                 future.result()
         finally:
@@ -191,14 +227,22 @@ def extract(
                 wait(futures)
         check_cancelled(cancel_event)
         steps = store.snapshot()["variants"]
-        store.transition(
-            "assembling", state="assembling", active_steps={}, completed=len(steps)
+        preserve_raw_text = (
+            baseline
+            or model in CLOUD_OCR_MODELS
+            or bool(steps and steps[0].get("full_page_text"))
         )
-        text, regions = assemble(steps)
+        if preserve_raw_text and steps:
+            text, regions = steps[0]["text"], steps[0]["regions"]
+        else:
+            store.transition(
+                "assembling", state="assembling", active_steps={}, completed=len(steps)
+            )
+            text, regions = assemble(steps)
         result = {
             "run_id": store.id,
             "model": model,
-            "ocr_profile": OCR_PROFILE,
+            "ocr_profile": ocr_profile,
             "workers": workers,
             "backend": backend,
             "threads_per_worker": threads,
@@ -206,7 +250,9 @@ def extract(
             "input_size": list(original.size),
             "regions": regions,
             "variants": steps,
-            "assembly_version": ASSEMBLY_VERSION,
+            "assembly_version": None if preserve_raw_text else ASSEMBLY_VERSION,
+            "preserve_raw_text": preserve_raw_text,
+            "full_page_text": bool(steps and steps[0].get("full_page_text")),
         }
         check_cancelled(cancel_event)
         if on_result is not None:
@@ -264,9 +310,13 @@ def reassemble(run_id: str, *, runs_dir="runs", on_result=None):
         raise ValueError("Saved steps are incomplete; final result was not changed.")
     steps.sort(key=lambda step: step.get("index", int(step["id"])))
     result = json.loads((directory / "result.json").read_text(encoding="utf-8"))
-    result["text"], result["regions"] = assemble(steps)
+    preserve_raw_text = result.get("preserve_raw_text") or result.get("full_page_text")
+    if preserve_raw_text and steps:
+        result["text"], result["regions"] = steps[0]["text"], steps[0]["regions"]
+    else:
+        result["text"], result["regions"] = assemble(steps)
     result["variants"] = steps
-    result["assembly_version"] = ASSEMBLY_VERSION
+    result["assembly_version"] = None if preserve_raw_text else ASSEMBLY_VERSION
     if on_result is not None:
         on_result(result)
     write_json(directory / "result.json", result)

@@ -31,8 +31,8 @@ or [contribute new examples for review](https://github.com/EnXan/VIPI/blob/main/
 VIPI requires Python 3.12 and [uv](https://docs.astral.sh/uv/getting-started/installation/).
 Install the CLI from [PyPI](https://pypi.org/project/vipi-scanner/) with
 `uv tool install`. Choose the install path for the detector you plan to use.
-Both paths include the OCR dependencies; OCR runs locally and is required for
-every scan.
+Both paths include the OCR dependencies. OCR uses the local models by default;
+you can explicitly select Mistral OCR for hosted image recognition.
 
 ### Cloud API detector
 
@@ -61,6 +61,29 @@ detector is Jev; select OpenAI with `--detector openai`.
 ```bash
 vipi scan image.png
 ```
+
+### Cloud OCR
+
+Local OCR is the default. Select `--modus cloud` to send each image to Google
+Cloud Vision, or choose another OCR provider explicitly. The downstream detector
+is selected independently.
+
+```bash
+export GOOGLE_CLOUD_API_KEY="your-google-cloud-api-key"
+vipi setup --modus cloud
+vipi scan image.png --modus cloud --output report.json
+
+# Alternatives: configure OPENAI_API_KEY or MISTRAL_API_KEY respectively
+vipi scan image.png --modus cloud --ocr-provider openai
+vipi scan image.png --modus cloud --ocr-provider mistral
+```
+
+Cloud providers are `google` (Google Cloud Vision, default), `openai` (GPT-6
+Luna), and `mistral` (Mistral OCR 4.1). They are provider choices, not quality
+tiers. Cloud OCR uses one original-image request per image, with no automatic
+retries or fallback. Setup skips local OCR downloads; credentials are checked
+at scan time. Keep keys in the environment or an ignored `.env` file; VIPI
+does not write them into reports. Provider usage charges apply.
 
 ### Local Prompt Guard detector
 
@@ -95,7 +118,7 @@ vipi scan label.png screenshot.jpg
 vipi scan ./images --output report.json
 
 # Choose a speed/quality mode or a specific supported model
-vipi scan ./images --ocr-mode fast
+vipi scan ./images --ocr-mode speed
 vipi scan ./images --ocr-mode balanced
 vipi scan ./images --ocr-model ppocr-v6-medium
 
@@ -106,11 +129,12 @@ vipi scan . --diff origin/main --output report.json
 vipi scan image.png --detector openai --threshold 90
 ```
 
-The interface has two commands, `vipi setup` and `vipi scan`. OCR modes map
-`fast` to PP-OCRv6 Tiny, `balanced` to Small and `quality` to Medium. `quality`
-is the default to preserve the previous Medium behavior. `--ocr-model` selects a
-supported model ID directly and overrides the mode. `vipi setup` prepares all
-three models by default. The default detector is Jev with a threshold of 80 on a
+The interface has two commands, `vipi setup` and `vipi scan`. `--modus local`
+is the default. Local profiles map `speed` to PP-OCRv6 Tiny, `balanced` to Small
+and `quality` to Medium; `quality` is the default and `fast` remains an alias
+for `speed`. `--ocr-model` selects a supported model directly; an explicit
+execution mode must match it. `vipi setup` prepares all three local models by
+default. The default detector is Jev with a threshold of 80 on a
 0–100 score scale. A score at the threshold counts as a finding; it is not a
 calibrated probability of an attack.
 
@@ -150,7 +174,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - uses: EnXan/VIPI@v0.4.0
+      - uses: EnXan/VIPI@v0.5.0
         with:
           detector: prompt-guard
         env:
