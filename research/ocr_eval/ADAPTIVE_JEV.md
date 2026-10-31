@@ -76,3 +76,11 @@ are follow-up concepts requiring joint review; local Clef/d1 tests are pending.
 
 See [ADR 0029](../../adr-code/0029-adaptive-ocr-transformation-review.md) and
 [Workbench usage](../workbench/README.md).
+
+## Follow-up diagnosis
+
+The subsequent [controlled Jev diagnosis](JEV_DIAGNOSIS.md) separates context
+size, spatial action prediction, direct preview comparison and concrete OCR
+verification. It finds useful comparison/verification behavior alongside
+unreliable absolute transformation prediction. These diagnostic results do not
+replace the initial end-to-end scores above or change the implemented profile.

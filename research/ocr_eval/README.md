@@ -15,6 +15,8 @@ The [baseline protocol and complete candidate inventory](BASELINE.md) describe
 the original-image comparison and subsequent measured improvement rounds.
 The opt-in [adaptive Jev experiment](ADAPTIVE_JEV.md) records transformation
 selection and review results separately from the baseline.
+The [controlled Jev diagnosis](JEV_DIAGNOSIS.md) investigates why that first
+selector failed, without changing the pipeline during the experiment.
 
 The catalog preserves exact transcripts, source references, rights, reference
 scope and word regions. Catalog image paths are relative to this directory.
