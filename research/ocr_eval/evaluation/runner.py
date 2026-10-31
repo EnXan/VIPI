@@ -24,6 +24,9 @@ def extract(
     from research.workbench.ocr_costs import cost_for_result
 
     validate_profile(ocr_profile)
+    adaptive = ocr_profile == "adaptive-jev"
+    if adaptive:
+        options["workers"] = 1
     options["baseline"] = ocr_profile == "baseline"
     if options["baseline"] and options.get("engine_pool") is None:
         options["workers"] = 1
@@ -64,13 +67,60 @@ def extract(
                 return
             store.transition("evaluating", state="evaluating")
             result["evaluation"] = evaluate(
-                reference, result["text"], result["regions"], result["variants"]
+                reference,
+                result["text"],
+                result["regions"],
+                result["variants"],
+                include_effects=not adaptive,
             )
+            if adaptive:
+                evaluation = result["evaluation"]
+                evaluation["first_attempt"] = evaluation["steps"][
+                    result["variants"][0]["id"]
+                ]
+                original = next(
+                    (
+                        step
+                        for step in result["variants"]
+                        if step["plan"]
+                        == {
+                            "orientation": "upright",
+                            "contrast": "unchanged",
+                            "crop": "full",
+                        }
+                    ),
+                    None,
+                )
+                evaluation["original"] = (
+                    evaluation["steps"][original["id"]] if original else None
+                )
 
+    if adaptive:
+        from .adaptive import extract as adaptive_extract
+
+        options.pop("workers", None)
+        options.pop("baseline", None)
+        options.pop("single_pass", None)
+        return adaptive_extract(image, model, on_event, on_result=attach, **options)
     return pipeline.extract(image, model, on_event, on_result=attach, **options)
 
 
 def reassemble(run_id, *, runs_dir="runs"):
+    import json
+    import re
+
+    if not re.fullmatch(r"[a-f0-9]{32}", run_id):
+        raise ValueError("Invalid run ID.")
+    saved = Path(runs_dir) / run_id / "result.json"
+    if (
+        saved.is_file()
+        and json.loads(saved.read_text(encoding="utf-8")).get("ocr_profile")
+        == "adaptive-jev"
+    ):
+        raise ValueError(
+            "Adaptive runs retain a reviewed candidate; rerun extraction instead of replacing it with legacy assembly."
+        )
+
     def attach(result):
         previous = result.get("evaluation")
         if previous:

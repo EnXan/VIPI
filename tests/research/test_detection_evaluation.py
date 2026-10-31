@@ -50,6 +50,34 @@ def wait_for_batch(client, identifier):
     pytest.fail("Batch did not finish.")
 
 
+def test_detection_catalog_maps_payload_regions_to_unordered_reference(
+    detection_repository,
+):
+    catalog_path = detection_repository / "research/detection_eval/cases.json"
+    entries = json.loads(catalog_path.read_text())
+    catalog = Catalog(detection_repository)
+    ordered_target = catalog.reference(next(iter(catalog.items)))
+    assert ordered_target["reading_order_known"]
+    assert ordered_target["regions"] == []
+    assert not ordered_target["regions_are_independent"]
+
+    entries[0]["payload_regions"] = [{"text": "PAYLOAD 0", "bbox_xywh": [1, 2, 8, 4]}]
+    catalog_path.write_text(json.dumps(entries))
+
+    catalog = Catalog(detection_repository)
+    target = catalog.reference(next(iter(catalog.items)))
+
+    assert target["text"] == "PAYLOAD 0"
+    assert not target["reading_order_known"]
+    assert target["regions"] == [
+        {
+            "text": "PAYLOAD 0",
+            "input_polygon": [[1, 2], [9, 2], [9, 6], [1, 6]],
+        }
+    ]
+    assert target["regions_are_independent"]
+
+
 def test_mixed_catalog_baseline_scans_every_image_with_detectors_off(
     dataset_repository,
     detection_repository,

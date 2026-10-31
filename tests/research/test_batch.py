@@ -104,7 +104,7 @@ def test_selected_images_evaluation_failures_continuation_and_restore(
     assert state["items"][2]["state"] == "completed" and not state["items"][2]["valid"]
     result = client.get(f"/api/runs/{state['items'][0]['run_id']}").json["result"]
     assert result["evaluation"]["valid"] and result["evaluation"]["final"]["valid"]
-    assert state["evaluation_policy"]["version"] == 3
+    assert state["evaluation_policy"]["version"] == 4
     assert state["items"][0]["coverage"] == 1
     assert state["items"][0]["exact_coverage"] == 0
     assert state["items"][0]["exact_valid"] is False

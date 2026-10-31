@@ -61,7 +61,7 @@ class Batch:
             raise ValueError("Choose each OCR model once.")
         for selected_model in selected_models:
             validate_backend(selected_model, backend_for(selected_model, backend))
-        if ocr_profile == "baseline":
+        if ocr_profile in {"baseline", "adaptive-jev"}:
             workers = 1
         catalogs = catalog if isinstance(catalog, dict) else {dataset: catalog}
         selections = [
@@ -405,6 +405,9 @@ class Batch:
                             exact_valid=evaluation["final"]["exact"]["valid"],
                             exact_coverage=evaluation["final"]["exact"]["coverage"],
                             exact_missing=evaluation["final"]["exact"]["missing"],
+                            group_conflicts=evaluation["final"].get(
+                                "group_conflicts", []
+                            ),
                             pipeline_coverage=evaluation["detection"]["coverage"],
                             final_valid=evaluation["final"]["valid"],
                             best_step_id=evaluation["best_step_id"],

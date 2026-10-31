@@ -131,7 +131,11 @@ def test_profile_selects_native_backend_and_preserves_injected_engines(
         calls.append(kwargs)
 
     monkeypatch.setattr("vipi.ocr.engines.create_engine", create)
-    for profile, native in (("baseline", True), ("transforms", False)):
+    for profile, native in (
+        ("baseline", True),
+        ("transforms", False),
+        ("adaptive-jev", True),
+    ):
         engine_factory_for(profile, workers=1)("ppocr-v6", tmp_path)
         assert calls[-1]["native_pipeline"] is native
 
@@ -139,7 +143,7 @@ def test_profile_selects_native_backend_and_preserves_injected_engines(
         return None
 
     assert engine_factory_for("baseline", override=injected) is injected
-    with pytest.raises(ValueError, match="baseline or transforms"):
+    with pytest.raises(ValueError, match="baseline, transforms or adaptive-jev"):
         validate_profile("unknown")
 
 

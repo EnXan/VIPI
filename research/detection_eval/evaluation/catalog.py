@@ -77,6 +77,22 @@ class Catalog:
 
     def reference(self, identifier):
         item = self.get(identifier)
+        regions = []
+        for region in item.get("payload_regions") or []:
+            if "bbox_xywh" in region:
+                x, y, width, height = region["bbox_xywh"]
+                polygon = [
+                    [x, y],
+                    [x + width, y],
+                    [x + width, y + height],
+                    [x, y + height],
+                ]
+            elif "polygon_xy" in region:
+                points = region["polygon_xy"]
+                polygon = list(zip(points[::2], points[1::2]))
+            else:
+                raise ValueError("Payload regions require bbox_xywh or polygon_xy.")
+            regions.append({"text": region["text"], "input_polygon": polygon})
         return {
             "dataset_id": identifier,
             "image": item["image"],
@@ -84,6 +100,7 @@ class Catalog:
             "text": item["text"],
             "scope": "primary_visible_payload",
             "quality": "reviewed_payload",
-            "reading_order_known": True,
-            "regions": [],
+            "reading_order_known": not bool(regions),
+            "regions": regions,
+            "regions_are_independent": bool(regions),
         }

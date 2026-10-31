@@ -77,6 +77,7 @@ class View:
     rotation: int = 0
     crop: tuple[int, int, int, int] | None = None
     factor: float = 1.0
+    mirrored: bool = False
 
     def map_polygon(self, polygon):
         points = np.array([[x, y, 1] for x, y in polygon], dtype=float)
@@ -222,8 +223,10 @@ def resize(
 
 
 def render_view(image: Image.Image, view: View) -> Image.Image:
+    if view.mirrored:
+        image = ImageOps.mirror(image)
     if view.rotation:
-        return image.transpose(
+        image = image.transpose(
             {
                 90: Image.Transpose.ROTATE_270,
                 180: Image.Transpose.ROTATE_180,
@@ -266,5 +269,7 @@ def apply_filter(image: Image.Image, name: str) -> Image.Image:
         )
         result = 255 - cv2.normalize(strokes, None, 0, 255, cv2.NORM_MINMAX)
     else:
-        raise ValueError(f"Unknown filter: {name}")
+        from .measured_transforms import apply_measured_filter
+
+        return apply_measured_filter(image, name)
     return Image.fromarray(result).convert("RGB")

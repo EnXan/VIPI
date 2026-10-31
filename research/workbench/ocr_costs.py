@@ -9,6 +9,16 @@ API_MODELS = (LUNA_MODEL, GOOGLE_MODEL, "mistral-ocr-4-1")
 
 
 def cost_for_result(result):
+    selection = result.get("selection")
+    if selection:
+        return {
+            "currency": "USD",
+            "estimated_usd": None,
+            "kind": "ocr_and_visual_selection",
+            "ocr": cost_for_result({**result, "selection": None}),
+            "usage": [d["response"].get("usage") for d in selection["decisions"]],
+            "note": "Jev usage is recorded. Total API cost is unknown because no verified Jev rate is configured.",
+        }
     model = result["model"]
     if model not in API_MODELS:
         return {
