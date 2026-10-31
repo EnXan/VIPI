@@ -4,12 +4,12 @@ from vipi.ocr.runtime import DEFAULT_BACKEND, threads_per_worker
 from vipi.ocr.workers import DEFAULT_WORKERS
 
 DEFAULT_PROFILE = "baseline"
-PROFILES = (DEFAULT_PROFILE, "transforms")
+PROFILES = (DEFAULT_PROFILE, "transforms", "adaptive-jev")
 
 
 def validate_profile(profile):
     if profile not in PROFILES:
-        raise ValueError("Choose the baseline or transforms OCR profile.")
+        raise ValueError("Choose baseline, transforms or adaptive-jev as the OCR profile.")
     return profile
 
 

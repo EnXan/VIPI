@@ -8,6 +8,27 @@ uses native RapidOCR processing with the pinned model weights. Select
 and assembly profile. Selected dataset images are checked against their annotated
 text. See the [candidate inventory and experiment protocol](../ocr_eval/BASELINE.md).
 
+The optional **Jev · adaptive transformations** profile selects a measured
+transformation from the image, runs native OCR with the reviewed PDFMiner
+grouping, then lets Jev review the image and extracted text. It retains earlier
+attempts and permits up to three OCR attempts, each starting from the original.
+Set `TYPESAFE_API_KEY` or `JEV_API_KEY` to use it. This explicitly sends image
+previews and OCR text to TypeSafe; it is an experimental profile, not the default.
+
+```bash
+uv run python -m research.workbench extract path/to/image.png \
+  --model ppocr-v6-tiny --ocr-profile adaptive-jev --workers 1 --json
+```
+
+Only Jev previews are resized to its documented 280–1568-pixel dimensions;
+OCR retains the selected raster's full resolution. Each run saves native and
+grouped readings, `attempts.json`, `decisions.json`, request descriptions,
+actual preview images and raw responses under `decisions/`. `selection.accepted`
+is Jev's opinion, separate from reference-based evaluation. Jev pricing is not
+configured, so the total API cost is reported as unknown. See the
+[nine-image experiment](../ocr_eval/ADAPTIVE_JEV.md) and
+[ADR 0029](../../adr-code/0029-adaptive-ocr-transformation-review.md).
+
 ## Setup
 
 Use Python 3.12. Tesseract 5 must be installed separately if using that adapter
@@ -248,7 +269,7 @@ from its own catalog: `research/ocr_eval/catalog.json` or
 `research/detection_eval/cases.json`. Images and annotations are never modified
 or passed to OCR as hints.
 
-Evaluation v3 uses **tolerant word coverage in the final scanner text** as the
+Evaluation v4 uses **tolerant word coverage in the final scanner text** as the
 primary metric. A case passes when every annotated reference word is covered.
 Small spelling errors are accepted: one edit for normalized words of 2–9
 characters, and 20% rounded down for longer words; single characters must match.
@@ -262,10 +283,14 @@ Each observed fragment is used once, so missing/repeated words cannot be replace
 by unrelated text or raw word counts. Known reference order is preserved. TextOCR
 additionally requires one-to-one word matches in overlapping annotated regions
 (at least 50% of the smaller box); global reading order is ignored. Ignored
-regions are excluded. Extra background/UI text is allowed and does not improve
-coverage unless it matches reference words. References can cover only the payload;
-their coverage does not prove every visible image text region was detected.
-See [ADR 0023](../../adr-code/0023-tolerant-ocr-word-coverage.md).
+regions are excluded. When a reference annotates independent regions, word order
+is preserved within each region and ignored between regions. An OCR region that
+overlaps multiple independent reference regions is reported as a group conflict;
+it cannot make the reference pass. Extra background/UI text is allowed and does
+not improve coverage unless it matches reference words.
+References can cover only the payload; their coverage does not prove every visible
+text region was detected.
+See [ADR 0028](../../adr-code/0028-independent-ocr-payload-regions.md).
 
 The report separates pipeline detection from final-text retention. It shows
 missing reference words, each variant's word coverage and exact-word fidelity,

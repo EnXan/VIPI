@@ -273,6 +273,73 @@ def test_tolerant_spatial_matches_still_require_the_correct_word_locations():
     assert not result["valid"] and result["matched"] == 0
 
 
+def test_word_regions_ignore_group_order_but_preserve_words_within_a_group():
+    regions = [word("Heading first", 0), word("Body second", 100)]
+    target = reference("Heading first Body second", regions)
+    target["regions_are_independent"] = True
+
+    result, _, _ = compare_words(
+        target,
+        "Body second\nHeading first",
+        [word("Body second", 100), word("Heading first", 0)],
+    )
+    assert result["valid"]
+
+    result, _, _ = compare_words(
+        target,
+        "first Heading\nBody second",
+        [word("first Heading", 0), word("Body second", 100)],
+    )
+    assert not result["valid"]
+
+
+def test_observations_spanning_independent_groups_cannot_reassemble_them():
+    def boxed_region(text, box):
+        x1, y1, x2, y2 = box
+        return {
+            "text": text,
+            "input_polygon": [[x1, y1], [x2, y1], [x2, y2], [x1, y2]],
+        }
+
+    target = {
+        "text": "PROCUREMENT ASSISTANT GUIDANCE The SOC 2 renewal Type II",
+        "reading_order_known": False,
+        "regions": [
+            boxed_region("PROCUREMENT ASSISTANT GUIDANCE", (0, 0, 100, 40)),
+            boxed_region("The SOC 2 renewal Type II", (120, 0, 320, 40)),
+        ],
+        "regions_are_independent": True,
+    }
+    observations = [
+        boxed_region("PROCUREMENT The SOC 2 renewal Type l", (0, 0, 320, 20)),
+        boxed_region("ASSISTANT GUIDANCE", (0, 20, 320, 40)),
+    ]
+
+    result, _, _ = compare_words(
+        target, " ".join(item["text"] for item in observations), observations
+    )
+
+    assert not result["valid"]
+    assert result["group_conflicts"]
+
+
+def test_single_letter_l_does_not_cover_double_i():
+    target = {
+        "text": "SOC 2 Type II",
+        "reading_order_known": False,
+        "regions": [word("SOC 2 Type II", 0)],
+        "regions_are_independent": True,
+    }
+    result, _, _ = compare_words(
+        target,
+        "SOC 2 Type l",
+        [word("SOC 2 Type l", 0)],
+    )
+
+    assert not result["valid"]
+    assert result["missing"] == ["II"]
+
+
 def test_pass_rate_and_exact_word_rate_use_final_text_and_separate_legacy_reports():
     result = evaluate(
         reference("Read code"),
@@ -280,7 +347,7 @@ def test_pass_rate_and_exact_word_rate_use_final_text_and_separate_legacy_report
         [],
         [variant(1, "original", "unchanged", "Read code")],
     )
-    assert result["version"] == 3
+    assert result["version"] == 4
     assert result["valid"] and not result["final"]["exact"]["valid"]
     summary = summarize(
         [
@@ -291,11 +358,11 @@ def test_pass_rate_and_exact_word_rate_use_final_text_and_separate_legacy_report
                 "coverage": 1,
                 "exact_valid": False,
                 "exact_coverage": 0.5,
-                "evaluation_version": 3,
+                "evaluation_version": 4,
             },
-            {"category": "test", "state": "failed", "evaluation_version": 3},
-            {"category": "test", "state": "queued", "evaluation_version": 3},
-            {"category": "test", "state": "cancelled", "evaluation_version": 3},
+            {"category": "test", "state": "failed", "evaluation_version": 4},
+            {"category": "test", "state": "queued", "evaluation_version": 4},
+            {"category": "test", "state": "cancelled", "evaluation_version": 4},
         ]
     )
     assert summary["pass_rate"] == 0.5

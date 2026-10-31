@@ -179,7 +179,7 @@ def create_direct_engine(
         directory,
         backend=backend,
         threads=threads,
-        native_pipeline=profile == "baseline",
+        native_pipeline=profile != "transforms",
     )
 
 

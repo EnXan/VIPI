@@ -20,7 +20,7 @@ def upload():
     }
 
 
-def test_model_list_includes_baseline_comparison_backends(tmp_path):
+def test_model_list_contains_product_models_for_current_experiment(tmp_path):
     response = (
         create_app(tmp_path / "runs", tmp_path / "models")
         .test_client()
@@ -32,16 +32,11 @@ def test_model_list_includes_baseline_comparison_backends(tmp_path):
         "ppocr-v6",
         "ppocr-v6-small",
         "ppocr-v6-tiny",
-        "tesseract",
-        "paddleocr-vl-1.6",
-        "granite-docling-258m",
         "mistral-ocr-4-1",
         "google-cloud-vision",
         "gpt-6-luna",
-        "lightonocr-3-0.8b",
-        "lightonocr-3-1b",
-        "lightonocr-3-4b",
     ]
+    assert response.json["default"] == "ppocr-v6-tiny"
 
 
 def test_live_image_busy_failure_replay_and_restore(tmp_path, monkeypatch):

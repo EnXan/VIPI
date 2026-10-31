@@ -423,7 +423,7 @@ async function restore(id, connect = true) {
   if (!response.ok) throw new Error('Could not load the saved run.');
   const state = await response.json(); runId = id; total = state.total; completed = state.completed;
   $('model').value = state.model;
-  $('ocr-profile').value = state.ocr_profile === 'original-only-v1' ? 'baseline' : 'transforms';
+  $('ocr-profile').value = state.ocr_profile === 'adaptive-jev' ? 'adaptive-jev' : state.ocr_profile === 'original-only-v1' ? 'baseline' : 'transforms';
   $('backend').value = state.backend || 'cpu'; updateBackend();
   workerCount = state.workers || 1;
   if (state.workers) $('workers').value = state.workers;
@@ -473,15 +473,17 @@ function updateBackend() {
   const documentVlm = selected.some(id => ['paddleocr-vl-1.6','granite-docling-258m'].includes(id) || id.startsWith('lightonocr-3-'));
   const apiModel = selected.some(id => ['mistral-ocr-4-1','google-cloud-vision','gpt-6-luna'].includes(id));
   const hardwareApplies = selected.some(id => id.startsWith('ppocr-v6'));
-  const originalOnly = $('ocr-profile').value === 'baseline';
-  for (const option of $('workers').options) option.disabled = (documentVlm || apiModel || originalOnly) && option.value !== '1';
-  if (documentVlm || apiModel || originalOnly) $('workers').value = '1';
+  const sequentialProfile = ['baseline','adaptive-jev'].includes($('ocr-profile').value);
+  for (const option of $('workers').options) option.disabled = (documentVlm || apiModel || sequentialProfile) && option.value !== '1';
+  if (documentVlm || apiModel || sequentialProfile) $('workers').value = '1';
   for (const option of $('backend').options) {
     option.disabled = option.dataset.available !== 'true' || (option.value !== 'cpu' && !hardwareApplies);
   }
   if (!hardwareApplies) $('backend').value = 'cpu';
   $('backend-note').textContent = selected.length > 1
     ? 'Models run sequentially. Hardware applies to PP-OCR; document models and APIs use their own runtime.'
+    : $('ocr-profile').value === 'adaptive-jev'
+    ? 'Jev receives images and OCR text for transformation selection and review. Up to three sequential OCR attempts.'
     : apiModel
     ? 'Sends each original image to the selected OCR API once.'
     : documentVlm
@@ -603,10 +605,12 @@ function renderEvaluation(evaluation) {
   const wordCoverage = evaluation.version >= 3;
   $('evaluation-heading').textContent = evaluation.final.valid ? 'Reference covered in final text.' : 'Reference incomplete in final text.';
   $('evaluation-rule').textContent = wordCoverage
-    ? `Pass: all reference words are covered in the final scanner text. Minor OCR errors are allowed: one edit for words of 2–9 characters; up to ${100 * evaluation.policy.word_error_rate}% for longer words. Single characters must match after normalization. Case and punctuation are ignored for coverage; exact words retain literal case and attached symbols. Split OCR fragments may cover one reference word. Additional text is allowed. ${evaluation.method === 'word_regions' ? 'Matches must overlap annotated word locations.' : 'Reference word order is preserved.'} Scope: ${evaluation.reference.scope}. Annotation quality: ${evaluation.reference.quality}.`
+    ? `Pass: all reference words are covered in the final scanner text. Minor OCR errors are allowed: one edit for words of 2–9 characters; up to ${100 * evaluation.policy.word_error_rate}% for longer words. Single characters must match after normalization. Case and punctuation are ignored for coverage; exact words retain literal case and attached symbols. Split OCR fragments may cover one reference word. Additional text is allowed. ${evaluation.method === 'word_regions' ? `Matches must overlap annotated reference regions. Word order is preserved within each region and ignored between regions.${evaluation.reference.regions_are_independent ? ' OCR regions spanning multiple independent reference regions count as group conflicts.' : ''}` : 'Reference word order is preserved.'} Scope: ${evaluation.reference.scope}. Annotation quality: ${evaluation.reference.quality}.`
     : `Legacy evaluation v${evaluation.version}: exact normalized tokens, including punctuation. It has not been rescored with tolerant word coverage. Annotation quality: ${evaluation.reference.quality}.`;
   $('evaluation-scores').replaceChildren();
-  for (const [name,score] of [['Original',evaluation.original],['Pipeline diagnostic',evaluation.detection],['Final text (primary)',evaluation.final]]) {
+  const initialScore = evaluation.original ? ['Original',evaluation.original] : ['First OCR attempt',evaluation.first_attempt];
+  for (const [name,score] of [initialScore,['Pipeline diagnostic',evaluation.detection],['Final text (primary)',evaluation.final]]) {
+    if (!score) continue;
     const panel = document.createElement('div'); panel.className = 'evaluation-score';
     const title = document.createElement('span'); title.textContent = name;
     const value = document.createElement('strong'); value.textContent = `${(score.coverage * 100).toFixed(1)} %`;
@@ -618,7 +622,11 @@ function renderEvaluation(evaluation) {
       panel.append(fidelity);
     }
   }
-  $('evaluation-missing').textContent = evaluation.final.missing.length ? `Missing from final text: ${evaluation.final.missing.join(' ')}` : `${evaluation.valid_step_ids.length} variants also cover the full reference.`;
+  const missing = evaluation.final.missing.length ? `Missing from final text: ${evaluation.final.missing.join(' ')}` : `${evaluation.valid_step_ids.length} variants also cover the full reference.`;
+  const groupConflicts = evaluation.final.group_conflicts || [];
+  $('evaluation-missing').textContent = groupConflicts.length
+    ? `${missing} Group conflicts: ${groupConflicts.length} OCR regions overlap multiple independent reference regions.`
+    : missing;
   $('reference-text').textContent = evaluation.reference.text;
   renderEffects($('evaluation-effects'), evaluation.effects);
   const {element,body} = table(['View','Original','Grayscale','CLAHE','Inverted','Threshold','Color contrast']);
@@ -826,6 +834,10 @@ function renderOCRStatus(item) {
   if (item.exact_coverage != null) {
     const exact = document.createElement('span'); exact.className = 'result-detail';
     exact.textContent = `${(item.exact_coverage * 100).toFixed(1)}% exact words`; cell.append(exact);
+  }
+  if (item.group_conflicts?.length) {
+    const conflicts = document.createElement('span'); conflicts.className = 'result-detail';
+    conflicts.textContent = `${item.group_conflicts.length} group conflict${item.group_conflicts.length === 1 ? '' : 's'}`; cell.append(conflicts);
   }
   return cell;
 }

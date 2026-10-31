@@ -10,6 +10,7 @@ from pathlib import Path
 from flask import Flask, Response, jsonify, render_template, request, send_file
 from werkzeug.exceptions import RequestEntityTooLarge
 
+from vipi.config import OCR_MODEL_IDS
 from .presentation import image_links, sse_events
 
 from .model_registry import (
@@ -95,8 +96,10 @@ def create_app(
     @app.get("/api/models")
     def available_models():
         return jsonify(
-            models=model_options(models),
-            default=DEFAULT_MODEL,
+            models=[
+                item for item in model_options(models) if item["id"] in OCR_MODEL_IDS
+            ],
+            default="ppocr-v6-tiny",
             backends=backend_options(),
             default_backend=DEFAULT_BACKEND,
         )
@@ -215,7 +218,7 @@ def create_app(
                 or not all(isinstance(model, str) for model in selected_models)
             ):
                 raise ValueError("Choose one or more OCR models.")
-            if profile == "baseline":
+            if profile in {"baseline", "adaptive-jev"}:
                 workers = 1
             backend = data.get("backend", DEFAULT_BACKEND)
             for model in selected_models:
@@ -350,7 +353,7 @@ def create_app(
                 if not isinstance(supplied, dict):
                     raise ValueError("Detection options must be a JSON object.")
                 detection_options = settings(**supplied)
-            if model in SINGLE_PASS_MODELS or profile == "baseline":
+            if model in SINGLE_PASS_MODELS or profile in {"baseline", "adaptive-jev"}:
                 workers = 1
             backend = request.form.get("backend", DEFAULT_BACKEND)
             for selected in selected_models:

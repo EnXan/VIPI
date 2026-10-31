@@ -19,10 +19,11 @@ Temporary planning and review queues belong in `.llm-plans/`.
 | [0019](0019-workbench-progress-and-image-reports.md) | Live scan progress and compact per-image evaluation details |
 | [0020](0020-ocr-assembly-geometry-and-reading-order.md) | Oriented OCR line matching and paragraph column order, implemented for review |
 | [0021](0021-low-contrast-ocr-profile.md) | Native CLAHE and color-derived contrast in the default OCR profile |
-| [0023](0023-tolerant-ocr-word-coverage.md) | Primary tolerant final-word coverage and separate case-sensitive word fidelity |
 | [0024](0024-document-vlm-workbench-adapters.md) | Optional full-page document VLM pipelines in the OCR Workbench |
 | [0026](0026-sequential-ocr-model-comparisons.md) | Native baselines, one-image readiness and sequential OCR comparisons (replaces 0025) |
 | [0027](0027-local-and-cloud-ocr-selection.md) | Local profiles and explicit cloud providers, with Google as cloud default (replaces 0009 and 0022) |
+| [0028](0028-independent-ocr-payload-regions.md) | Tolerant word coverage with independent visual groups and group integrity |
+| [0029](0029-adaptive-ocr-transformation-review.md) | Opt-in Jev transformation selection, native OCR and iterative visual review |
 
 When revising an agreed decision, write its replacement with a summary of the
 old ADR (identifier, decision, rationale and reason for revision), then delete

@@ -5,7 +5,14 @@ detection images. No new freeze, split or holdout setup is required for these
 exploratory rounds. Reports retain actual input/reference hashes and reference
 snapshots; source data stays intact.
 
-## Active models
+## Current Workbench selection
+
+The Workbench offers the product's three PP-OCRv6 variants and the Mistral,
+Google and OpenAI cloud options. Tiny is selected by default for the current
+improvement experiment. Earlier comparison reports remain available; the
+research CLI retains the comparison backends listed below.
+
+## Comparison model inventory
 
 | Model ID | Execution |
 | --- | --- |
@@ -47,8 +54,9 @@ nonempty incorrect transcription is a functional result, not an accuracy pass.
 
 ## Round 1: manually started baseline
 
-In the Workbench, select images from either or both catalogs, select one or
-more OCR models, keep **Original only · baseline**, and leave detectors off.
+In the Workbench, select images from either or both catalogs and the models to
+test, keep **Original only · baseline**, and leave detectors off. Tiny is the
+default for the current improvement experiment.
 Selecting both complete catalogs scans all **1,113 images per model**, including
 the OCR step for detection images. Start the run manually when ready.
 
