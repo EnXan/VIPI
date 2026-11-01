@@ -1,4 +1,4 @@
-"""Research candidate: a two-times OCR reading for a small-text signal."""
+"""Confident-token retention and the research two-times OCR probe."""
 
 from collections import Counter
 import re

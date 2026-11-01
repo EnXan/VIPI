@@ -3,7 +3,7 @@ import json
 from PIL import Image
 
 from research.ocr_eval.evaluation.layout_repair import native_line_layout
-from research.ocr_eval.evaluation.transform_decisions import DecisionsDecider
+from vipi.ocr.recovery.decisions import DecisionsDecider
 
 
 def word(text, line_id, x, y):

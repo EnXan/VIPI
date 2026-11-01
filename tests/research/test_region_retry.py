@@ -3,7 +3,7 @@ import json
 from PIL import Image
 
 from research.ocr_eval.evaluation.region_retry import apply_approved, retry_regions
-from research.ocr_eval.evaluation.transform_decisions import DecisionsDecider
+from vipi.ocr.recovery.decisions import DecisionsDecider
 
 
 class Engine:

@@ -10,7 +10,10 @@ and ignored by Git. From the repository root:
 uv run python -m research.download ocr_eval
 ```
 
-The catalog loader and evaluation modules are grouped under `evaluation/`.
+The catalog loader, metrics and research trials are grouped under `evaluation/`.
+Shared OCR recovery is implemented in `vipi.ocr.recovery`; the evaluation runner
+imports it directly. See [Product OCR recovery](../../docs/ocr-recovery.md) for
+the selected workflow and its measurement boundary.
 The [baseline protocol and complete candidate inventory](BASELINE.md) describe
 the original-image comparison and subsequent measured improvement rounds.
 The adaptive Research Workbench profile combines OpenAI Decisions correction

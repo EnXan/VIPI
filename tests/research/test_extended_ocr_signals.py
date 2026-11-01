@@ -1,7 +1,7 @@
 import numpy as np
 from PIL import Image
 
-from research.ocr_eval.evaluation.extended_signals import (
+from vipi.ocr.recovery.extended_signals import (
     ExtendedParameters,
     additional_evidence,
     route_extended,

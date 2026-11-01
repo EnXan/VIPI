@@ -31,6 +31,7 @@ def choice(instructions, criteria):
 
 
 def read_choice(response, name, criteria):
+    """Read an allowed choice, rejecting missing or invalid confidence."""
     answer = response.get("answers", {}).get(name, {})
     if answer.get("type") != "choice" or answer.get("choice") not in criteria:
         raise ValueError(f"Invalid decision answer: {name}")
@@ -57,6 +58,12 @@ def decision_preview(image, maximum=1568):
 
 
 class _AdaptiveDecider:
+    """Build visual OCR questions shared by local and hosted decision providers.
+
+    Assessment, orientation and comparison support the product pipeline; the
+    localized-reading and layout methods also support research trials.
+    """
+
     def verify_replacement(self, original, incumbent, candidate, directory):
         """Double-check possible lost text before replacing an OCR reading."""
         from collections import Counter
@@ -200,6 +207,7 @@ class _AdaptiveDecider:
         )
 
     def assess(self, original, attempt, directory):
+        """Assess whether the original image has a recoverable OCR defect."""
         state = {
             "task": VISUAL_TASK,
             "image": "<original-image>",
@@ -235,6 +243,7 @@ class _AdaptiveDecider:
         )
 
     def choose_orientation(self, original, directory):
+        """Review rendered orientations and return a choice with its record."""
         images = {}
         options = {}
         for name, description in ORIENTATIONS.items():
@@ -368,6 +377,8 @@ class _AdaptiveDecider:
 
 
 class JevDecider(_AdaptiveDecider):
+    """Send visual OCR questions to Jev and save reproducible request records."""
+
     provider = "jev"
 
     def __init__(self, model=JEV_MODEL, *, timeout=60, transport=post_json):
@@ -458,6 +469,8 @@ class JevDecider(_AdaptiveDecider):
 
 
 class LocalDecider(_AdaptiveDecider):
+    """Answer visual OCR questions with a prepared Clef or d1 runtime."""
+
     def __init__(self, name, directory, *, runtime=None):
         from vipi.local_decisions import LocalDecisionModel
 
@@ -509,7 +522,7 @@ class LocalDecider(_AdaptiveDecider):
 
 
 class DecisionsDecider(_AdaptiveDecider):
-    """OpenAI Decisions API adapter for the temporary adaptive OCR trial."""
+    """Send visual OCR questions to OpenAI Decisions and record usage."""
 
     provider = "openai-decisions"
 

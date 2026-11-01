@@ -9,7 +9,8 @@ from PIL import Image
 import pytest
 
 from vipi.config import ScanOptions
-from vipi.ocr import adaptive
+from vipi.ocr.recovery import pipeline as recovery_pipeline
+from vipi.ocr.recovery.tiles import recover_with_tiles
 from vipi.ocr.transforms import views_for_size
 from vipi.storage.ocr import RunStore
 
@@ -82,7 +83,7 @@ def test_local_injection_and_visual_review_use_only_the_supplied_local_runtime(
     tmp_path, monkeypatch
 ):
     from vipi.detection.providers.local import LocalDecisionProvider
-    from vipi.ocr.transform_decisions import LocalDecider
+    from vipi.ocr.recovery.decisions import LocalDecider
 
     monkeypatch.setattr(
         socket,
@@ -130,7 +131,7 @@ def test_local_injection_and_visual_review_use_only_the_supplied_local_runtime(
 def test_local_comparison_uses_original_and_candidate_with_complete_text_groups(
     tmp_path,
 ):
-    from vipi.ocr.transform_decisions import LocalDecider
+    from vipi.ocr.recovery.decisions import LocalDecider
 
     class Runtime:
         model = "local-fixture"
@@ -219,7 +220,7 @@ def test_weak_boxes_do_not_trigger_small_text_tiles(tmp_path):
         "input_polygon": [[10, 10], [60, 10], [60, 15], [10, 15]],
     }
     selected = {"text": "KEEP", "groups": [region], "step": {"regions": [region]}}
-    result = adaptive.recover_with_tiles(original, selected, None, None, [], None)
+    result = recover_with_tiles(original, selected, None, None, [], None)
     assert result[0] == "KEEP" and not result[3]["triggered"]
 
 
@@ -235,7 +236,7 @@ def test_unscored_cloud_page_boxes_do_not_launch_unusable_tile_requests():
         "groups": [region],
         "step": {"full_page_text": True, "regions": [region]},
     }
-    result = adaptive.recover_with_tiles(original, selected, None, None, [], None)
+    result = recover_with_tiles(original, selected, None, None, [], None)
     assert result[0] == "KEEP"
     assert result[3]["skipped"] == "full_page_geometry_has_no_confident_tokens"
 
@@ -272,7 +273,7 @@ def test_tiles_preserve_incumbent_words_and_use_the_original_source(tmp_path):
             }
 
     store = RunStore(tmp_path, "fixture")
-    result = adaptive.recover_with_tiles(
+    result = recover_with_tiles(
         original, selected, Engine(), store, [{"step": step}], None
     )
     assert result[0] == "KEEP"
@@ -308,11 +309,11 @@ def test_clear_quality_signals_skip_every_decision_request(tmp_path, monkeypatch
         compare = assess
 
     monkeypatch.setattr(
-        adaptive,
+        recovery_pipeline,
         "route_extended",
         lambda *a, **k: {"route": "no_signal", "signals": [], "unavailable": []},
     )
-    result = adaptive.extract(
+    result = recovery_pipeline.extract(
         source,
         "ppocr-v6-tiny",
         engine=Engine(),

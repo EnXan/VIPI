@@ -1,6 +1,6 @@
 import pytest
 
-from research.ocr_eval.evaluation.resolution_retention import (
+from vipi.ocr.recovery.resolution_retention import (
     insertion_retention,
     repair_resolution_reading,
 )

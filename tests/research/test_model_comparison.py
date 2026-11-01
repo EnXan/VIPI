@@ -12,7 +12,7 @@ from PIL import Image
 from research.ocr_eval.evaluation.catalog import Catalog
 from research.workbench.batch import Batch
 from research.workbench.model_runtime import ModelInitializationError
-from research.workbench.ocr_costs import cost_for_result, performance_summary
+from vipi.ocr.costs import cost_for_result, performance_summary
 from research.workbench.web import create_app
 from research.workbench.model_runtime import WorkerEngine
 

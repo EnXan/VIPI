@@ -136,7 +136,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - uses: EnXan/VIPI@v0.7.0
+      - uses: EnXan/VIPI@v0.7.1
         with:
           detector: prompt-guard
           modus: local

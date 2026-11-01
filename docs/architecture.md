@@ -48,7 +48,7 @@ previous runs and replaying compatible provider answers. Both adapters share the
 same detection and verdict implementation. Only final OCR text enters text
 detectors; dataset references never become classifier evidence.
 
-## OCR replacement
+## OCR implementation
 
 `OcrEngine.recognize(image)` returns text and regions in raster coordinates.
 Transformation/assembly code uses this contract rather than a provider-specific
@@ -62,21 +62,26 @@ for the geometry rules and validation boundary.
 to checksum-pinned models. Setup and scan use that same description. A model
 replacement changes this package/adapter, not input selection or detector code.
 
-`--modus local|cloud` selects execution for the full scan. Local profiles are
-`quality`, `balanced` and `speed`/`fast`, mapping OCR to Medium/Small/Tiny and
-visual decisions/default injection detection to Clef/d1/d1. Cloud OCR providers
-are Google (default), OpenAI and Mistral; decisions default to OpenAI Decisions
-with Jev selectable. Cross-mode combinations are rejected before inference.
+The selected recovery workflow lives in `vipi.ocr.recovery`:
 
-`vipi.ocr.adaptive` implements the shared recovery orchestration: native OCR,
-PDFMiner grouping, local quality signals, targeted visual correction, guarded
-2× OCR, 1.5× missing-letter repair and original-resolution tiles. Research
-imports that implementation. Full-page cloud transcription retains native text;
-spatial recovery requires actual geometry. Reports retain model identity,
-selection evidence, variants and API usage. `vipi.local_decisions` owns pinned,
-prepared Clef/d1 runtimes reused by OCR review and injection detection. See
-[Product OCR recovery](ocr-recovery.md) and
-[ADR 0044](../adr-code/0044-product-research-recovery.md).
+| Module | Owns |
+| --- | --- |
+| `pipeline` | Original OCR, candidate selection and completed run results |
+| `decisions` | Visual OCR questions and local/hosted decision adapters |
+| `signals`, `extended_signals` | Local quality evidence and recovery routing |
+| `layout`, `_layout_*` | Grouping in the readable image's coordinate frame |
+| `probes`, `tiles` | Scaled OCR candidates and source-resolution tile retries |
+| `resolution_retention`, `upscale_retry`, `reading_edits` | Token retention and supported corrections |
+
+`OcrSession` and research evaluation import this implementation directly.
+Shared engines, raster transforms, multi-view assembly and cost reporting stay
+in `vipi.ocr`. Its separate `pipeline` module supports the workbench's native
+baseline and fixed-transform comparison profiles. `vipi.local_decisions` owns
+the prepared Clef/d1 runtimes reused by OCR review and injection detection.
+
+See [Product OCR recovery](ocr-recovery.md) for the recovery stages and measured
+limits, [CLI usage](cli.md) for execution modes and model selection, and
+[ADR 0045](../adr-code/0045-shared-ocr-recovery-ownership.md) for package ownership.
 
 ## Research boundary
 

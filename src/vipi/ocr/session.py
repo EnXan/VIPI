@@ -14,11 +14,13 @@ from vipi.results import OcrResult
 from vipi.storage.ocr import RunStore
 from .engine_pool import EnginePool
 from .models import FILES, REQUIRED, validate_model
-from .adaptive import extract, PROFILE
-from .transform_decisions import DecisionsDecider, JevDecider, LocalDecider
+from .recovery.pipeline import extract, PROFILE
+from .recovery.decisions import DecisionsDecider, JevDecider, LocalDecider
 
 
 class OcrSession:
+    """Reuse a prepared OCR engine and decision provider across image scans."""
+
     def __init__(
         self,
         root=None,
@@ -43,15 +45,16 @@ class OcrSession:
         self.execution_mode = options.resolved_ocr_execution_mode
         self.provider = options.resolved_ocr_provider
         self.decision_provider = options.resolved_decision_provider
-        self.decider = decider or (
-            LocalDecider(
+        if decider:
+            self.decider = decider
+        elif self.decision_provider in {"clef", "d1"}:
+            self.decider = LocalDecider(
                 self.decision_provider, self.root / "decisions" / self.decision_provider
             )
-            if self.decision_provider in {"clef", "d1"}
-            else JevDecider()
-            if self.decision_provider == "jev"
-            else DecisionsDecider()
-        )
+        elif self.decision_provider == "jev":
+            self.decider = JevDecider()
+        else:
+            self.decider = DecisionsDecider()
         if hasattr(self.decider, "key") and not self.decider.key:
             key = (
                 "OPENAI_API_KEY"
@@ -78,6 +81,7 @@ class OcrSession:
 
     @property
     def metadata(self):
+        """Describe the selected OCR profile, decision model and runtime files."""
         if self.model in CLOUD_OCR_MODELS:
             return {
                 "mode": self.mode,
@@ -109,6 +113,7 @@ class OcrSession:
         }
 
     def extract(self, image, on_event=None):
+        """Return OCR for image bytes or a path, retaining artifacts on failure."""
         store = RunStore(
             self.root / "runs", self.model, on_event, workers=1, backend="cpu"
         )

@@ -1,4 +1,4 @@
-"""Research guard for spatially supported missing-letter corrections."""
+"""Retain incumbent words when applying spatially supported letter insertions."""
 
 from collections import Counter
 from functools import cache

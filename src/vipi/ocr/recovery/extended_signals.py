@@ -1,6 +1,7 @@
-"""Experimental additional local signals for the priority cascade.
+"""Spatial and visual OCR evidence for the priority cascade.
 
-Thresholds are hypotheses for a development comparison, not production policy.
+The product retains the measured research parameters; they are not a quality
+guarantee or a calibrated injection-detection policy.
 """
 
 from dataclasses import asdict, dataclass
@@ -23,8 +24,8 @@ class ExtendedParameters:
     group_overlap: float | None = 0.5
 
 
-# Development-set selection; not a production setting or a quality guarantee.
-BALANCED_EXPERIMENTAL_PARAMETERS = ExtendedParameters(regional_confidence=None)
+# Selected recovery parameters; a single weak OCR box does not trigger a retry.
+RECOVERY_PARAMETERS = ExtendedParameters(regional_confidence=None)
 
 
 def _box(region):

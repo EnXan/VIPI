@@ -240,7 +240,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
-      - uses: EnXan/VIPI@v0.7.0
+      - uses: EnXan/VIPI@v0.7.1
         env:
           TYPESAFE_API_KEY: ${{ secrets.TYPESAFE_API_KEY }}
       - name: Upload scan report
@@ -265,7 +265,7 @@ The default local decision model also detects injections. To select Prompt Guard
 for the final check while retaining d1 for OCR review:
 
 ```yaml
-- uses: EnXan/VIPI@v0.7.0
+- uses: EnXan/VIPI@v0.7.1
   with:
     detector: prompt-guard
     modus: local

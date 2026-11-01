@@ -1,6 +1,6 @@
 import pytest
 
-from research.ocr_eval.evaluation import signals
+from vipi.ocr.recovery import signals
 
 
 @pytest.mark.parametrize("strategy", ["priority_cascade", "any_signal", "corroborated"])

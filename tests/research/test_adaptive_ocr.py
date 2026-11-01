@@ -2,9 +2,9 @@ import numpy as np
 from PIL import Image
 import pytest
 
-from research.ocr_eval.evaluation import adaptive
-from research.ocr_eval.evaluation.layout import group_reading
-from research.ocr_eval.evaluation.transform_decisions import (
+from vipi.ocr.recovery import pipeline as recovery_pipeline
+from vipi.ocr.recovery.layout import group_reading
+from vipi.ocr.recovery.decisions import (
     DecisionsDecider,
     decision_preview,
     read_choice,
@@ -12,12 +12,6 @@ from research.ocr_eval.evaluation.transform_decisions import (
 from vipi.ocr.measured_transforms import ORIENTATIONS, orientation_view
 from vipi.ocr.transforms import render_view
 from vipi.storage.ocr import RunStore
-
-
-def test_research_and_product_execute_the_same_recovery_code():
-    from vipi.ocr import adaptive as product
-
-    assert adaptive is product
 
 
 def answer(label):
@@ -94,7 +88,7 @@ def test_orientation_crop_pixels_map_back_to_original(orientation, crop):
     pixels = np.arange(32 * 48, dtype=np.uint16).reshape(32, 48)
     image = Image.fromarray(pixels)
     plan = {"orientation": orientation, "crop": crop}
-    view = adaptive.view_for_plan(image.size, plan)
+    view = recovery_pipeline.view_for_plan(image.size, plan)
     rendered = np.asarray(render_view(image, view))
     assert rendered.shape == (view.height, view.width)
     for y, x in [
@@ -136,7 +130,7 @@ def test_ready_original_keeps_selected_reading_after_guarded_resolution_probes(
     Image.new("RGB", (400, 300), "white").save(source)
     engine = Engine()
     decider = Decider(engine=engine)
-    result = adaptive.extract(
+    result = recovery_pipeline.extract(
         source,
         "ppocr-v6-tiny",
         engine=engine,
@@ -157,7 +151,7 @@ def test_contrast_attempt_starts_from_original_and_stops_on_first_improvement(tm
     Image.fromarray(original).save(source)
     engine = Engine()
     decider = Decider({"0002": "improved"}, engine=engine, assessment="contrast")
-    result = adaptive.extract(
+    result = recovery_pipeline.extract(
         source,
         "ppocr-v6-tiny",
         engine=engine,
@@ -178,7 +172,7 @@ def test_unverified_corrections_keep_original(tmp_path, outcome):
     source = tmp_path / "input.png"
     Image.new("RGB", (400, 300), "white").save(source)
     decider = Decider({f"{i:04d}": outcome for i in range(2, 5)}, assessment="contrast")
-    result = adaptive.extract(
+    result = recovery_pipeline.extract(
         source,
         "ppocr-v6-tiny",
         engine=Engine(),
@@ -194,7 +188,7 @@ def test_empty_ocr_uses_local_probes_without_paying_for_empty_comparisons(tmp_pa
     source = tmp_path / "input.png"
     Image.new("RGB", (400, 300), "white").save(source)
     decider = Decider()
-    result = adaptive.extract(
+    result = recovery_pipeline.extract(
         source,
         "ppocr-v6-tiny",
         engine=EmptyEngine(),
@@ -211,7 +205,7 @@ def test_orientation_route_recognizes_only_selected_orientation(tmp_path):
     source = tmp_path / "input.png"
     Image.new("RGB", (400, 300), "white").save(source)
     decider = Decider({"0002": "improved"}, assessment="orientation")
-    result = adaptive.extract(
+    result = recovery_pipeline.extract(
         source,
         "ppocr-v6-tiny",
         engine=Engine(),
@@ -290,7 +284,7 @@ def test_pair_comparison_sends_real_ocr_and_keep_options(tmp_path, monkeypatch):
 
 
 def test_adaptive_cost_never_reports_zero_for_unpriced_jev_calls():
-    from research.workbench.ocr_costs import cost_for_result
+    from vipi.ocr.costs import cost_for_result
 
     cost = cost_for_result(
         {
@@ -308,7 +302,7 @@ def test_adaptive_cost_never_reports_zero_for_unpriced_jev_calls():
 
 
 def test_adaptive_cost_includes_each_staged_preview_request():
-    from research.workbench.ocr_costs import cost_for_result
+    from vipi.ocr.costs import cost_for_result
 
     cost = cost_for_result(
         {
@@ -374,7 +368,7 @@ def test_decision_failure_keeps_saved_ocr_without_completed_result(tmp_path):
             raise RuntimeError("Provider unavailable")
 
     with pytest.raises(RuntimeError, match="Provider unavailable"):
-        adaptive.extract(
+        recovery_pipeline.extract(
             source,
             "ppocr-v6-tiny",
             engine=Engine(),

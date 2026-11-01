@@ -1,40 +1,10 @@
 # Product OCR recovery
 
-`vipi scan` uses the research recovery workflow behind the historical 95/113
-result. OCR and decision models follow the selected execution mode. Model
-inference in local mode runs entirely on the machine; setup explicitly downloads
-the required weights. Source images and transcripts are not sent to a hosted
-fallback.
-
-| Local profile | OCR | OCR review and default injection detector |
-| --- | --- | --- |
-| `quality` (default) | PP-OCRv6 Medium | Cloudflare Clef |
-| `balanced` | PP-OCRv6 Small | Liquid d1-3B |
-| `speed`, `fast` | PP-OCRv6 Tiny | Liquid d1-3B |
-
-The existing `--ocr-mode` option selects this local profile. An explicit
-`--ocr-model` changes the OCR model; it does not change the selected profile's
-decision model. `--decision-provider clef|d1` can override the local decision
-model. Clef's use for quality and d1's use for the faster profiles are the
-maintainer's selected defaults, not a measured ranking on the VIPI suite.
-
-Cloud mode defaults to Google Cloud Vision OCR and OpenAI Decisions. Choose
-`--ocr-provider google|openai|mistral` and `--decision-provider openai|jev` within
-cloud mode. The default injection detector uses the decision provider; explicit
-`--detector` choices must belong to the same execution mode. Contradictory
-choices fail before inference.
-
-```bash
-uv sync --extra ocr --extra detector-local
-uv run vipi setup --modus local --ocr-mode balanced
-uv run vipi scan image.png --modus local --ocr-mode balanced
-
-uv run vipi setup --modus local --ocr-mode quality
-uv run vipi scan image.png --modus local --ocr-mode quality
-
-uv run vipi scan image.png --modus cloud --ocr-provider google --decision-provider openai
-uv run vipi scan image.png --modus cloud --ocr-provider mistral --decision-provider jev
-```
+`vipi scan` and the workbench's `adaptive-jev` profile share
+`vipi.ocr.recovery`. It implements the selected research workflow behind the
+historical 95/113 result. See [CLI usage](cli.md) for setup, local/cloud modes
+and model selection, and [Architecture](architecture.md#ocr-implementation) for
+module ownership. The workbench still defaults to its native baseline profile.
 
 ## Recovery flow
 
@@ -84,9 +54,11 @@ measurements are not VIPI runtime measurements.
 
 ## Measurement and costs
 
-The historical 95/113 result combined saved decisions with local OCR recovery.
-A fresh rerun of its 190 local tile calls, using corresponding output geometry,
-reproduced all 113 texts and the 95/113 result (4052/4175 tolerant words).
+The historical result combined saved decisions with local OCR recovery.
+The production transfer used fresh OCR and recorded historical decisions,
+including 190 tile calls with corresponding output geometry. It reproduced all
+113 texts, **95/113** passes and **4052/4175** tolerant words. This establishes
+transfer parity, not a fresh Clef/d1/Jev decision pass rate.
 Its prerequisite recorded Decisions stages used 46 initial requests plus 27
 upscale comparisons: **73 requests**, with a combined configured estimate of
 **$0.0343504**. The earlier description of this as an entirely local zero-API
@@ -99,9 +71,10 @@ measured. Cloud OCR charges include repeated OCR requests for selected probes,
 so the historical local-OCR estimate is not a cloud-OCR price prediction.
 Transient decision transport failures retry up to three attempts with backoff.
 
-The production transfer reproduces **95/113** and **4052/4175** tolerant words
-over the complete suite with fresh OCR and recorded historical decisions. All
-113 output texts match the historical candidate. This establishes transfer parity
-only; it does not establish a fresh Clef/d1/Jev decision pass rate. Actual local
-model weights, cloud-OCR variants, and Windows/Linux inference require separate
-measurements before claiming the historical score for those combinations.
+The separate live local fast-mode run completed 111 scans and passed 91/113
+reference texts, matching 4,016/4,155 words. It used PP-OCRv6 Tiny and d1-3B,
+restarting the process every four images to avoid cumulative MPS memory
+exhaustion; two scans returned no complete OCR evidence. This does not validate
+Clef quality, fresh cloud providers or Windows/Linux inference. See
+[ADR 0044](../adr-code/0044-product-research-recovery.md#validation-boundary)
+for the recorded validation boundary.

@@ -1,7 +1,7 @@
 from PIL import Image
 import pytest
 
-from research.ocr_eval.evaluation.upscale_retry import (
+from vipi.ocr.recovery.upscale_retry import (
     recognize_upscaled,
     retained_confident_tokens,
 )

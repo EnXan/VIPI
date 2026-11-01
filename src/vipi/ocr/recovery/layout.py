@@ -12,6 +12,10 @@ LAYOUT_VERSION = "pdfminer-checkpoint1-v1"
 
 
 def group_reading(step, raster, view):
+    """Order native OCR regions in the readable view, then map to the source.
+
+    Return text and groups without mutating the engine's region observations.
+    """
     local = deepcopy(step)
     for region in local["regions"]:
         region["input_polygon"] = region["polygon"]

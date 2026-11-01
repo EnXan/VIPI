@@ -21,7 +21,7 @@ def extract(
     **options,
 ):
     from research.workbench.model_registry import SINGLE_PASS_MODELS
-    from research.workbench.ocr_costs import cost_for_result
+    from vipi.ocr.costs import cost_for_result
 
     validate_profile(ocr_profile)
     adaptive = ocr_profile == "adaptive-jev"
@@ -96,7 +96,7 @@ def extract(
                 )
 
     if adaptive:
-        from .adaptive import extract as adaptive_extract
+        from vipi.ocr.recovery.pipeline import extract as adaptive_extract
 
         options.pop("workers", None)
         options.pop("baseline", None)

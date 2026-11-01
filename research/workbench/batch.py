@@ -30,7 +30,7 @@ from vipi.ocr.runtime import DEFAULT_BACKEND, threads_per_worker, validate_backe
 from vipi.cancellation import check_cancelled
 from .model_registry import backend_for, SINGLE_PASS_MODELS
 from .model_runtime import ModelInitializationError
-from .ocr_costs import cost_for_result, performance_summary
+from vipi.ocr.costs import cost_for_result, performance_summary
 
 
 def reference_digest(reference):
