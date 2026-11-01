@@ -39,10 +39,10 @@ experiment reports and source transcripts remain intact.
 
 ## Validation boundary
 
-The full suite passes: 458 tests and one optional skip. The removed test checked
-the deleted compatibility alias. Ruff, `git diff --check`, local documentation
-link targets, and wheel/source builds pass; both distributions contain all 15
-recovery modules. The 42 moved functions/classes retain their executable AST,
+The initial ownership refactor passed 458 tests with one optional skip. The
+removed test checked the deleted compatibility alias. Ruff, `git diff --check`,
+local documentation link targets, and wheel/source builds pass; both distributions
+contain all 15 recovery modules. The 42 moved functions/classes retain their executable AST,
 allowing docstrings, import paths and the recovery-parameter rename.
 
 These checks do not establish live model quality or Windows/Linux execution.

@@ -66,11 +66,11 @@ The selected recovery workflow lives in `vipi.ocr.recovery`:
 
 | Module | Owns |
 | --- | --- |
-| `pipeline` | Original OCR, candidate selection and completed run results |
+| `pipeline` | Engine lifetime, original/correction review and completed run results |
 | `decisions` | Visual OCR questions and local/hosted decision adapters |
 | `signals`, `extended_signals` | Local quality evidence and recovery routing |
 | `layout`, `_layout_*` | Grouping in the readable image's coordinate frame |
-| `probes`, `tiles` | Scaled OCR candidates and source-resolution tile retries |
+| `probes`, `tiles` | Guarded resolution recovery and source-resolution tile retries |
 | `resolution_retention`, `upscale_retry`, `reading_edits` | Token retention and supported corrections |
 
 `OcrSession` and research evaluation import this implementation directly.

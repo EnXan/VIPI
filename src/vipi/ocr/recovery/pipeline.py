@@ -1,15 +1,14 @@
-"""Assess original OCR once, then recognize targeted corrections only if needed."""
+"""Coordinate original OCR, correction review, resolution recovery and completion."""
 
-from copy import deepcopy
 from concurrent.futures import CancelledError
 from dataclasses import asdict, replace
 from pathlib import Path
-import re
 import time
 
 import numpy as np
 
 from vipi.cancellation import check_cancelled
+from vipi.config import CLOUD_OCR_MODELS
 from vipi.ocr.measured_transforms import orientation_view
 from vipi.ocr.merge import ASSEMBLY_VERSION
 from vipi.ocr.models import sha256
@@ -21,15 +20,11 @@ from vipi.ocr.transforms import (
 from vipi.storage.files import write_json
 from vipi.storage.ocr import RunStore
 
-from .layout import LAYOUT_VERSION, group_reading
 from .decisions import DecisionsDecider, read_choice
 from .extended_signals import RECOVERY_PARAMETERS, route_extended
-from .resolution_retention import repair_resolution_reading
-from .probes import recognize_scaled
+from .layout import LAYOUT_VERSION, group_reading
+from .probes import recover_resolution
 from .tiles import recover_with_tiles
-from .upscale_retry import retained_confident_tokens
-from vipi.ocr.transforms import TWO_TIMES_MAX_PIXELS
-from vipi.config import CLOUD_OCR_MODELS
 
 PROFILE = "adaptive-jev"
 
@@ -72,6 +67,331 @@ def view_for_plan(size, plan):
     )
 
 
+def _recognize_plan(
+    original,
+    plan,
+    engine,
+    store,
+    attempts,
+    *,
+    model,
+    cancel_event,
+    initialization_seconds=0,
+):
+    """Append one transformed OCR attempt and persist its native and grouped text."""
+    index = len(attempts) + 1
+    check_cancelled(cancel_event)
+    view = view_for_plan(original.size, plan)
+    identifier = f"{index:04d}"
+    current = {
+        "id": identifier,
+        "index": index,
+        "worker_id": 1,
+        "view_id": view.id,
+        "filter": plan["contrast"],
+        "width": view.width,
+        "height": view.height,
+        "label": f"{view.id} · {plan['contrast']}",
+        "plan": plan,
+        "image": f"images/{identifier}.png",
+    }
+    store.advance(1, "step_started", "transforming", current)
+    begin = time.perf_counter()
+    raster = apply_filter(render_view(original, view), plan["contrast"])
+    transform_seconds = time.perf_counter() - begin
+    raster.save(store.directory / current["image"])
+    store.advance(1, "image_ready", "transforming", current)
+    check_cancelled(cancel_event)
+    store.advance(1, "ocr_started", "ocr", current)
+    begin = time.perf_counter()
+    recognized = engine.recognize(raster)
+    ocr_seconds = time.perf_counter() - begin
+    for region in recognized["regions"]:
+        region["input_polygon"] = view.map_polygon(region["polygon"])
+    step = {
+        **current,
+        **recognized,
+        "transformation": asdict(view),
+        "raster_sha256": sha256(store.directory / current["image"]),
+        "timing": {
+            "transform_seconds": transform_seconds,
+            "ocr_seconds": ocr_seconds,
+            "engine_acquire_seconds": initialization_seconds if index == 1 else 0,
+        },
+    }
+    begin = time.perf_counter()
+    if model in CLOUD_OCR_MODELS:
+        recognized["full_page_text"] = True
+        step["full_page_text"] = True
+    if recognized.get("full_page_text") or not recognized["regions"]:
+        text, groups = recognized["text"], recognized["regions"]
+    else:
+        text, groups = group_reading(step, raster, view)
+    step.update(
+        grouped_text=text,
+        groups=groups,
+        layout_version=LAYOUT_VERSION,
+        layout_seconds=time.perf_counter() - begin,
+    )
+    store.complete_step(1, step)
+    attempts.append(
+        {
+            "id": identifier,
+            "plan": plan,
+            "raster": raster,
+            "text": text,
+            "groups": groups,
+            "step": step,
+        }
+    )
+    write_json(store.directory / "attempts.json", [a["step"] for a in attempts])
+    return attempts[-1]
+
+
+def _correction_plans(original, selected, decider, store, selection, cancel_event):
+    """Record the original assessment and return its chosen correction plans."""
+    decisions = selection["decisions"]
+    check_cancelled(cancel_event)
+    store.transition("ocr_assessing", state="selecting", data={"decision": 1})
+    record = decider.assess(original, selected, store.directory / "decisions" / "0001")
+    check_cancelled(cancel_event)
+    assessment = read_choice(
+        record["response"],
+        "assessment",
+        ("ready", "orientation", "contrast", "uncertain"),
+    )
+    selection["assessment"] = assessment
+    decisions.append({"kind": "assessment", **record})
+    write_json(store.directory / "decisions.json", decisions)
+
+    # Empty OCR never proves absence of hidden low-contrast text.
+    route = "contrast" if not selected["text"].strip() else assessment
+    if route == "ready":
+        selection.update(stop_reason="original_ready", review_action="accept")
+        return []
+    if route == "uncertain":
+        selection["stop_reason"] = "assessment_uncertain"
+        return []
+    if route == "contrast":
+        return recovery_plans()
+
+    check_cancelled(cancel_event)
+    store.transition("orientation_selecting", state="selecting", data={"decision": 2})
+    orientation, record = decider.choose_orientation(
+        original, store.directory / "decisions" / "0002"
+    )
+    check_cancelled(cancel_event)
+    decisions.append({"kind": "orientation_selection", **record})
+    write_json(store.directory / "decisions.json", decisions)
+    if orientation in {"upright", "uncertain"}:
+        return []
+    return [{"orientation": orientation, "contrast": "unchanged", "crop": "full"}]
+
+
+def _compare_correction(
+    original, selected, candidate, decider, store, attempts, decisions, cancel_event
+):
+    """Record a correction review, skipping empty or unchanged candidate text."""
+    if not candidate["text"].strip() or candidate["text"] == selected["text"]:
+        candidate["step"]["review"] = {
+            "comparison": "skipped_no_new_text",
+            "incumbent": selected["id"],
+        }
+        write_json(store.directory / "attempts.json", [a["step"] for a in attempts])
+        return None
+    check_cancelled(cancel_event)
+    number = len(decisions) + 1
+    store.transition(
+        "transformation_deciding",
+        state="selecting",
+        data={
+            "decision": number,
+            "incumbent": selected["id"],
+            "candidate": candidate["id"],
+        },
+    )
+    record = decider.compare(
+        original, selected, candidate, store.directory / "decisions" / f"{number:04d}"
+    )
+    check_cancelled(cancel_event)
+    outcome = read_choice(
+        record["response"],
+        "comparison",
+        ("improved", "equivalent", "worse", "uncertain"),
+    )
+    review = {
+        "incumbent": selected["id"],
+        "candidate": candidate["id"],
+        "comparison": outcome,
+        "decision": number,
+    }
+    decisions.append({**record, **review})
+    candidate["step"]["review"] = review
+    write_json(store.directory / "decisions.json", decisions)
+    write_json(store.directory / "attempts.json", [a["step"] for a in attempts])
+    return outcome
+
+
+def _select_reading(
+    original,
+    model,
+    engine,
+    decider,
+    store,
+    attempts,
+    initialization_seconds,
+    cancel_event,
+):
+    """Read the original, then retain the first independently verified correction."""
+    selected = _recognize_plan(
+        original,
+        {"orientation": "upright", "contrast": "unchanged", "crop": "full"},
+        engine,
+        store,
+        attempts,
+        model=model,
+        cancel_event=cancel_event,
+        initialization_seconds=initialization_seconds,
+    )
+    routing = route_extended(
+        selected["text"],
+        selected["step"]["regions"],
+        selected["groups"],
+        original,
+        RECOVERY_PARAMETERS,
+    )
+    selection = {
+        "stop_reason": "no_verified_improvement",
+        "review_action": "uncertain",
+        "planned_candidates": 1,
+        "assessment": None,
+        "selection_version": "gated-ocr-correction-v1",
+        "routing": routing,
+        "resolution_changes": [],
+        "decisions": [],
+    }
+    if routing["route"] == "no_signal":
+        selection.update(stop_reason="no_signal", review_action="not_required")
+        return selected, selection
+
+    plans = _correction_plans(
+        original, selected, decider, store, selection, cancel_event
+    )
+    selection["planned_candidates"] += len(plans)
+    if not plans:
+        return selected, selection
+    route = "contrast" if not selected["text"].strip() else selection["assessment"]
+    store.transition(
+        "corrections_planned",
+        state="transforming",
+        total=selection["planned_candidates"],
+        data={"route": route},
+    )
+    for plan in plans:
+        candidate = _recognize_plan(
+            original,
+            plan,
+            engine,
+            store,
+            attempts,
+            model=model,
+            cancel_event=cancel_event,
+        )
+        outcome = _compare_correction(
+            original,
+            selected,
+            candidate,
+            decider,
+            store,
+            attempts,
+            selection["decisions"],
+            cancel_event,
+        )
+        if outcome == "improved":
+            selection.update(stop_reason="verified_improvement", review_action="accept")
+            return candidate, selection
+    return selected, selection
+
+
+def _complete_run(
+    original,
+    selected,
+    selection,
+    attempts,
+    engine,
+    decider,
+    store,
+    *,
+    model,
+    backend,
+    cancel_event,
+    on_result,
+    started,
+):
+    """Merge source tiles, attach optional evaluation, and persist a completed run."""
+    write_json(store.directory / "decisions.json", selection["decisions"])
+    final_text, final_regions, tile_attempts, tile_recovery = recover_with_tiles(
+        original, selected, engine, store, attempts, cancel_event
+    )
+    all_attempts = [*attempts, *tile_attempts]
+    full_page_text = bool(selected["step"].get("full_page_text"))
+    if tile_recovery["selected"]:
+        assembly_version = ASSEMBLY_VERSION
+    elif final_regions and not full_page_text:
+        assembly_version = LAYOUT_VERSION
+    else:
+        assembly_version = None
+    result = {
+        "run_id": store.id,
+        "model": model,
+        "ocr_profile": PROFILE,
+        "workers": 1,
+        "backend": backend,
+        "threads_per_worker": 1,
+        "input_size": list(original.size),
+        "text": final_text,
+        "regions": final_regions,
+        "variants": [a["step"] for a in all_attempts],
+        "assembly_version": assembly_version,
+        "preserve_raw_text": (full_page_text or not bool(final_regions))
+        and not tile_recovery["selected"],
+        "full_page_text": full_page_text,
+        "selection": {
+            "provider": decider.provider,
+            "model": decider.model,
+            "selected_attempt": selected["id"],
+            **selection,
+            "accepted": selection["review_action"] == "accept",
+            "candidate_count": len(attempts),
+            "tile_recovery": tile_recovery,
+        },
+    }
+    from vipi.ocr.costs import cost_for_result
+
+    result["cost"] = cost_for_result(result)
+    check_cancelled(cancel_event)
+    if on_result:
+        on_result(result)
+    result["elapsed_seconds"] = time.perf_counter() - started
+    write_json(store.directory / "result.json", result)
+    (store.directory / "result.txt").write_text(result["text"], encoding="utf-8")
+    store.transition(
+        "run_completed",
+        state="completed",
+        current=None,
+        active_steps={},
+        total=len(all_attempts),
+        completed=len(all_attempts),
+        data={
+            "text": result["text"],
+            "regions": result["regions"],
+            "evaluation": result.get("evaluation"),
+            "selection": result["selection"],
+        },
+    )
+    return result
+
+
 def extract(
     image,
     model,
@@ -100,15 +420,8 @@ def extract(
     )
     decider = decider or DecisionsDecider()
     started = time.perf_counter()
-    attempts, decisions = [], []
+    attempts = []
     local_engine = None
-    plans = [{"orientation": "upright", "contrast": "unchanged", "crop": "full"}]
-    selected = None
-    gate_outcome = None
-    routing = None
-    resolution_changes = []
-    stop_reason = "no_verified_improvement"
-    review_action = "uncertain"
     try:
         check_cancelled(cancel_event)
         original = decode_image(image)
@@ -118,359 +431,63 @@ def extract(
             state="selecting",
             model=model,
             ocr_profile=PROFILE,
-            total=len(plans),
+            total=1,
             workers=1,
             input_size=list(original.size),
             active_steps={},
         )
-
         begin = time.perf_counter()
         if engine_pool is not None:
             local_engine = engine_pool.engine()
         elif engine is not None:
             local_engine = engine
-        else:
-            if engine_factory is None:
-                from vipi.ocr.engines import create_engine
-
-                def engine_factory(model, directory):
-                    return create_engine(
-                        model,
-                        directory,
-                        native_pipeline=True,
-                        backend=backend,
-                        threads=1,
-                    )
-
+        elif engine_factory is not None:
             local_engine = engine_factory(model, Path(models_dir))
+        else:
+            from vipi.ocr.engines import create_engine
+
+            local_engine = create_engine(
+                model,
+                Path(models_dir),
+                native_pipeline=True,
+                backend=backend,
+                threads=1,
+            )
         initialization_seconds = time.perf_counter() - begin
-        for index, plan in enumerate(plans, 1):
-            check_cancelled(cancel_event)
-            view = view_for_plan(original.size, plan)
-            identifier = f"{index:04d}"
-            current = {
-                "id": identifier,
-                "index": index,
-                "worker_id": 1,
-                "view_id": view.id,
-                "filter": plan["contrast"],
-                "width": view.width,
-                "height": view.height,
-                "label": f"{view.id} · {plan['contrast']}",
-                "plan": plan,
-                "image": f"images/{identifier}.png",
-            }
-            store.advance(1, "step_started", "transforming", current)
-            begin = time.perf_counter()
-            raster = apply_filter(render_view(original, view), plan["contrast"])
-            transform_seconds = time.perf_counter() - begin
-            raster.save(store.directory / current["image"])
-            store.advance(1, "image_ready", "transforming", current)
-            check_cancelled(cancel_event)
-            store.advance(1, "ocr_started", "ocr", current)
-            begin = time.perf_counter()
-            recognized = local_engine.recognize(raster)
-            ocr_seconds = time.perf_counter() - begin
-            for region in recognized["regions"]:
-                region["input_polygon"] = view.map_polygon(region["polygon"])
-            step = {
-                **current,
-                **recognized,
-                "transformation": asdict(view),
-                "raster_sha256": sha256(store.directory / current["image"]),
-                "timing": {
-                    "transform_seconds": transform_seconds,
-                    "ocr_seconds": ocr_seconds,
-                    "engine_acquire_seconds": initialization_seconds
-                    if index == 1
-                    else 0,
-                },
-            }
-            begin = time.perf_counter()
-            if model in CLOUD_OCR_MODELS:
-                recognized["full_page_text"] = True
-                step["full_page_text"] = True
-            if recognized.get("full_page_text") or not recognized["regions"]:
-                text, groups = recognized["text"], recognized["regions"]
-            else:
-                text, groups = group_reading(step, raster, view)
-            step.update(
-                grouped_text=text,
-                groups=groups,
-                layout_version=LAYOUT_VERSION,
-                layout_seconds=time.perf_counter() - begin,
-            )
-            store.complete_step(1, step)
-            attempts.append(
-                {
-                    "id": identifier,
-                    "plan": plan,
-                    "raster": raster,
-                    "text": text,
-                    "groups": groups,
-                    "step": step,
-                }
-            )
-            write_json(store.directory / "attempts.json", [a["step"] for a in attempts])
-
-            if index == 1:
-                selected = attempts[0]
-                routing = route_extended(
-                    selected["text"],
-                    step["regions"],
-                    selected["groups"],
-                    original,
-                    RECOVERY_PARAMETERS,
-                )
-                if routing["route"] == "no_signal":
-                    stop_reason, review_action = "no_signal", "not_required"
-                    break
-                check_cancelled(cancel_event)
-                store.transition(
-                    "ocr_assessing", state="selecting", data={"decision": 1}
-                )
-                record = decider.assess(
-                    original, selected, store.directory / "decisions" / "0001"
-                )
-                check_cancelled(cancel_event)
-                gate_outcome = read_choice(
-                    record["response"],
-                    "assessment",
-                    ("ready", "orientation", "contrast", "uncertain"),
-                )
-                decisions.append({"kind": "assessment", **record})
-                write_json(store.directory / "decisions.json", decisions)
-                # Empty OCR never proves absence of hidden low-contrast text.
-                route = "contrast" if not selected["text"].strip() else gate_outcome
-                if route == "ready":
-                    stop_reason, review_action = "original_ready", "accept"
-                    break
-                if route == "uncertain":
-                    stop_reason = "assessment_uncertain"
-                    break
-                if route == "orientation":
-                    check_cancelled(cancel_event)
-                    store.transition(
-                        "orientation_selecting", state="selecting", data={"decision": 2}
-                    )
-                    orientation, record = decider.choose_orientation(
-                        original, store.directory / "decisions" / "0002"
-                    )
-                    check_cancelled(cancel_event)
-                    decisions.append({"kind": "orientation_selection", **record})
-                    write_json(store.directory / "decisions.json", decisions)
-                    if orientation in {"upright", "uncertain"}:
-                        break
-                    plans.append(
-                        {
-                            "orientation": orientation,
-                            "contrast": "unchanged",
-                            "crop": "full",
-                        }
-                    )
-                else:
-                    plans.extend(recovery_plans())
-                store.transition(
-                    "corrections_planned",
-                    state="transforming",
-                    total=len(plans),
-                    data={"route": route},
-                )
-                continue
-
-            candidate = attempts[-1]
-            if not candidate["text"].strip() or candidate["text"] == selected["text"]:
-                candidate["step"]["review"] = {
-                    "comparison": "skipped_no_new_text",
-                    "incumbent": selected["id"],
-                }
-                write_json(
-                    store.directory / "attempts.json", [a["step"] for a in attempts]
-                )
-                continue
-            check_cancelled(cancel_event)
-            number = len(decisions) + 1
-            store.transition(
-                "transformation_deciding",
-                state="selecting",
-                data={
-                    "decision": number,
-                    "incumbent": selected["id"],
-                    "candidate": candidate["id"],
-                },
-            )
-            record = decider.compare(
-                original,
-                selected,
-                candidate,
-                store.directory / "decisions" / f"{number:04d}",
-            )
-            check_cancelled(cancel_event)
-            outcome = read_choice(
-                record["response"],
-                "comparison",
-                ("improved", "equivalent", "worse", "uncertain"),
-            )
-            review = {
-                "incumbent": selected["id"],
-                "candidate": candidate["id"],
-                "comparison": outcome,
-                "decision": number,
-            }
-            decisions.append({**record, **review})
-            candidate["step"]["review"] = review
-            write_json(store.directory / "decisions.json", decisions)
-            write_json(store.directory / "attempts.json", [a["step"] for a in attempts])
-            if outcome == "improved":
-                selected = candidate
-                stop_reason, review_action = "verified_improvement", "accept"
-                break
-
-        confident_regions = any(
-            isinstance(region.get("confidence"), (int, float))
-            and not isinstance(region.get("confidence"), bool)
-            and 0.9 <= region["confidence"] <= 1
-            and re.search(r"\w", region.get("text", ""))
-            for region in selected["step"].get("regions", [])
+        selected, selection = _select_reading(
+            original,
+            model,
+            local_engine,
+            decider,
+            store,
+            attempts,
+            initialization_seconds,
+            cancel_event,
         )
-        if (
-            routing["route"] != "no_signal"
-            and selected["id"] == "0001"
-            and confident_regions
-            and original.width * original.height <= TWO_TIMES_MAX_PIXELS
-        ):
-            candidate = recognize_scaled(
-                original, 2, "bicubic", local_engine, store, attempts, cancel_event
-            )
-            if candidate["text"].strip() and candidate["text"] != selected["text"]:
-                number = len(decisions) + 1
-                record = decider.compare(
-                    original,
-                    selected,
-                    candidate,
-                    store.directory / "decisions" / f"{number:04d}",
-                )
-                outcome = read_choice(
-                    record["response"],
-                    "comparison",
-                    ("improved", "equivalent", "worse", "uncertain"),
-                )
-                try:
-                    missing = retained_confident_tokens(
-                        selected["step"]["regions"], candidate["text"]
-                    )
-                except ValueError:
-                    missing = ["<no_confident_tokens>"]
-                decisions.append(
-                    {
-                        "kind": "upscale_comparison",
-                        **record,
-                        "comparison": outcome,
-                        "lost_confident_tokens": missing,
-                    }
-                )
-                if outcome == "improved" and not missing:
-                    selected = candidate
-                    stop_reason, review_action = "guarded_upscale_improvement", "accept"
-
-        if confident_regions:
-            probe = recognize_scaled(
-                original, 1.5, "lanczos", local_engine, store, attempts, cancel_event
-            )
-            try:
-                fixed = repair_resolution_reading(
-                    selected["groups"],
-                    selected["step"]["regions"],
-                    probe["step"]["regions"],
-                    probe["text"],
-                )
-            except ValueError:
-                fixed = {"changes": []}
-            resolution_changes = fixed["changes"]
-            if resolution_changes:
-                selected = {
-                    **selected,
-                    "text": fixed["text"],
-                    "groups": fixed["regions"],
-                    "step": deepcopy(selected["step"]),
-                }
-                for change in resolution_changes:
-                    for region in selected["step"]["regions"]:
-                        if (
-                            region["text"] == change["old"]
-                            and region.get("input_polygon") == change["input_polygon"]
-                        ):
-                            region["text"] = change["new"]
-                selected["step"]["text"] = selected["text"]
-
-        write_json(store.directory / "decisions.json", decisions)
-        best = selected["id"]
-        final_text, final_regions, tile_attempts, tile_recovery = recover_with_tiles(
-            original, selected, local_engine, store, attempts, cancel_event
+        selected = recover_resolution(
+            original,
+            selected,
+            selection,
+            local_engine,
+            decider,
+            store,
+            attempts,
+            cancel_event,
         )
-        all_attempts = [*attempts, *tile_attempts]
-        result = {
-            "run_id": store.id,
-            "model": model,
-            "ocr_profile": PROFILE,
-            "workers": 1,
-            "backend": backend,
-            "threads_per_worker": 1,
-            "input_size": list(original.size),
-            "text": final_text,
-            "regions": final_regions,
-            "variants": [a["step"] for a in all_attempts],
-            "assembly_version": ASSEMBLY_VERSION
-            if tile_recovery["selected"]
-            else LAYOUT_VERSION
-            if final_regions and not selected["step"].get("full_page_text")
-            else None,
-            "preserve_raw_text": (
-                bool(selected["step"].get("full_page_text")) or not bool(final_regions)
-            )
-            and not tile_recovery["selected"],
-            "full_page_text": bool(selected["step"].get("full_page_text")),
-            "selection": {
-                "provider": decider.provider,
-                "model": decider.model,
-                "selected_attempt": best,
-                "stop_reason": stop_reason,
-                "review_action": review_action,
-                "accepted": review_action == "accept",
-                "candidate_count": len(attempts),
-                "planned_candidates": len(plans),
-                "assessment": gate_outcome,
-                "selection_version": "gated-ocr-correction-v1",
-                "tile_recovery": tile_recovery,
-                "routing": routing,
-                "resolution_changes": resolution_changes,
-                "decisions": decisions,
-            },
-        }
-        from vipi.ocr.costs import cost_for_result
-
-        result["cost"] = cost_for_result(result)
-        check_cancelled(cancel_event)
-        if on_result:
-            on_result(result)
-        result["elapsed_seconds"] = time.perf_counter() - started
-        write_json(store.directory / "result.json", result)
-        (store.directory / "result.txt").write_text(result["text"], encoding="utf-8")
-        store.transition(
-            "run_completed",
-            state="completed",
-            current=None,
-            active_steps={},
-            total=len(all_attempts),
-            completed=len(all_attempts),
-            data={
-                "text": result["text"],
-                "regions": result["regions"],
-                "evaluation": result.get("evaluation"),
-                "selection": result["selection"],
-            },
+        return _complete_run(
+            original,
+            selected,
+            selection,
+            attempts,
+            local_engine,
+            decider,
+            store,
+            model=model,
+            backend=backend,
+            cancel_event=cancel_event,
+            on_result=on_result,
+            started=started,
         )
-        return result
     except CancelledError:
         store.transition(
             "run_cancelled", state="cancelled", active_steps={}, current=None
