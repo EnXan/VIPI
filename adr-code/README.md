@@ -18,12 +18,17 @@ Temporary planning and review queues belong in `.llm-plans/`.
 | [0018](0018-workbench-scan-and-evaluation-pages.md) | Separate scan setup from evaluation reports |
 | [0019](0019-workbench-progress-and-image-reports.md) | Live scan progress and compact per-image evaluation details |
 | [0020](0020-ocr-assembly-geometry-and-reading-order.md) | Oriented OCR line matching and paragraph column order, implemented for review |
-| [0021](0021-low-contrast-ocr-profile.md) | Native CLAHE and color-derived contrast in the default OCR profile |
 | [0024](0024-document-vlm-workbench-adapters.md) | Optional full-page document VLM pipelines in the OCR Workbench |
 | [0026](0026-sequential-ocr-model-comparisons.md) | Native baselines, one-image readiness and sequential OCR comparisons (replaces 0025) |
-| [0027](0027-local-and-cloud-ocr-selection.md) | Local profiles and explicit cloud providers, with Google as cloud default (replaces 0009 and 0022) |
 | [0028](0028-independent-ocr-payload-regions.md) | Tolerant word coverage with independent visual groups and group integrity |
-| [0029](0029-adaptive-ocr-transformation-review.md) | Opt-in Jev transformation selection, native OCR and iterative visual review |
+| [0034](0034-expanded-priority-ocr-signals.md) | Expand the research priority cascade (replaces 0033) |
+| [0036](0036-layout-repair-research-trial.md) | Revert signal-context experiment and test layout repair (replaces 0035) |
+| [0037](0037-guarded-upscale-research-trial.md) | Trial a guarded upscaled OCR candidate |
+| [0039](0039-revert-group-wise-ocr-comparison.md) | Revert the group-wise OCR comparison trial (replaces 0038) |
+| [0040](0040-ambiguous-line-retry-trial.md) | Test a line-level retry for ambiguous OCR characters |
+| [0041](0041-missing-text-separate-evidence-trial.md) | Trial missing-text probes and separate OCR evidence |
+| [0042](0042-local-resolution-letter-insertions.md) | Trial local missing-letter corrections from a resolution probe |
+| [0044](0044-product-research-recovery.md) | Shared product recovery and full local/cloud execution (replaces 0021, 0027 and 0043) |
 
 When revising an agreed decision, write its replacement with a summary of the
 old ADR (identifier, decision, rationale and reason for revision), then delete

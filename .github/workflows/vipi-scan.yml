@@ -18,5 +18,7 @@ jobs:
       - uses: ./
         with:
           detector: prompt-guard
+          modus: local
+          ocr-mode: balanced
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}

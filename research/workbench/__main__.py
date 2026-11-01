@@ -71,7 +71,7 @@ def main(argv=None):
         "--workers",
         type=parse_workers,
         default=DEFAULT_WORKERS,
-        help="Transformation workers, 1–8 (default: 4); baseline uses one worker",
+        help="Transformation workers, 1–8 (default: 4); baseline and adaptive use one worker",
     )
     merge = subparsers.add_parser(
         "reassemble", help="Reassemble saved OCR results without rerunning OCR"
@@ -180,7 +180,7 @@ def main(argv=None):
                     workers=(
                         1
                         if args.model in WORKBENCH_OCR_MODELS
-                        or args.ocr_profile == "baseline"
+                        or args.ocr_profile in {"baseline", "adaptive-jev"}
                         else args.workers
                     ),
                     reference=reference,

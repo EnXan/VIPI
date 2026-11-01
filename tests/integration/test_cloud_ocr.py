@@ -61,7 +61,7 @@ def test_conflicting_routes_fail_before_network(tmp_path, monkeypatch, options):
 
 @pytest.mark.parametrize("provider", [None, "google", "openai", "mistral"])
 def test_public_cloud_scan_preserves_text_pixels_usage_and_single_calls(
-    tmp_path, monkeypatch, provider
+    tmp_path, monkeypatch, provider, scanner_decisions
 ):
     monkeypatch.chdir(tmp_path)
     monkeypatch.setenv("XDG_CACHE_HOME", str(tmp_path / "cache"))
@@ -177,7 +177,7 @@ def test_public_cloud_scan_preserves_text_pixels_usage_and_single_calls(
         ("mistral", "MISTRAL_API_KEY"),
     ],
 )
-def test_cloud_setup_skips_ocr_download_and_may_prepare_local_detector(
+def test_cloud_setup_rejects_local_detector_before_download(
     tmp_path, monkeypatch, provider, key
 ):
     calls = []
@@ -203,9 +203,9 @@ def test_cloud_setup_skips_ocr_download_and_may_prepare_local_detector(
                 "prompt-guard",
             ]
         )
-        == 0
+        == 2
     )
-    assert len(calls) == 1
+    assert calls == []
 
 
 @pytest.mark.parametrize("provider", ["google", "openai", "mistral"])

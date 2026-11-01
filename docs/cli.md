@@ -3,20 +3,21 @@
 Use Python 3.12 and uv. From the repository root, sync the OCR dependency extra:
 
 ```bash
-uv sync --extra ocr
+uv sync --extra ocr --extra detector-local
 uv run vipi setup
 uv run vipi scan image.png
 ```
 
-Configure an external provider key in the environment or copy
+For cloud execution, configure a provider key in the environment or copy
 [`.env.example`](../.env.example) to `.env` and fill in the key. Research and
 development commands are documented in [development setup](development.md).
 
 ## Platform validation status
 
-As of 2026-10-24, the public CLI is supported on macOS, Linux x86-64 and native
-Windows x86-64. Python 3.12 is required; branch-diff scans also require Git on
-`PATH`. The public CLI uses CPU processing and does not require a GPU.
+Earlier CLI versions were tested on macOS, Linux x86-64 and native Windows
+x86-64 as of 2026-10-24. This recovery/model integration does not inherit
+trained-model validation for every platform. Python 3.12 is required; branch-diff scans also require Git on
+`PATH`. The earlier OCR scanner used CPU processing. The newly integrated Clef/d1 runtimes select CUDA, Apple MPS or CPU according to availability and have not yet been validated with trained weights on these platforms.
 
 macOS validation covers 252 tests, wheel and source-archive builds, a CLI smoke
 test from the built wheel, and a complete PP-OCRv6 smoke scan with real OCR
@@ -29,13 +30,15 @@ environment, model setup, an image scan, a committed branch-diff scan, JSON
 output and exit codes on each system. Include the selected provider's credential
 handling and the optional local detector when claiming its support.
 
+The production recovery workflow, model mapping and validation boundaries are described in [Product OCR recovery](ocr-recovery.md).
+
 ## Commands
 
 `vipi setup` explicitly downloads and verifies the pinned PP-OCRv6 Tiny, Small
 and Medium detector/recognizer files plus the shared orientation-classifier file.
 The OCR adapter disables orientation classification. Setup does not require an
 external detector API key. Scanning never downloads models. To prepare just one
-mode, pass `--ocr-mode`; `--ocr-model` selects one supported model ID directly.
+mode, pass `--ocr-mode`; `--ocr-model` selects one supported model ID directly. Setup also prepares the local decision model chosen for that profile (Clef for quality, d1 for balanced/speed/fast), plus an explicitly selected local detector.
 
 `vipi scan <path ...>` scans static PNG, JPEG and WebP images, including images
 in nested directories. Supply individual images, multiple paths, or directories:
@@ -44,7 +47,7 @@ in nested directories. Supply individual images, multiple paths, or directories:
 uv run vipi scan label.png screenshot.jpg
 uv run vipi scan ./images
 uv run vipi scan ./images --verbose
-uv run vipi scan ./images --detector openai --threshold 90 --output report.json
+uv run vipi scan ./images --modus cloud --detector openai --threshold 90 --output report.json
 uv run vipi scan ./images --exclude 'generated/' --exclude '*.webp'
 uv run vipi scan ./images --ocr-mode speed
 uv run vipi scan ./images --ocr-mode balanced
@@ -60,19 +63,19 @@ uv run vipi scan ./images --modus cloud --ocr-provider mistral
 | --- | --- | --- |
 | `--diff REFERENCE` | Scan committed images added or modified since the common ancestor with REFERENCE | Scan all supported images under the supplied paths |
 | `--exclude PATTERN` | Exclude a path; repeat to add ordered rules. Prefix with `!` to re-include | No user rules |
-| `--detector NAME` | `jev`, `openai`, `prompt-guard` | `jev` |
-| `--modus NAME` | OCR execution: `local` or `cloud` | `local`; an explicit cloud model also selects cloud for compatibility |
-| `--ocr-mode NAME` | Local profile: `speed`, `balanced`, `quality`; legacy alias `fast` | `quality` for local OCR |
+| `--detector NAME` | Injection detector: `auto`, `clef`, `d1`, `prompt-guard`, `jev`, `openai`; must match execution mode | Same provider as OCR review |
+| `--modus NAME` | Full scan execution: `local` or `cloud` | `local`; an explicit cloud model also selects cloud for compatibility |
+| `--ocr-mode NAME` | Local OCR and decision profile: `speed`, `balanced`, `quality`; legacy alias `fast` | `quality` for local OCR |
+| `--decision-provider NAME` | Local: `clef`, `d1`; cloud: `openai`, `jev` | Local quality: Clef; balanced/speed/fast: d1; cloud: OpenAI Decisions |
 | `--ocr-provider NAME` | Cloud OCR: `google`, `openai`, `mistral`; requires `--modus cloud` | `google` in cloud mode |
 | `--ocr-model ID` | Select a supported model directly; cannot be combined with `--ocr-provider` | Model for the selected local profile or cloud provider |
 | `--threshold NUMBER` | Finding threshold on a 0–100 score scale; equality counts as a finding | `80` |
 | `--output FILE` | Also save the JSON report, including partial results and errors | Terminal output |
 | `--verbose` | Print the final extracted OCR text for each scanned image | Off |
 
-`--modus cloud` explicitly sends images to the selected OCR service. Providers
-are selected independently of `--detector`; local OCR can still use a hosted
-detector, and cloud OCR can use local Prompt Guard. Cloud providers have no
-`quality`/`balanced`/`speed` tiers:
+`--modus local` runs OCR, visual decisions and injection detection locally.
+Cloud mode sends image/OCR evidence to the selected hosted providers. Choices
+must match the execution mode. Cloud OCR has no local quality tiers:
 
 | Provider | Model/service | Credential |
 | --- | --- | --- |
@@ -80,14 +83,12 @@ detector, and cloud OCR can use local Prompt Guard. Cloud providers have no
 | `openai` | `gpt-6-luna`, Responses API | `OPENAI_API_KEY` |
 | `mistral` | `mistral-ocr-4-1`, OCR API | `MISTRAL_API_KEY` |
 
-Configure keys in the environment or the existing ignored `.env` file. Setup
-skips local OCR model downloads and makes no billable API request; credentials
-are checked at scan time. A selected local Prompt Guard detector is still
-prepared by setup. Each cloud backend receives one original decoded image per
-request; no VIPI transforms, assembly, automatic retries or provider/local
-fallback are applied. The provider may apply its own preprocessing. Raw text,
-returned geometry, actual model/usage metadata and normal artifacts are saved.
-Missing credentials or provider failures produce incomplete scans (exit 2).
+Configure cloud keys in the environment or the existing ignored `.env` file.
+Cloud setup makes no billable request and skips local weights. Credentials are
+checked at scan time. The shared recovery flow can submit selected transformed
+views for additional OCR; actual provider text, geometry and usage are saved.
+Transient visual-decision failures retry with backoff; provider failures produce
+incomplete scans (exit 2). There is no provider or execution-mode fallback.
 
 Explicit `--modus local` with a cloud model, `--modus cloud` with a local model,
 and `--ocr-provider` without cloud mode are rejected. `--ocr-mode` is a local
@@ -161,16 +162,15 @@ models by default, or only the requested mode/model when either setup option is
 provided. `fast` remains a compatibility alias for `speed`. `--ocr-model`
 accepts registered PP-OCRv6 IDs and all three cloud model/service IDs.
 
-Local OCR runs the `reduced-transforms-v2` profile on CPU with one worker: 15
-passes per image, or 14 when the 2× raster would exceed 8 megapixels. It includes
-native-size CLAHE and a color-derived contrast reading for faint text. Images run
-sequentially, reusing the selected model session. Cloud OCR uses a single pass
-over the original image. Reports record `ocr_execution_mode`, `ocr_provider`,
-`ocr_mode` (null for cloud) and the resolved `ocr_model`; nested `ocr` metadata
-contains matching `execution_mode`, `provider`, `mode` and `model` values. Historical
-reports remain unchanged. Cloud reports no longer imply a local quality profile.
-Run artifacts identify their resolved model, profile and pass count. Backend,
-filter and worker options remain internal.
+Scans use the shared signal-driven recovery workflow described in
+[Product OCR recovery](ocr-recovery.md), including PDFMiner grouping for native
+boxed OCR, targeted orientation/contrast, guarded scaling, insertion recovery
+and original-resolution tiles. Original-only and legacy fixed-transform runs
+remain research controls. Reports retain resolved OCR execution/provider/model,
+decision provider, profile, pass counts, signals and fee estimates. The internal
+profile ID `adaptive-jev` is historical; the saved provider/model fields identify
+the actual local or cloud decision model. Images run sequentially with reused
+OCR and decision sessions.
 
 The threshold applies to the selected detector's normalized score, not a
 calibrated probability of an attack. Detection uses the final assembled OCR
@@ -190,6 +190,7 @@ the file fallback. Missing credentials fail before OCR processing.
 | Jev | `TYPESAFE_API_KEY`, with `JEV_API_KEY` as an alias |
 | OpenAI | `OPENAI_API_KEY` |
 | Prompt Guard | No inference API key; local weights required |
+| Clef / d1 | No inference API key; pinned local weights and model code prepared by setup |
 
 For local Prompt Guard, install the additional runtime and prepare its pinned
 revision. The model download requires authorized Hugging Face access and any
@@ -239,7 +240,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
-      - uses: EnXan/VIPI@v0.2.1
+      - uses: EnXan/VIPI@v0.7.0
         env:
           TYPESAFE_API_KEY: ${{ secrets.TYPESAFE_API_KEY }}
       - name: Upload scan report
@@ -260,17 +261,21 @@ can restrict the scan further. Outside PR events, it scans all supported images
 under `paths` unless `base-ref` is set explicitly. The checkout needs
 `fetch-depth: 0` so Git can find the common ancestor and base branch.
 
-For local detection, use Prompt Guard instead of the default Jev API detector:
+The default local decision model also detects injections. To select Prompt Guard
+for the final check while retaining d1 for OCR review:
 
 ```yaml
-- uses: EnXan/VIPI@v0.2.1
+- uses: EnXan/VIPI@v0.7.0
   with:
     detector: prompt-guard
+    modus: local
+    ocr-mode: balanced
   env:
     HF_TOKEN: ${{ secrets.HF_TOKEN }}
 ```
 
-OCR and Prompt Guard inference run on the GitHub runner. Hugging Face requires
+OCR, d1 review and Prompt Guard inference run on the GitHub runner; it needs
+enough memory for the local decision runtime. Hugging Face requires
 access approval for the weights, and the model is under Meta's Llama 4 Community
 License; `HF_TOKEN` downloads the model and is not used for inference API calls.
 Jev and OpenAI require their API keys and can incur provider charges. Fork PRs

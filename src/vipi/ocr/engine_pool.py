@@ -10,13 +10,23 @@ from .workers import worker_count
 
 
 class EnginePool:
-    def __init__(self, model, directory, workers, backend, engine_factory=None):
+    def __init__(
+        self,
+        model,
+        directory,
+        workers,
+        backend,
+        engine_factory=None,
+        *,
+        native_pipeline=False,
+    ):
         validate_backend(model, backend)
         self.model = model
         self.directory = Path(directory).resolve()
         self.workers = worker_count(workers)
         self.backend = backend
         self.factory = engine_factory
+        self.native_pipeline = native_pipeline
         self.local = threading.local()
         self.engines = []
         self.lock = threading.Lock()
@@ -35,6 +45,7 @@ class EnginePool:
                     self.directory,
                     backend=self.backend,
                     threads=threads_per_worker(self.workers),
+                    **({"native_pipeline": True} if self.native_pipeline else {}),
                 )
             )
             with self.lock:

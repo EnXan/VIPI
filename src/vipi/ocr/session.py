@@ -14,8 +14,8 @@ from vipi.results import OcrResult
 from vipi.storage.ocr import RunStore
 from .engine_pool import EnginePool
 from .models import FILES, REQUIRED, validate_model
-from .pipeline import extract
-from .transforms import CLOUD_OCR_PROFILES, OCR_PROFILE
+from .adaptive import extract, PROFILE
+from .transform_decisions import DecisionsDecider, JevDecider, LocalDecider
 
 
 class OcrSession:
@@ -27,6 +27,8 @@ class OcrSession:
         model=None,
         execution_mode=None,
         provider=None,
+        decision_provider=None,
+        decider=None,
     ):
         self.root = Path(root) if root is not None else cache_directory()
         options = ScanOptions(
@@ -34,11 +36,29 @@ class OcrSession:
             ocr_model=model,
             ocr_execution_mode=execution_mode,
             ocr_provider=provider,
+            decision_provider=decision_provider,
         )
         self.mode = options.resolved_ocr_mode
         self.model = options.resolved_ocr_model
         self.execution_mode = options.resolved_ocr_execution_mode
         self.provider = options.resolved_ocr_provider
+        self.decision_provider = options.resolved_decision_provider
+        self.decider = decider or (
+            LocalDecider(
+                self.decision_provider, self.root / "decisions" / self.decision_provider
+            )
+            if self.decision_provider in {"clef", "d1"}
+            else JevDecider()
+            if self.decision_provider == "jev"
+            else DecisionsDecider()
+        )
+        if hasattr(self.decider, "key") and not self.decider.key:
+            key = (
+                "OPENAI_API_KEY"
+                if self.decision_provider == "openai"
+                else "TYPESAFE_API_KEY (or JEV_API_KEY)"
+            )
+            raise ValueError(f"Set {key} for OCR decisions before scanning.")
         if self.model in CLOUD_OCR_MODELS:
             validate_model(self.model, self.root / "ocr")
         else:
@@ -48,7 +68,13 @@ class OcrSession:
                 raise ValueError(
                     "OCR models are missing or invalid. Run: vipi setup"
                 ) from error
-        self.pool = EnginePool(self.model, self.root / "ocr", 1, "cpu")
+        self.pool = EnginePool(
+            self.model,
+            self.root / "ocr",
+            1,
+            "cpu",
+            native_pipeline=True,
+        )
 
     @property
     def metadata(self):
@@ -58,7 +84,9 @@ class OcrSession:
                 "execution_mode": self.execution_mode,
                 "provider": self.provider,
                 "model": self.model,
-                "ocr_profile": CLOUD_OCR_PROFILES[self.model],
+                "ocr_profile": PROFILE,
+                "decision_provider": self.decision_provider,
+                "decision_model": self.decider.model,
                 "files": {},
                 "runtime": {},
                 "backend": "api",
@@ -69,7 +97,9 @@ class OcrSession:
             "execution_mode": self.execution_mode,
             "provider": self.provider,
             "model": self.model,
-            "ocr_profile": OCR_PROFILE,
+            "ocr_profile": PROFILE,
+            "decision_provider": self.decision_provider,
+            "decision_model": self.decider.model,
             "files": {
                 FILES[key]["file"]: FILES[key]["sha256"] for key in REQUIRED[self.model]
             },
@@ -87,10 +117,10 @@ class OcrSession:
                 io.BytesIO(image) if isinstance(image, bytes) else image,
                 self.model,
                 models_dir=self.root / "ocr",
-                workers=1,
                 backend="cpu",
                 engine_pool=self.pool,
                 store=store,
+                decider=self.decider,
             )
         except (Exception, KeyboardInterrupt) as error:
             error.artifacts = store.directory

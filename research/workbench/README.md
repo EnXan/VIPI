@@ -1,33 +1,35 @@
 # OCR Workbench
 
-Local image-to-text extraction through CLI or a live web interface. The default
-**Original only · baseline** profile runs each original decoded image once and
-preserves the backend's text without VIPI transformations or assembly. PP-OCR
-uses native RapidOCR processing with the pinned model weights. Select
-**Previous VIPI pipeline · control** explicitly to replay the existing variant
-and assembly profile. Selected dataset images are checked against their annotated
-text. See the [candidate inventory and experiment protocol](../ocr_eval/BASELINE.md).
+Local image-to-text extraction through CLI or a live web interface. The original-only baseline remains the default research control. The selectable
+**Current research · Decisions + local recovery** profile executes the shared
+product recovery implementation. It combines PDFMiner grouping, the selected
+quality-signal cascade, targeted orientation/contrast correction, guarded 2×
+OCR, 1.5× insertion repair and protected source-resolution tiles. The Workbench
+uses OpenAI Decisions by default for this research comparison; product
+`vipi scan --modus local|cloud` selects the entire execution policy described in
+[Product OCR recovery](../../docs/ocr-recovery.md).
 
-The optional **Jev · adaptive transformations** profile selects a measured
-transformation from the image, runs native OCR with the reviewed PDFMiner
-grouping, then lets Jev review the image and extracted text. It retains earlier
-attempts and permits up to three OCR attempts, each starting from the original.
-Set `TYPESAFE_API_KEY` or `JEV_API_KEY` to use it. This explicitly sends image
-previews and OCR text to TypeSafe; it is an experimental profile, not the default.
+Set `OPENAI_API_KEY` for the adaptive Workbench comparison. Local OCR and image
+adjustments run on the server, while selected image previews and OCR are sent
+to OpenAI. Clear signals skip the visual API gate. Original-only `baseline` and
+the previous `transforms` control remain selectable; they have no visual
+selection API fee.
 
 ```bash
 uv run python -m research.workbench extract path/to/image.png \
   --model ppocr-v6-tiny --ocr-profile adaptive-jev --workers 1 --json
 ```
 
-Only Jev previews are resized to its documented 280–1568-pixel dimensions;
-OCR retains the selected raster's full resolution. Each run saves native and
-grouped readings, `attempts.json`, `decisions.json`, request descriptions,
-actual preview images and raw responses under `decisions/`. `selection.accepted`
-is Jev's opinion, separate from reference-based evaluation. Jev pricing is not
-configured, so the total API cost is reported as unknown. See the
-[nine-image experiment](../ocr_eval/ADAPTIVE_JEV.md) and
-[ADR 0029](../../adr-code/0029-adaptive-ocr-transformation-review.md).
+The historical 95/113 result used saved Decisions responses plus local recovery;
+it was not a completely local zero-API result. Its prerequisite API stages made
+73 requests, with a configured estimate of $0.0343504. The later 92/113 run
+omitted several of those recovery stages and is not the selected product
+workflow. See [the measurement boundary](../../docs/ocr-recovery.md#measurement-and-costs).
+
+Runs save native and grouped readings, transforms, `attempts.json`,
+`decisions.json`, preview images, raw responses, signals, guard decisions and
+known fee estimates. References are scored only after selection. See
+[ADR 0044](../../adr-code/0044-product-research-recovery.md).
 
 ## Setup
 

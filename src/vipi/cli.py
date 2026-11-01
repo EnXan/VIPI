@@ -18,6 +18,7 @@ from .config import (
     OCR_MODEL_IDS,
     OCR_EXECUTION_MODES,
     CLOUD_OCR_PROVIDERS,
+    DECISION_PROVIDERS,
 )
 from .reporting import report_overwrites_input, write_report
 
@@ -107,7 +108,7 @@ def main(argv=None):
         "--detector",
         choices=DETECTORS,
         default=DEFAULT_DETECTOR,
-        help="Also prepare a local detector if selected (default: jev)",
+        help="Injection detector (default: same model as OCR decisions)",
     )
     prepare.add_argument(
         "--ocr-mode",
@@ -142,7 +143,7 @@ def main(argv=None):
         "--detector",
         choices=DETECTORS,
         default=DEFAULT_DETECTOR,
-        help="Injection detector (default: jev)",
+        help="Injection detector (default: same model as OCR decisions)",
     )
     command.add_argument(
         "--ocr-mode",
@@ -174,7 +175,12 @@ def main(argv=None):
             "--modus",
             dest="ocr_execution_mode",
             choices=OCR_EXECUTION_MODES,
-            help="OCR execution: local (default) or cloud; cloud sends images to the selected provider",
+            help="Execute the full scan locally (default) or with cloud OCR and decision providers",
+        )
+        target.add_argument(
+            "--decision-provider",
+            choices=DECISION_PROVIDERS,
+            help="Decision model: local quality=clef, balanced/speed/fast=d1; cloud=openai by default or jev",
         )
         target.add_argument(
             "--ocr-provider",
@@ -209,6 +215,7 @@ def main(argv=None):
                     ocr_model=args.ocr_model,
                     ocr_execution_mode=args.ocr_execution_mode,
                     ocr_provider=args.ocr_provider,
+                    decision_provider=args.decision_provider,
                     progress=lambda message: status.update(Text(message, style="cyan")),
                 )
             console.print(Text("✓ Models ready", style="bold green"))
@@ -223,6 +230,8 @@ def main(argv=None):
                 next_command += f" --ocr-model {args.ocr_model}"
             if args.ocr_mode:
                 next_command += f" --ocr-mode {args.ocr_mode}"
+            if args.decision_provider:
+                next_command += f" --decision-provider {args.decision_provider}"
             next_step.append(next_command, style="cyan")
             console.print(next_step)
             return 0
@@ -245,6 +254,7 @@ def main(argv=None):
                 ocr_model=args.ocr_model,
                 ocr_execution_mode=args.ocr_execution_mode,
                 ocr_provider=args.ocr_provider,
+                decision_provider=args.decision_provider,
                 diff=args.diff,
                 exclude_patterns=args.exclude,
                 output=args.output,

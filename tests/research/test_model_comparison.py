@@ -38,7 +38,14 @@ def test_models_run_sequentially_and_release_engines(dataset_repository):
             events.append((self.name, "close"))
 
     root = dataset_repository / "runs"
-    batch = Batch(root, catalog, list(catalog.items), ["ppocr-v6", "tesseract"], 4)
+    batch = Batch(
+        root,
+        catalog,
+        list(catalog.items),
+        ["ppocr-v6", "tesseract"],
+        4,
+        ocr_profile="baseline",
+    )
     batch.run(root, root / "models", catalog, {}, lambda name, path: Engine(name))
     report = batch.snapshot()
     assert report["state"] == "completed"
@@ -77,7 +84,14 @@ def test_initialization_failure_skips_model_and_continues(dataset_repository):
         return Engine()
 
     root = dataset_repository / "runs"
-    batch = Batch(root, catalog, list(catalog.items), ["ppocr-v6", "tesseract"], 1)
+    batch = Batch(
+        root,
+        catalog,
+        list(catalog.items),
+        ["ppocr-v6", "tesseract"],
+        1,
+        ocr_profile="baseline",
+    )
     batch.run(root, root / "models", catalog, {}, factory)
     assert created == ["ppocr-v6", "tesseract"]
     assert batch.status["completed"] == 6
@@ -90,7 +104,14 @@ def test_initialization_failure_skips_model_and_continues(dataset_repository):
 def test_cancel_does_not_start_next_model(dataset_repository):
     catalog = Catalog(dataset_repository)
     root = dataset_repository / "runs"
-    batch = Batch(root, catalog, list(catalog.items), ["ppocr-v6", "tesseract"], 1)
+    batch = Batch(
+        root,
+        catalog,
+        list(catalog.items),
+        ["ppocr-v6", "tesseract"],
+        1,
+        ocr_profile="baseline",
+    )
     created = []
 
     class Engine:

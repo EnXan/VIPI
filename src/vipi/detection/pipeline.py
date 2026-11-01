@@ -15,7 +15,8 @@ from vipi.storage.detection import DetectionStore
 from vipi.cancellation import check_cancelled
 from .verdict import probability, summarize, validate_thresholds
 
-TEXT_CLASSIFIERS = ("jev", "openai", "prompt-guard", "compare", "off")
+TEXT_PROVIDERS = ("jev", "openai", "prompt-guard", "clef", "d1")
+TEXT_CLASSIFIERS = (*TEXT_PROVIDERS, "compare", "off")
 
 
 def classifier_names(options):
@@ -50,11 +51,11 @@ def settings(
     selected = None
     if text_classifiers is not None:
         if not isinstance(text_classifiers, list) or any(
-            not isinstance(name, str) or name not in TEXT_CLASSIFIERS[:3]
+            not isinstance(name, str) or name not in TEXT_PROVIDERS
             for name in text_classifiers
         ):
             raise ValueError("Choose supported text classifiers as a list.")
-        selected = [name for name in TEXT_CLASSIFIERS[:3] if name in text_classifiers]
+        selected = [name for name in TEXT_PROVIDERS if name in text_classifiers]
         text_classifier = (
             selected[0] if len(selected) == 1 else "compare" if selected else "off"
         )

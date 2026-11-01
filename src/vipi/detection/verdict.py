@@ -2,7 +2,7 @@
 
 import math
 
-SIGNALS = {"jev", "openai", "prompt-guard", "image", "context"}
+SIGNALS = {"jev", "openai", "prompt-guard", "clef", "d1", "image", "context"}
 
 
 def probability(value):

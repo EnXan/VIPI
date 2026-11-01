@@ -158,7 +158,7 @@ def test_single_threshold_boundaries(threshold, score, verdict):
 
 
 @pytest.fixture
-def scanner_runtime(tmp_path, monkeypatch):
+def scanner_runtime(tmp_path, monkeypatch, scanner_decisions):
     monkeypatch.chdir(tmp_path)
     monkeypatch.setenv("XDG_CACHE_HOME", str(tmp_path / "cache"))
     monkeypatch.setattr("vipi.ocr.session.validate_model", lambda *args, **kwargs: None)
@@ -230,10 +230,11 @@ def test_scan_runs_shared_pipeline_sequentially_and_emits_json(
     assert report["ocr"]["mode"] == "quality"
     assert report["ocr_mode"] == "quality"
     assert report["ocr_model"] == "ppocr-v6"
-    assert report["ocr"]["ocr_profile"] == "reduced-transforms-v2"
+    assert report["ocr"]["ocr_profile"] == "adaptive-jev"
+    assert report["decision_provider"] == report["detector"] == "clef"
     assert report["ocr"]["workers"] == 1 and report["ocr"]["backend"] == "cpu"
-    assert report["files"][0]["ocr_profile"] == "reduced-transforms-v2"
-    assert report["files"][0]["ocr_passes"] == 1
+    assert report["files"][0]["ocr_profile"] == "adaptive-jev"
+    assert report["files"][0]["ocr_passes"] == 3
     assert len(engines) == 1  # One model session is reused across both images.
     assert len(provider.calls) == 2
     assert "fixture-secret" not in output.read_text()
@@ -353,7 +354,7 @@ def test_missing_credentials_fail_before_ocr(tmp_path, monkeypatch):
     monkeypatch.setenv("TYPESAFE_API_KEY", "")
     monkeypatch.setenv("JEV_API_KEY", "")
     path = image(tmp_path / "input.png")
-    report = scan([path])
+    report = scan([path], ocr_execution_mode="cloud", detector="jev")
     assert report["exit_code"] == 2
     assert report["summary"]["not_scanned"] == 1
     assert "TYPESAFE_API_KEY" in report["errors"][0]["error"]
@@ -379,6 +380,11 @@ def test_setup_only_prepares_default_ocr_and_selected_local_detector(
 ):
     monkeypatch.setenv("XDG_CACHE_HOME", str(tmp_path))
     calls = []
+    decisions = []
+    monkeypatch.setattr(
+        "vipi.local_decisions.prepare_model",
+        lambda name, path: decisions.append((name, path)),
+    )
     monkeypatch.setattr(
         "vipi.ocr.models.prepare_models",
         lambda path, model, **kwargs: calls.append((path, model)),
@@ -389,9 +395,11 @@ def test_setup_only_prepares_default_ocr_and_selected_local_detector(
     )
     assert main(["setup"]) == 0
     assert len(calls) == 1 and calls[0][1] is None
+    assert decisions[-1][0] == "clef"
     assert "Models ready" in capsys.readouterr().out
     assert main(["setup", "--ocr-mode", "fast"]) == 0
     assert calls[-1][1] == "ppocr-v6-tiny"
+    assert decisions[-1][0] == "d1"
     assert main(["setup", "--ocr-model", "ppocr-v6-small"]) == 0
     assert calls[-1][1] == "ppocr-v6-small"
     assert main(["setup", "--detector", "prompt-guard"]) == 0

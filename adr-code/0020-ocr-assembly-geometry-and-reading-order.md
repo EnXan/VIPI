@@ -101,6 +101,6 @@ to every unseen payload or layout.
 
 Those initial replays did not repeat OCR inference or live detection requests.
 Subsequent contrast inference and assembly-v6 checks are recorded in
-[ADR 0021](0021-low-contrast-ocr-profile.md).
+[ADR 0044](0044-product-research-recovery.md).
 Detection accuracy after changing final text remains unmeasured. Windows and
 Linux execution of this fix remains unverified until CI runs there.

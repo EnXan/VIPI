@@ -274,7 +274,14 @@ def test_minor_ocr_errors_pass_but_literal_words_fail_in_saved_batch(
 
     catalog = Catalog(dataset_repository)
     identifier = next(iter(catalog.items))
-    batch = Batch(dataset_repository / "runs", catalog, [identifier], "test", 1)
+    batch = Batch(
+        dataset_repository / "runs",
+        catalog,
+        [identifier],
+        "test",
+        1,
+        ocr_profile="baseline",
+    )
     batch.run(
         dataset_repository / "runs",
         dataset_repository / "models",

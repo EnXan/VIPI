@@ -15,11 +15,11 @@
   <a href="https://github.com/EnXan/VIPI/blob/main/docs/cli.md#platform-validation-status"><img alt="Windows supported" src="https://img.shields.io/badge/Windows-tested-2ea44f"></a>
 </p>
 
-VIPI transforms each image through a multi-view OCR pipeline, then checks the
-final recognized text with Jev, OpenAI Decisions or the local Prompt Guard model.
-The public interface is a small command-line tool that can scan files,
-directories and committed image changes. Because detection evaluates OCR text,
-images that yield no recognized text may still contain visual prompt injections.
+VIPI uses signal-driven OCR recovery and checks the final text for prompt
+injections. `--modus local` runs OCR, visual decisions and injection detection
+locally. `--modus cloud` uses the selected hosted OCR and decision providers.
+The CLI scans files, directories and committed image changes. Images with no
+recognized text can still contain visual prompt injections.
 
 Evaluation images, OCR references and detection labels are available in the
 [VIPI Evaluation dataset](https://huggingface.co/datasets/EnXan/VIPI-evaluation).
@@ -29,84 +29,46 @@ or [contribute new examples for review](https://github.com/EnXan/VIPI/blob/main/
 ## Installation
 
 VIPI requires Python 3.12 and [uv](https://docs.astral.sh/uv/getting-started/installation/).
-Install the CLI from [PyPI](https://pypi.org/project/vipi-scanner/) with
-`uv tool install`. Choose the install path for the detector you plan to use.
-Both paths include the OCR dependencies. OCR uses the local models by default;
-you can explicitly select Mistral OCR for hosted image recognition.
 
-### Cloud API detector
-
-For Jev or OpenAI, install VIPI with its OCR extra:
-
-```bash
-uv tool install --python 3.12 'vipi-scanner[ocr]'
-vipi setup
-```
-
-Set the credential for the detector you will use before scanning. Jev accepts
-`TYPESAFE_API_KEY` (or the alias `JEV_API_KEY`); OpenAI uses `OPENAI_API_KEY`.
-For example, set one in your shell before running `vipi scan`:
-
-```bash
-# macOS / Linux
-export TYPESAFE_API_KEY="your-typesafe-api-key"
-
-# Windows PowerShell
-$env:TYPESAFE_API_KEY = "your-typesafe-api-key"
-```
-
-For OpenAI, set `OPENAI_API_KEY` in place of `TYPESAFE_API_KEY`. The default
-detector is Jev; select OpenAI with `--detector openai`.
-
-```bash
-vipi scan image.png
-```
-
-### Cloud OCR
-
-Local OCR is the default. Select `--modus cloud` to send each image to Google
-Cloud Vision, or choose another OCR provider explicitly. The downstream detector
-is selected independently.
-
-```bash
-export GOOGLE_CLOUD_API_KEY="your-google-cloud-api-key"
-vipi setup --modus cloud
-vipi scan image.png --modus cloud --output report.json
-
-# Alternatives: configure OPENAI_API_KEY or MISTRAL_API_KEY respectively
-vipi scan image.png --modus cloud --ocr-provider openai
-vipi scan image.png --modus cloud --ocr-provider mistral
-```
-
-Cloud providers are `google` (Google Cloud Vision, default), `openai` (GPT-6
-Luna), and `mistral` (Mistral OCR 4.1). They are provider choices, not quality
-tiers. Cloud OCR uses one original-image request per image, with no automatic
-retries or fallback. Setup skips local OCR downloads; credentials are checked
-at scan time. Keep keys in the environment or an ignored `.env` file; VIPI
-does not write them into reports. Provider usage charges apply.
-
-### Local Prompt Guard detector
-
-To run the detector locally, install the OCR and local-detector extras, then
-prepare Prompt Guard and its model weights:
+### Fully local scans
 
 ```bash
 uv tool install --python 3.12 'vipi-scanner[ocr,detector-local]'
-vipi setup --detector prompt-guard
-vipi scan image.png --detector prompt-guard
+vipi setup --modus local --ocr-mode balanced
+vipi scan image.png --modus local --ocr-mode balanced
 ```
 
-Prompt Guard weights require authorized access to the
-[Prompt Guard model](https://huggingface.co/meta-llama/Prompt-Guard-86M). Visit
-its model page and accept Meta's access terms first. If you need a Hugging Face
-token, install the [Hugging Face CLI](https://huggingface.co/docs/huggingface_hub/guides/cli)
-and run `hf auth login`; the Hugging Face Hub client will use the saved login
-when downloading the model. You can also provide a token through `HF_TOKEN`.
-OCR model setup downloads the pinned PP-OCRv6 files for both install paths;
-scanning does not download models.
+Local `quality` uses PP-OCRv6 Medium and Clef; `balanced` uses Small and d1-3B;
+`speed`/`fast` uses Tiny and d1-3B. Quality is the default. Clef is a 27B model
+and needs substantially more memory than d1-3B. Setup downloads pinned models;
+scanning loads prepared local files. The selected decision model reviews OCR
+and performs the final injection check. Local Prompt Guard remains an explicit
+alternative for that final check via `--detector prompt-guard`.
 
-If `vipi` is not found after installation, run `uv tool update-shell` and
-restart your terminal so uv's tool directory is added to `PATH`.
+### Cloud scans
+
+```bash
+uv tool install --python 3.12 'vipi-scanner[ocr]'
+export GOOGLE_CLOUD_API_KEY="your-google-cloud-api-key"
+export OPENAI_API_KEY="your-openai-api-key"
+vipi setup --modus cloud
+vipi scan image.png --modus cloud --output report.json
+```
+
+Cloud mode defaults to Google OCR and OpenAI Decisions for visual review and
+injection detection. Choose OCR with `--ocr-provider google|openai|mistral` and
+decisions with `--decision-provider openai|jev`. Jev uses `TYPESAFE_API_KEY`
+(or `JEV_API_KEY`); Mistral uses `MISTRAL_API_KEY`. Use environment variables or
+an ignored `.env` file. In PowerShell, set a key with
+`$env:OPENAI_API_KEY = "your-openai-api-key"`.
+
+Recovery can make additional billable OCR and decision requests. Reports save
+usage, selection decisions and known fee estimates. A provider failure produces
+an incomplete scan; providers are not switched automatically. See
+[the recovery flow and measurement boundary](docs/ocr-recovery.md) and
+[CLI options](docs/cli.md).
+
+If `vipi` is not found, run `uv tool update-shell` and restart your terminal.
 
 ## Usage
 
@@ -126,7 +88,7 @@ vipi scan ./images --ocr-model ppocr-v6-medium
 vipi scan . --diff origin/main --output report.json
 
 # Choose a detector and adjust the finding threshold
-vipi scan image.png --detector openai --threshold 90
+vipi scan image.png --modus cloud --detector openai --threshold 90
 ```
 
 The interface has two commands, `vipi setup` and `vipi scan`. `--modus local`
@@ -134,7 +96,7 @@ is the default. Local profiles map `speed` to PP-OCRv6 Tiny, `balanced` to Small
 and `quality` to Medium; `quality` is the default and `fast` remains an alias
 for `speed`. `--ocr-model` selects a supported model directly; an explicit
 execution mode must match it. `vipi setup` prepares all three local models by
-default. The default detector is Jev with a threshold of 80 on a
+default. The default detector follows the selected local/cloud decision model, with a threshold of 80 on a
 0–100 score scale. A score at the threshold counts as a finding; it is not a
 calibrated probability of an attack.
 
@@ -174,9 +136,11 @@ jobs:
         with:
           fetch-depth: 0
 
-      - uses: EnXan/VIPI@v0.6.0
+      - uses: EnXan/VIPI@v0.7.0
         with:
           detector: prompt-guard
+          modus: local
+          ocr-mode: balanced
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
 
@@ -188,8 +152,9 @@ jobs:
           path: vipi-report.json
 ```
 
-This example uses the local Prompt Guard detector; inference runs on the GitHub
-runner. Accept the model terms and add `HF_TOKEN` as a repository Actions secret
+This example uses d1-3B for OCR review and the local Prompt Guard detector.
+The runner needs enough memory for the local d1 runtime; Clef quality needs
+considerably more memory. Accept the model terms and add `HF_TOKEN` as a repository Actions secret
 so the runner can download the gated weights. Fork pull requests do not receive
 repository secrets, so a cache miss for those weights makes the scan fail
 closed. Jev and OpenAI are also available and need their API keys; see the

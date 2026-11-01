@@ -13,10 +13,22 @@ uv run python -m research.download ocr_eval
 The catalog loader and evaluation modules are grouped under `evaluation/`.
 The [baseline protocol and complete candidate inventory](BASELINE.md) describe
 the original-image comparison and subsequent measured improvement rounds.
-The opt-in [adaptive Jev experiment](ADAPTIVE_JEV.md) records transformation
-selection and review results separately from the baseline.
+The adaptive Research Workbench profile combines OpenAI Decisions correction
+selection with signal-based local tile OCR. Its full 113-image result, cost and
+provider comparison are summarized in
+[the current adaptive OCR report](GATED_OCR.md).
+The [adaptive Jev experiment](ADAPTIVE_JEV.md) records earlier transformation
+selection and review results separately from the current default.
 The [controlled Jev diagnosis](JEV_DIAGNOSIS.md) investigates why that first
 selector failed, without changing the pipeline during the experiment.
+The [raw detector and empty-region retry experiment](OCR_RAW_DETECTOR_EXPERIMENT.md)
+records a local test for OCR regions that were detected but not transcribed.
+The [PP-OCRv6 Medium detector benchmark](OCR_MEDIUM_DETECTOR.md) compares its
+box recall and CPU time with Tiny without running recognition retries.
+The [under-80% diagnosis](OCR_UNDER80_CAUSES.md) records the hypothetical
+threshold result and targeted follow-up trials for the remaining cases.
+The [local resolution correction trial](OCR_RESOLUTION_INSERTIONS.md) records
+a subsequent improvement to 94/113 strict passes, with the 80% count unchanged.
 
 The catalog preserves exact transcripts, source references, rights, reference
 scope and word regions. Catalog image paths are relative to this directory.
@@ -54,5 +66,5 @@ scope, which may be only the payload, and does not establish semantic equivalenc
 or full-image text localization.
 See [ADR 0028](../../adr-code/0028-independent-ocr-payload-regions.md) for matching rules,
 tradeoffs and validation boundaries, and
-[ADR 0021](../../adr-code/0021-low-contrast-ocr-profile.md)
+[ADR 0044](../../adr-code/0044-product-research-recovery.md)
 for the contrast improvement and its measured limits.

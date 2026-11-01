@@ -483,7 +483,7 @@ function updateBackend() {
   $('backend-note').textContent = selected.length > 1
     ? 'Models run sequentially. Hardware applies to PP-OCR; document models and APIs use their own runtime.'
     : $('ocr-profile').value === 'adaptive-jev'
-    ? 'Jev receives images and OCR text for transformation selection and review. Up to three sequential OCR attempts.'
+    ? 'OpenAI Decisions reviews the image and OCR. Large or small-text cases also run local overlapping tiles.'
     : apiModel
     ? 'Sends each original image to the selected OCR API once.'
     : documentVlm

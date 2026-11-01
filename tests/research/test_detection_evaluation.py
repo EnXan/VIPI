@@ -360,6 +360,7 @@ def test_failed_ocr_or_detection_does_not_stop_other_images(
             "dataset_ids": list(Catalog(root).items),
             "model": "test",
             "workers": 1,
+            "ocr_profile": "baseline",
             "detection": {
                 "text_classifier": "jev",
                 "thresholds": {

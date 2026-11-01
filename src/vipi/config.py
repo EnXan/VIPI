@@ -8,8 +8,10 @@ from pathlib import Path
 
 from dotenv import dotenv_values
 
-DETECTORS = ("jev", "openai", "prompt-guard")
-DEFAULT_DETECTOR = "jev"
+DETECTORS = ("auto", "jev", "openai", "prompt-guard", "clef", "d1")
+DEFAULT_DETECTOR = "auto"
+DECISION_PROVIDERS = ("clef", "d1", "jev", "openai")
+JEV_MODEL = "jev-1.14.0"
 DEFAULT_THRESHOLD = 80
 OCR_MODES = {
     "speed": "ppocr-v6-tiny",
@@ -90,6 +92,7 @@ class ScanOptions:
     ocr_model: str | None = None
     ocr_execution_mode: str | None = None
     ocr_provider: str | None = None
+    decision_provider: str | None = None
 
     def __post_init__(self):
         if self.detector not in DETECTORS:
@@ -102,6 +105,8 @@ class ScanOptions:
         ):
             raise ValueError("Threshold must be a number between 0 and 100.")
         self.resolved_ocr_model
+        self.resolved_decision_provider
+        self.resolved_detector
 
     @property
     def resolved_ocr_model(self):
@@ -131,14 +136,44 @@ class ScanOptions:
     def resolved_ocr_mode(self):
         return self.ocr_mode if self.resolved_ocr_execution_mode == "local" else None
 
+    @property
+    def resolved_decision_provider(self):
+        local = self.resolved_ocr_execution_mode == "local"
+        selected = self.decision_provider or (
+            ("clef" if self.ocr_mode == "quality" else "d1") if local else "openai"
+        )
+        if selected not in DECISION_PROVIDERS:
+            raise ValueError("Choose clef, d1, jev or openai as the decision provider.")
+        if (selected in {"clef", "d1"}) != local:
+            raise ValueError(
+                "The decision provider conflicts with --modus; local execution requires clef or d1, cloud requires jev or openai."
+            )
+        return selected
+
+    @property
+    def resolved_detector(self):
+        selected = (
+            self.resolved_decision_provider
+            if self.detector == "auto"
+            else self.detector
+        )
+        local = self.resolved_ocr_execution_mode == "local"
+        if (selected in {"clef", "d1", "prompt-guard"}) != local:
+            raise ValueError(
+                "The injection detector conflicts with --modus; local execution requires a local detector."
+            )
+        return selected
+
     def detection_options(self):
         from .detection.pipeline import settings
 
         return settings(
-            text_classifier=self.detector,
+            text_classifier=self.resolved_detector,
             thresholds={
                 "version": "vipi-cli-score-v1",
-                "signals": {self.detector: {"threshold": self.threshold / 100}},
+                "signals": {
+                    self.resolved_detector: {"threshold": self.threshold / 100}
+                },
             },
         )
 

@@ -2,7 +2,7 @@
 
 Accepted package boundaries are recorded in [ADR 0002](../adr-code/0002-product-and-research-boundaries.md).
 The public scan contract is recorded in [ADR 0003](../adr-code/0003-public-cli-contract.md).
-The current OCR profile and evaluation boundary are recorded in [ADR 0021](../adr-code/0021-low-contrast-ocr-profile.md).
+The current OCR profile and evaluation boundary are recorded in [ADR 0044](../adr-code/0044-product-research-recovery.md).
 Research module ownership and dataset distribution are recorded in
 [ADR 0012](../adr-code/0012-hugging-face-evaluation-dataset.md).
 
@@ -62,15 +62,21 @@ for the geometry rules and validation boundary.
 to checksum-pinned models. Setup and scan use that same description. A model
 replacement changes this package/adapter, not input selection or detector code.
 
-`--modus local|cloud` selects OCR execution. Local profiles are `quality`,
-`balanced` and `speed` (`fast` remains an alias); cloud providers are `google`
-(default), `openai` and `mistral`. `vipi.config` resolves these selections for
-setup, scanning and Python sessions. An explicit legacy cloud model remains an
-opt-in to that provider. Contradictory execution/model/provider choices fail
-before inference. Providers run once per original image and retain raw text;
-they share the same adapters between product and Workbench. OCR provider and
-downstream detector selection are independent. See
-[ADR 0027](../adr-code/0027-local-and-cloud-ocr-selection.md).
+`--modus local|cloud` selects execution for the full scan. Local profiles are
+`quality`, `balanced` and `speed`/`fast`, mapping OCR to Medium/Small/Tiny and
+visual decisions/default injection detection to Clef/d1/d1. Cloud OCR providers
+are Google (default), OpenAI and Mistral; decisions default to OpenAI Decisions
+with Jev selectable. Cross-mode combinations are rejected before inference.
+
+`vipi.ocr.adaptive` implements the shared recovery orchestration: native OCR,
+PDFMiner grouping, local quality signals, targeted visual correction, guarded
+2× OCR, 1.5× missing-letter repair and original-resolution tiles. Research
+imports that implementation. Full-page cloud transcription retains native text;
+spatial recovery requires actual geometry. Reports retain model identity,
+selection evidence, variants and API usage. `vipi.local_decisions` owns pinned,
+prepared Clef/d1 runtimes reused by OCR review and injection detection. See
+[Product OCR recovery](ocr-recovery.md) and
+[ADR 0044](../adr-code/0044-product-research-recovery.md).
 
 ## Research boundary
 
