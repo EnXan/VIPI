@@ -96,6 +96,36 @@ PaddleOCR-VL 1.6 (`paddleocr-vl-1.6`), IBM Granite-Docling 258M
 comparison backends, not public scan defaults. See the
 [complete comparison inventory](https://github.com/EnXan/VIPI/blob/main/research/ocr_eval/BASELINE.md).
 
+### Estimated minimum hardware (not tested)
+
+**These are rough planning estimates, not tested minimum requirements.** The
+configurations below have not been validated as VIPI minimums and do not
+guarantee compatibility, completion or performance. They assume one image at a
+time, unquantized decision models and each profile's default shared review/detector model.
+
+| Mode/profile | Estimated CPU-only configuration | Estimated accelerated alternative | Free disk before setup |
+| --- | --- | --- | --- |
+| `cloud` | Modern 64-bit CPU, about 4 cores and 8 GB RAM | No GPU required; internet access needed | About 15 GB |
+| Local `speed` / `fast` | Modern 64-bit CPU, about 4 cores and 24 GB RAM | Apple Silicon with 24 GB unified memory, or CUDA GPU with 16 GB VRAM and 16 GB host RAM | About 25 GB |
+| Local `balanced` | Modern 64-bit CPU, about 4 cores and 24 GB RAM | Apple Silicon with 24 GB unified memory, or CUDA GPU with 16 GB VRAM and 16 GB host RAM | About 25 GB |
+| Local `quality` | Modern 64-bit CPU, about 8 cores and 128 GB RAM | Apple Silicon with 96 GB unified memory, or CUDA GPU with 80 GB VRAM and 64 GB host RAM | About 100 GB |
+
+The estimates use the upstream model sizes
+([d1: 3.12B parameters](https://huggingface.co/LiquidAI/d1-3B/blob/051bcc464b01b9f92942b364d9586b0ef5912432/README.md),
+[Clef: 27B parameters](https://huggingface.co/Cloudflare/clef)) and VIPI's FP32
+CPU / 16-bit accelerator loading. Raw weights alone are roughly 12.5/108 GB on
+CPU or 6.3/54 GB on an accelerator for d1/Clef, before OCR, activations, image
+buffers and operating-system overhead. CPU-only inference, especially Clef,
+can be very slow. `speed` reduces OCR work but still loads the same d1 model as
+`balanced`.
+
+Larger images, longer OCR text or overrides loading a second decision model can
+need more memory. Disk estimates cover the runtime and selected weights; allow
+extra space for download caches and saved scans. Accelerator figures describe
+capacity only, not verified backend support. CUDA requires a compatible
+CUDA-enabled PyTorch build; source-checkout defaults use CPU Torch wheels on
+Linux/Windows. Cloud mode still processes images locally but hosts the models.
+
 ## Usage
 
 ```bash
