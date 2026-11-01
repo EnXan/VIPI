@@ -2,8 +2,8 @@ import json
 
 from PIL import Image
 
-from research.ocr_eval.evaluation.region_retry import apply_approved, retry_regions
-from vipi.ocr.recovery.decisions import DecisionsDecider
+from research.ocr_eval.experiments.region_retry import apply_approved, retry_regions
+from research.ocr_eval.experiments.decisions import ResearchDecider
 
 
 class Engine:
@@ -77,7 +77,7 @@ def test_visual_comparison_receives_actual_independent_readings(tmp_path, monkey
 
     monkeypatch.setenv("OPENAI_API_KEY", "fixture-key")
     changes = [{"old": "Orders", "new": "Ordt", "box": [20, 20, 40, 30]}]
-    DecisionsDecider(transport=transport).compare_region_readings(
+    ResearchDecider(transport=transport).compare_region_readings(
         Image.new("RGB", (100, 100)), changes, tmp_path
     )
     request = json.loads((tmp_path / "request.json").read_text())
@@ -122,7 +122,7 @@ def test_replacement_audit_sends_missing_ocr_tokens_and_location(tmp_path, monke
         ],
     }
     new = {"text": "I help", "groups": []}
-    DecisionsDecider(transport=transport).verify_replacement(
+    ResearchDecider(transport=transport).verify_replacement(
         Image.new("RGB", (100, 100)), old, new, tmp_path
     )
     request = json.loads((tmp_path / "request.json").read_text())

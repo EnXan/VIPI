@@ -26,7 +26,8 @@ def parse_workers(value):
         raise argparse.ArgumentTypeError(str(error)) from error
 
 
-def main(argv=None):
+def build_parser():
+    """Build the CLI contract without starting inference or model downloads."""
     parser = argparse.ArgumentParser(description="VIPI local image-to-text pipeline")
     subparsers = parser.add_subparsers(dest="command", required=True)
     prepare = subparsers.add_parser(
@@ -89,6 +90,11 @@ def main(argv=None):
         type=Path,
         default=Path("models/detector/prompt-guard-2-86m"),
     )
+    return parser
+
+
+def main(argv=None):
+    parser = build_parser()
     args = parser.parse_args(argv)
     try:
         detection_options = None

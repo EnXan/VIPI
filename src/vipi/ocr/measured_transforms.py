@@ -74,47 +74,6 @@ def orientation_view(width, height, orientation="upright"):
     )
 
 
-def measured_passes_for_size(width, height):
-    original = orientation_view(width, height)
-    passes = [
-        (orientation_view(width, height, name), "unchanged") for name in ORIENTATIONS
-    ]
-    passes.extend((original, name) for name in CONTRASTS if name != "unchanged")
-    # These exact central bands improved the three Anamorpher development cases.
-    for fraction in (0.5, 0.25):
-        top, bottom = (
-            int(height * (0.5 - fraction / 2)),
-            int(height * (0.5 + fraction / 2)),
-        )
-        view = View(
-            f"center-band-{fraction:g}",
-            width,
-            bottom - top,
-            ((1, 0, 0), (0, 1, top), (0, 0, 1)),
-            crop=(0, top, width, bottom),
-        )
-        passes.extend(
-            (view, name) for name in ("unchanged", "green-minus-red", "blue-minus-red")
-        )
-    for fraction in (0.75, 0.5):
-        left, right = (
-            int(width * (0.5 - fraction / 2)),
-            int(width * (0.5 + fraction / 2)),
-        )
-        top, bottom = int(height * 0.25), int(height * 0.75)
-        view = View(
-            f"center-crop-{fraction:g}x0.5",
-            right - left,
-            bottom - top,
-            ((1, 0, left), (0, 1, top), (0, 0, 1)),
-            crop=(left, top, right, bottom),
-        )
-        passes.extend(
-            (view, name) for name in ("unchanged", "green-minus-red", "blue-minus-red")
-        )
-    return passes
-
-
 def _stretch(channel, percentiles=True):
     if not percentiles:
         return cv2.normalize(channel, None, 0, 255, cv2.NORM_MINMAX)

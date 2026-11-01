@@ -6,7 +6,8 @@ import numpy as np
 import pytest
 from PIL import Image
 
-from vipi.ocr.engines import MistralEngine, RapidEngine, TesseractEngine
+from vipi.ocr.engines import RapidEngine, TesseractEngine
+from vipi.ocr.cloud import MistralEngine
 
 
 def test_tesseract_preserves_quotes_low_scores_and_lines(tmp_path, monkeypatch):
@@ -72,7 +73,7 @@ def test_mistral_request_and_result_use_image_coordinates(monkeypatch):
     import base64
     import json
 
-    import vipi.ocr.engines as engines
+    import vipi.ocr.cloud as engines
 
     monkeypatch.setattr(engines, "api_key", lambda name: "test-key")
 
@@ -125,7 +126,10 @@ def test_mistral_request_and_result_use_image_coordinates(monkeypatch):
     result = MistralEngine().recognize(Image.new("RGB", (20, 10)))
     assert result["text"] == "sample text"
     assert result["regions"][0]["polygon"] == [
-        [1.0, 1.5], [15.0, 1.5], [15.0, 6.0], [1.0, 6.0]
+        [1.0, 1.5],
+        [15.0, 1.5],
+        [15.0, 6.0],
+        [1.0, 6.0],
     ]
     assert result["regions"][0]["confidence"] == 0.9
     assert result["preprocessing"]["usage_info"] == {"pages_processed": 1}
@@ -133,7 +137,7 @@ def test_mistral_request_and_result_use_image_coordinates(monkeypatch):
 
 
 def test_mistral_requires_api_key(monkeypatch):
-    import vipi.ocr.engines as engines
+    import vipi.ocr.cloud as engines
 
     monkeypatch.setattr(engines, "api_key", lambda name: None)
     with pytest.raises(ValueError, match="MISTRAL_API_KEY"):
@@ -144,7 +148,7 @@ def test_mistral_http_errors_redact_api_key(monkeypatch):
     import json
     import urllib.error
 
-    import vipi.ocr.engines as engines
+    import vipi.ocr.cloud as engines
 
     monkeypatch.setattr(engines, "api_key", lambda name: "hidden-key")
     monkeypatch.setattr(

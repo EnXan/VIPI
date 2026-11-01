@@ -163,13 +163,3 @@ def order_units(units, width, height):
         visit(root)
     assert sorted(order) == list(range(len(units)))
     return [units[i] for i in order]
-
-
-def table_groups(step, image_path):
-    image = cv2.imread(str(image_path))
-    if image is None:
-        raise ValueError(f"Cannot read image: {image_path}")
-    if image.shape[:2] != (step["height"], step["width"]):
-        raise ValueError("Image and saved OCR coordinates differ")
-    units, families = pregroup(step, image)
-    return order_units(units, step["width"], step["height"]), families

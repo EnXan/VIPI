@@ -1,4 +1,4 @@
-from research.ocr_eval.evaluation.alternate_evidence import separate_readings
+from research.ocr_eval.experiments.alternate_evidence import separate_readings
 
 
 def test_distinct_readings_keep_provenance_without_concatenation():

@@ -6,7 +6,7 @@ from .config import (
     CLOUD_OCR_MODELS,
     PROMPT_GUARD_REVISION,
     cache_directory,
-    resolve_ocr_model,
+    LOCAL_DECISION_PROVIDERS,
     ScanOptions,
 )
 
@@ -34,12 +34,7 @@ def setup(
         decision_provider=decision_provider,
     )
     detector = options.resolved_detector
-    selected_model = resolve_ocr_model(
-        ocr_mode or DEFAULT_OCR_MODE,
-        ocr_model,
-        execution_mode=ocr_execution_mode,
-        provider=ocr_provider,
-    )
+    selected_model = options.resolved_ocr_model
     model = None
     if (
         ocr_mode is not None
@@ -66,7 +61,7 @@ def setup(
     local_models = {
         name
         for name in (options.resolved_decision_provider, detector)
-        if name in {"clef", "d1"}
+        if name in LOCAL_DECISION_PROVIDERS
     }
     for name in sorted(local_models):
         from .local_decisions import prepare_model

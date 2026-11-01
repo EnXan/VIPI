@@ -23,7 +23,7 @@ context, then compares that verdict with every case's expected label. Catalog
 context describes the ground truth only. Context-dependent misclassifications
 are expected and count normally; the original cases and labels are preserved.
 It also measures OCR coverage of the catalog payload. See the
-[workbench guide](../workbench/README.md#detection-evaluation) for report fields,
+[workbench guide](../workbench/README.md#dataset-batches) for report fields,
 threshold requirements and metric denominators. The evaluator reads this catalog
 and the images without changing them.
 

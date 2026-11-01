@@ -1,6 +1,6 @@
 from PIL import Image
 
-from research.ocr_eval.evaluation.line_retry import (
+from research.ocr_eval.experiments.line_retry import (
     apply_line_choices,
     retry_ambiguous_lines,
 )

@@ -2,8 +2,8 @@
 
 Historical gated-correction experiments, 2026-11-01. The selected product
 workflow now includes the full 95/113 recovery chain; see
-[Product OCR recovery](../../docs/ocr-recovery.md) and
-[ADR 0044](../../adr-code/0044-product-research-recovery.md). The 92/113 results
+[Product OCR recovery](../../../docs/ocr-recovery.md) and
+[ADR 0044](../../../adr-code/0044-product-research-recovery.md). The 92/113 results
 below describe a later incomplete combination, not the promoted pipeline.
 
 ## Historical gated flow and cost policy

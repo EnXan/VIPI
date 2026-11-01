@@ -96,7 +96,8 @@ def print_error(console, message, *, path=None):
     console.print(line)
 
 
-def main(argv=None):
+def build_parser():
+    """Build the CLI contract without starting inference or model downloads."""
     parser = argparse.ArgumentParser(
         prog="vipi", description="Scan images for visual prompt injections."
     )
@@ -187,13 +188,18 @@ def main(argv=None):
             choices=tuple(CLOUD_OCR_PROVIDERS),
             help="Cloud OCR provider: google (default), openai or mistral; requires --modus cloud",
         )
+    return parser
+
+
+def main(argv=None):
+    parser = build_parser()
     args = parser.parse_args(argv)
     if args.ocr_execution_mode == "cloud" and args.ocr_mode is not None:
         parser.error(
             "--ocr-mode selects a local profile; use --ocr-provider with --modus cloud."
         )
     if args.command == "scan" and not args.paths and args.diff is None:
-        command.error("provide at least one path, or use --diff REFERENCE")
+        parser.error("provide at least one path, or use --diff REFERENCE")
 
     console = Console()
     error_console = Console(stderr=True)
@@ -232,6 +238,8 @@ def main(argv=None):
                 next_command += f" --ocr-mode {args.ocr_mode}"
             if args.decision_provider:
                 next_command += f" --decision-provider {args.decision_provider}"
+            if args.detector != DEFAULT_DETECTOR:
+                next_command += f" --detector {args.detector}"
             next_step.append(next_command, style="cyan")
             console.print(next_step)
             return 0
@@ -279,7 +287,7 @@ def main(argv=None):
         return report["exit_code"]
     except (Exception, KeyboardInterrupt) as error:
         if isinstance(error, ModuleNotFoundError):
-            message = "Missing runtime dependencies. Install VIPI with the ocr extra (and detector-local for Prompt Guard)."
+            message = "Missing runtime dependencies. Install VIPI with the ocr extra and detector-local for local decision models or Prompt Guard."
         else:
             message = str(error) or "Interrupted."
         print_error(error_console, message)

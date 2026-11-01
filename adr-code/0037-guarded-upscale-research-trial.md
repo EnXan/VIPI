@@ -20,7 +20,7 @@ wrong OCR. The existing 2x input pixel boundary remains in effect.
 
 ## Results and consequences
 
-As documented in [OCR_REGION_UPSCALE_EXPERIMENTS.md](../research/ocr_eval/OCR_REGION_UPSCALE_EXPERIMENTS.md),
+As documented in [OCR_REGION_UPSCALE_EXPERIMENTS.md](../research/ocr_eval/reports/OCR_REGION_UPSCALE_EXPERIMENTS.md),
 the first measured full-suite result without a passing-reference regression is
 93/113 rather than 92/113. It recovered one reference case and used 27 more
 local OCR observations and 27 more Decisions requests than the preceding

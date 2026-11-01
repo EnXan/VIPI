@@ -10,9 +10,9 @@
 
 <p align="center">
   <a href="https://github.com/EnXan/VIPI/blob/main/pyproject.toml"><img alt="Python 3.12" src="https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white"></a>
-  <a href="https://github.com/EnXan/VIPI/blob/main/docs/cli.md#platform-validation-status"><img alt="macOS supported" src="https://img.shields.io/badge/macOS-tested-2ea44f"></a>
-  <a href="https://github.com/EnXan/VIPI/blob/main/docs/cli.md#platform-validation-status"><img alt="Linux supported" src="https://img.shields.io/badge/Linux-tested-2ea44f"></a>
-  <a href="https://github.com/EnXan/VIPI/blob/main/docs/cli.md#platform-validation-status"><img alt="Windows supported" src="https://img.shields.io/badge/Windows-tested-2ea44f"></a>
+  <a href="https://github.com/EnXan/VIPI/blob/main/docs/cli.md#platform-validation-status"><img alt="Historical macOS validation" src="https://img.shields.io/badge/macOS-tested-2ea44f"></a>
+  <a href="https://github.com/EnXan/VIPI/blob/main/docs/cli.md#platform-validation-status"><img alt="Historical Linux validation" src="https://img.shields.io/badge/Linux-tested-2ea44f"></a>
+  <a href="https://github.com/EnXan/VIPI/blob/main/docs/cli.md#platform-validation-status"><img alt="Historical Windows validation" src="https://img.shields.io/badge/Windows-tested-2ea44f"></a>
 </p>
 
 VIPI uses signal-driven OCR recovery and checks the final text for prompt
@@ -26,108 +26,114 @@ Evaluation images, OCR references and detection labels are available in the
 See how to [download the pinned images](https://github.com/EnXan/VIPI/blob/main/research/README.md#download-images)
 or [contribute new examples for review](https://github.com/EnXan/VIPI/blob/main/research/README.md#add-images).
 
-## Installation
+## Installation and first scan
 
-VIPI requires Python 3.12 and [uv](https://docs.astral.sh/uv/getting-started/installation/).
-
-### Fully local scans
+Use Python 3.12 and [uv](https://docs.astral.sh/uv/getting-started/installation/).
 
 ```bash
+# Fully local, balanced profile
 uv tool install --python 3.12 'vipi-scanner[ocr,detector-local]'
-vipi setup --modus local --ocr-mode balanced
-vipi scan image.png --modus local --ocr-mode balanced
+vipi setup --ocr-mode balanced
+vipi scan image.png --ocr-mode balanced --output report.json
 ```
 
-Local `quality` uses PP-OCRv6 Medium and Clef; `balanced` uses Small and d1-3B;
-`speed`/`fast` uses Tiny and d1-3B. Quality is the default. Clef is a 27B model
-and needs substantially more memory than d1-3B. Setup downloads pinned models;
-scanning loads prepared local files. The selected decision model reviews OCR
-and performs the final injection check. Local Prompt Guard remains an explicit
-alternative for that final check via `--detector prompt-guard`.
-
-### Cloud scans
+For cloud execution, install `vipi-scanner[ocr]`, configure
+`GOOGLE_CLOUD_API_KEY` and `OPENAI_API_KEY`, then run:
 
 ```bash
-uv tool install --python 3.12 'vipi-scanner[ocr]'
-export GOOGLE_CLOUD_API_KEY="your-google-cloud-api-key"
-export OPENAI_API_KEY="your-openai-api-key"
 vipi setup --modus cloud
 vipi scan image.png --modus cloud --output report.json
 ```
 
-Cloud mode defaults to Google OCR and OpenAI Decisions for visual review and
-injection detection. Choose OCR with `--ocr-provider google|openai|mistral` and
-decisions with `--decision-provider openai|jev`. Jev uses `TYPESAFE_API_KEY`
-(or `JEV_API_KEY`); Mistral uses `MISTRAL_API_KEY`. Use environment variables or
-an ignored `.env` file. In PowerShell, set a key with
-`$env:OPENAI_API_KEY = "your-openai-api-key"`.
+Keys can come from the environment or an ignored `.env` in the current directory;
+see [`.env.example`](https://github.com/EnXan/VIPI/blob/main/.env.example). In PowerShell, use
+`$env:OPENAI_API_KEY = "your-openai-api-key"`. If `vipi` is not on `PATH`, run
+`uv tool update-shell` and restart the terminal.
 
-Recovery can make additional billable OCR and decision requests. Reports save
-usage, selection decisions and known fee estimates. A provider failure produces
-an incomplete scan; providers are not switched automatically. See
-[the recovery flow and measurement boundary](docs/ocr-recovery.md) and
-[CLI options](docs/cli.md).
+## Models and their roles
 
-If `vipi` is not found, run `uv tool update-shell` and restart your terminal.
+The public scanner first extracts text, uses visual decisions when OCR recovery
+needs review, and then checks the final text for prompt injections.
+
+| Local profile | Text detection and recognition | Visual OCR review | Default injection detector |
+| --- | --- | --- | --- |
+| `quality` (default) | PP-OCRv6 Medium: `PP-OCRv6_det_medium.onnx` + `PP-OCRv6_rec_medium.onnx`; ID `ppocr-v6` (`ppocr-v6-medium` alias) | `Cloudflare/clef` | Same Clef model |
+| `balanced` | PP-OCRv6 Small: `PP-OCRv6_det_small.onnx` + `PP-OCRv6_rec_small.onnx`; ID `ppocr-v6-small` | `LiquidAI/d1-3B` | Same d1 model |
+| `speed`, legacy alias `fast` | PP-OCRv6 Tiny: `PP-OCRv6_det_tiny.onnx` + `PP-OCRv6_rec_tiny.onnx`; ID `ppocr-v6-tiny` | `LiquidAI/d1-3B` | Same d1 model |
+
+RapidOCR runs the local PP-OCRv6 models through ONNX Runtime. All local profiles
+also prepare `ch_PP-LCNet_x0_25_textline_ori_cls_mobile`, the native text-line
+orientation classifier. Production uses RapidOCR's native pipeline; the legacy
+research transform control disables its classification stage.
+
+| Cloud component | Model/service | Purpose |
+| --- | --- | --- |
+| `--ocr-provider google` (default) | Google Cloud Vision `DOCUMENT_TEXT_DETECTION`, ID `google-cloud-vision` | OCR text and word geometry |
+| `--ocr-provider openai` | `gpt-6-luna`, Responses API | Full-image OCR transcription |
+| `--ocr-provider mistral` | `mistral-ocr-4-1`, Mistral OCR API | OCR transcription and available block geometry |
+| `--decision-provider openai` (default) | `gpt-6-luna`, OpenAI Decisions API | Visual OCR review and default final injection check |
+| `--decision-provider jev` | `jev-1.14.0`, TypeSafe API | Visual OCR review and default final injection check |
+
+`--decision-provider clef|d1` overrides local OCR review. `--detector` overrides
+only the final check: local choices are `clef`, `d1` and `prompt-guard`; cloud
+choices are `openai` and `jev`. `auto` follows the decision provider.
+`prompt-guard` uses `meta-llama/Llama-Prompt-Guard-2-86M` on final OCR text;
+it does not perform visual OCR review. `--ocr-model` changes OCR without changing
+the local profile's decision model. Local and cloud providers cannot be mixed.
+
+Setup prepares local weights and verifies pinned code; scanning has no model
+download or hosted fallback. Exact OCR hashes are in
+[`model_files.json`](https://github.com/EnXan/VIPI/blob/main/src/vipi/ocr/model_files.json), Clef/d1 repositories and
+immutable revisions in [`decision_models.json`](https://github.com/EnXan/VIPI/blob/main/src/vipi/decision_models.json),
+and the Prompt Guard revision in [`config.py`](https://github.com/EnXan/VIPI/blob/main/src/vipi/config.py). Clef requires
+substantially more memory than d1. These defaults are configuration choices,
+not a measured quality ranking across profiles.
+
+Research additionally compares Tesseract 5 English (`tessdata_best`),
+PaddleOCR-VL 1.6 (`paddleocr-vl-1.6`), IBM Granite-Docling 258M
+(`granite-docling-258m`) and LightOnOCR-3 0.8B/1B/4B
+(`lightonocr-3-0.8b`, `lightonocr-3-1b`, `lightonocr-3-4b`). These are OCR
+comparison backends, not public scan defaults. See the
+[complete comparison inventory](https://github.com/EnXan/VIPI/blob/main/research/ocr_eval/BASELINE.md).
 
 ## Usage
 
 ```bash
-# Scan one or more images
 vipi scan label.png screenshot.jpg
-
-# Scan a directory recursively and save a JSON report
-vipi scan ./images --output report.json
-
-# Choose a speed/quality mode or a specific supported model
-vipi scan ./images --ocr-mode speed
-vipi scan ./images --ocr-mode balanced
-vipi scan ./images --ocr-model ppocr-v6-medium
-
-# Scan committed images added or modified on a branch
+vipi scan ./images --verbose --output report.json
+vipi scan ./images --exclude 'generated/' --exclude '*.webp'
 vipi scan . --diff origin/main --output report.json
-
-# Choose a detector and adjust the finding threshold
 vipi scan image.png --modus cloud --detector openai --threshold 90
 ```
 
-The interface has two commands, `vipi setup` and `vipi scan`. `--modus local`
-is the default. Local profiles map `speed` to PP-OCRv6 Tiny, `balanced` to Small
-and `quality` to Medium; `quality` is the default and `fast` remains an alias
-for `speed`. `--ocr-model` selects a supported model directly; an explicit
-execution mode must match it. `vipi setup` prepares all three local models by
-default. The default detector follows the selected local/cloud decision model, with a threshold of 80 on a
-0–100 score scale. A score at the threshold counts as a finding; it is not a
-calibrated probability of an attack.
+The public commands are `vipi setup` and `vipi scan`. Use the same model/profile
+options for setup and scan. Bare `vipi setup` prepares all local OCR sizes and
+the default quality decision model; explicitly preparing `balanced` avoids that
+larger default download. Cloud recovery can make additional billable requests.
+The default detection threshold is 80/100; scores are not calibrated attack
+probabilities. A below-threshold result does not prove safety.
 
-See the [CLI guide](https://github.com/EnXan/VIPI/blob/main/docs/cli.md) for provider configuration, GitHub Actions
-examples, branch-diff behavior, cache paths and report details.
-
-## Results and automation
-
-Exit codes support CI use:
-
-| Code | Meaning |
+| Exit code | Meaning |
 | --- | --- |
-| `0` | Scan completed without detections, or no images were selected |
-| `1` | At least one image was detected |
-| `2` | An error or incomplete scan occurred; errors take precedence |
+| `0` | Complete scan without detections, or no selected images |
+| `1` | Detection found and every selected image completed |
+| `2` | Error or incomplete scan; takes precedence over findings |
+
+See the [complete CLI reference](https://github.com/EnXan/VIPI/blob/main/docs/cli.md) for every option, credentials,
+diff semantics, cache paths and report behavior.
 
 ## GitHub Actions
 
-Add this workflow at `.github/workflows/vipi-scan.yml` to scan images added or
-modified in pull requests targeting `main`:
+The Action defaults to the same local quality profile. This example explicitly
+uses d1 for OCR review and Prompt Guard for injection detection:
 
 ```yaml
 name: VIPI image scan
-
 on:
   pull_request:
     branches: [main]
-
 permissions:
   contents: read
-
 jobs:
   scan:
     runs-on: ubuntu-latest
@@ -135,46 +141,40 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
-
       - uses: EnXan/VIPI@v0.7.1
         with:
-          detector: prompt-guard
           modus: local
           ocr-mode: balanced
+          detector: prompt-guard
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
-
-      - name: Upload scan report
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: vipi-report
           path: vipi-report.json
 ```
 
-This example uses d1-3B for OCR review and the local Prompt Guard detector.
-The runner needs enough memory for the local d1 runtime; Clef quality needs
-considerably more memory. Accept the model terms and add `HF_TOKEN` as a repository Actions secret
-so the runner can download the gated weights. Fork pull requests do not receive
-repository secrets, so a cache miss for those weights makes the scan fail
-closed. Jev and OpenAI are also available and need their API keys; see the
-[CLI guide](https://github.com/EnXan/VIPI/blob/main/docs/cli.md#branch-and-pr-scans) for other detectors, scan inputs,
-diff behavior and report details.
+The runner needs sufficient memory for the chosen local models. Accept any
+required model terms before downloading gated weights. Fork PRs normally do not
+receive repository secrets. For hosted execution, configure cloud OCR and
+decision keys and set `modus: cloud`; see
+[Action inputs and PR selection](https://github.com/EnXan/VIPI/blob/main/docs/cli.md#github-action).
 
 ## Documentation
 
-- [CLI usage and platform validation](https://github.com/EnXan/VIPI/blob/main/docs/cli.md)
-- [Package architecture](https://github.com/EnXan/VIPI/blob/main/docs/architecture.md)
-- [Development setup and checks](https://github.com/EnXan/VIPI/blob/main/docs/development.md)
-- [Research workbench and datasets](https://github.com/EnXan/VIPI/blob/main/research/README.md)
+- [CLI reference and platform validation](https://github.com/EnXan/VIPI/blob/main/docs/cli.md)
+- [OCR recovery and measured limits](https://github.com/EnXan/VIPI/blob/main/docs/ocr-recovery.md)
+- [Architecture](https://github.com/EnXan/VIPI/blob/main/docs/architecture.md) and [development](https://github.com/EnXan/VIPI/blob/main/docs/development.md)
+- [Research CLI reference](https://github.com/EnXan/VIPI/blob/main/docs/research-cli.md), [workbench](https://github.com/EnXan/VIPI/blob/main/research/workbench/README.md) and [datasets](https://github.com/EnXan/VIPI/blob/main/research/README.md)
 - [Decision records](https://github.com/EnXan/VIPI/blob/main/adr-code/README.md)
 
-A built wheel contains the `vipi` package. Research tools, datasets, model
-weights and run artifacts remain outside the runtime package.
+The wheel contains `vipi`; research tools, datasets, weights and run artifacts
+stay outside it. Current platform and model-validation limits are recorded in
+the CLI and recovery guides.
 
 ## License
 
-VIPI's original code, documentation and project assets are licensed under the
-[Apache License, Version 2.0](https://github.com/EnXan/VIPI/blob/main/LICENSE). Third-party models, dependencies,
-datasets and other third-party material retain their own license terms; see
-their respective notices and source projects.
+VIPI's original code, documentation and assets use
+[Apache License 2.0](https://github.com/EnXan/VIPI/blob/main/LICENSE). Models, dependencies and datasets retain their
+respective license terms.

@@ -2,8 +2,8 @@ import json
 
 from PIL import Image
 
-from research.ocr_eval.evaluation.layout_repair import native_line_layout
-from vipi.ocr.recovery.decisions import DecisionsDecider
+from research.ocr_eval.experiments.layout_repair import native_line_layout
+from research.ocr_eval.experiments.decisions import ResearchDecider
 
 
 def word(text, line_id, x, y):
@@ -61,7 +61,7 @@ def test_layout_review_sends_actual_groups_and_image(tmp_path, monkeypatch):
     monkeypatch.setenv("OPENAI_API_KEY", "fixture-key")
     old = {"text": "old", "groups": [{"text": "old", "box": [0, 0, 20, 10]}]}
     new = {"text": "new", "groups": [{"text": "new", "box": [0, 0, 20, 10]}]}
-    DecisionsDecider(transport=transport).compare_layout(
+    ResearchDecider(transport=transport).compare_layout(
         Image.new("RGB", (100, 100)), old, new, tmp_path
     )
     saved = json.loads((tmp_path / "request.json").read_text())

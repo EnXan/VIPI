@@ -3,14 +3,14 @@
 import json
 from pathlib import Path
 
-from vipi.detection.pipeline import TEXT_CLASSIFIERS, settings
+from vipi.detection.pipeline import COMPARISON_PROVIDERS, settings
 from vipi.detection.providers.prompt_guard import MODEL_DIR
 
 
 def add_options(parser):
     parser.add_argument(
         "--text-classifier",
-        choices=TEXT_CLASSIFIERS[:3],
+        choices=COMPARISON_PROVIDERS,
         action="append",
         default=None,
         metavar="MODEL",

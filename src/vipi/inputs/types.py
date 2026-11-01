@@ -10,6 +10,8 @@ EXTENSIONS = {".png", ".jpg", ".jpeg", ".webp"}
 
 @dataclass(frozen=True)
 class ImageSource:
+    """A filesystem image or an immutable Git blob materialized for one scan."""
+
     path: Path
     blob: str | None = None
     repository: Path | None = None
@@ -29,6 +31,8 @@ class ImageSource:
 
 @dataclass
 class Selection:
+    """Discovered images with explicit skipped paths, errors and Git provenance."""
+
     images: list[ImageSource] = field(default_factory=list)
     skipped: list[dict] = field(default_factory=list)
     errors: list[dict] = field(default_factory=list)

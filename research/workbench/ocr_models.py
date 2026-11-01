@@ -17,37 +17,6 @@ from PIL import Image
 
 from vipi.config import GRANITE_DOCLING_MODEL, PADDLEOCR_VL_MODEL
 
-OCR_MODEL_LABELS = {
-    PADDLEOCR_VL_MODEL: "PaddleOCR-VL 1.6 · full-page document pipeline",
-    GRANITE_DOCLING_MODEL: "Granite-Docling 258M · Docling pipeline",
-}
-
-
-def installed_models():
-    """Return model options that can be loaded in the current Python runtime."""
-    from importlib.util import find_spec
-
-    available = {
-        PADDLEOCR_VL_MODEL: find_spec("paddleocr") is not None,
-        GRANITE_DOCLING_MODEL: find_spec("docling") is not None,
-    }
-    return [
-        {
-            "id": model,
-            "label": label,
-            "available": available[model],
-            "reason": None
-            if available[model]
-            else f"Install the optional runtime for {label}.",
-            "runtime": "research",
-        }
-        for model, label in OCR_MODEL_LABELS.items()
-    ]
-
-
-def is_ocr_model(model):
-    return model in OCR_MODEL_LABELS
-
 
 class PaddleOCRVLEngine:
     """Official PaddleOCR-VL 1.6 page-level parsing pipeline."""

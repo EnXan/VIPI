@@ -25,7 +25,7 @@ Separate alternatives did not change any local Prompt Guard verdict under a
 fixed experimental threshold; 53 context-dependent cases have no caller context
 and must not be scored as unambiguous truth. A Base64 alternative passes the
 tolerant reference but not the exact reference. Detailed findings, cost and
-limitations are in [OCR_MISSING_TEXT_EXPERIMENT.md](../research/ocr_eval/OCR_MISSING_TEXT_EXPERIMENT.md).
+limitations are in [OCR_MISSING_TEXT_EXPERIMENT.md](../research/ocr_eval/reports/OCR_MISSING_TEXT_EXPERIMENT.md).
 
 Do not adopt these prototypes as production routing or claim improved attack
 recall. The data is a reused development suite, the compared OCR probes are

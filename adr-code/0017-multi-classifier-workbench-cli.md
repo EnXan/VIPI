@@ -12,7 +12,7 @@ and parsed by [`research.workbench`](../research/workbench/__main__.py) and
 [`detector_cli`](../research/workbench/detector_cli.py). The shared verdict
 policy is in [`verdict.py`](../src/vipi/detection/verdict.py).
 
-This replaces [ADR 0016](0016-cli-aligned-workbench-setup.md). ADR 0016 chose a
+This replaces ADR 0016. ADR 0016 chose a
 three-step wizard and matched its UI to a single CLI classifier choice
 (`jev`, `openai`, `prompt-guard`, `compare`, or `off`). The rationale was to
 keep the UI within existing CLI capabilities. The user has now authorized

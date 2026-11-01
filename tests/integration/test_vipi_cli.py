@@ -404,6 +404,7 @@ def test_setup_only_prepares_default_ocr_and_selected_local_detector(
     assert calls[-1][1] == "ppocr-v6-small"
     assert main(["setup", "--detector", "prompt-guard"]) == 0
     assert calls[-1][1]["revision"] == "a8ded8e697ce7c355e395a0df51f94adb4a2fd27"
+    assert "--detector prompt-guard" in capsys.readouterr().out
 
 
 def test_setup_mistral_does_not_prepare_local_ocr_model(tmp_path, monkeypatch, capsys):

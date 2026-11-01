@@ -4,7 +4,7 @@ Historical exhaustive run; current implementation: [Gated OCR corrections](GATED
 
 Date: 2026-11-01. This run used the then-opt-in research profile `adaptive-jev`,
 temporarily using OpenAI Decisions with `gpt-6-luna`. The current default is
-recorded in [ADR 0044](../../adr-code/0044-product-research-recovery.md).
+recorded in [ADR 0044](../../../adr-code/0044-product-research-recovery.md).
 
 ## Protocol
 

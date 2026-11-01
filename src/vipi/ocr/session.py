@@ -7,6 +7,7 @@ from pathlib import Path
 from vipi.config import (
     DEFAULT_OCR_MODE,
     CLOUD_OCR_MODELS,
+    LOCAL_DECISION_PROVIDERS,
     ScanOptions,
     cache_directory,
 )
@@ -47,7 +48,7 @@ class OcrSession:
         self.decision_provider = options.resolved_decision_provider
         if decider:
             self.decider = decider
-        elif self.decision_provider in {"clef", "d1"}:
+        elif self.decision_provider in LOCAL_DECISION_PROVIDERS:
             self.decider = LocalDecider(
                 self.decision_provider, self.root / "decisions" / self.decision_provider
             )

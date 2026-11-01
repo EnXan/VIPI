@@ -20,7 +20,6 @@ from vipi.config import (
 from vipi.storage.files import sha256
 
 MODEL_NAMES = {
-    "ppocr-v5": "PP-OCRv5 · server / English",
     "ppocr-v6": "PP-OCRv6 · medium",
     "ppocr-v6-medium": "PP-OCRv6 · medium",
     "ppocr-v6-small": "PP-OCRv6 · small",
@@ -45,11 +44,6 @@ PUBLIC_MODEL_NAMES = {
 DEFAULT_MODEL = "ppocr-v6"
 FILES = json.loads(Path(__file__).with_name("model_files.json").read_text())
 REQUIRED = {
-    "ppocr-v5": (
-        "ch_PP-OCRv5_det_server",
-        "en_PP-OCRv5_rec_mobile",
-        "ch_PP-LCNet_x0_25_textline_ori_cls_mobile",
-    ),
     "ppocr-v6": (
         "multi_PP-OCRv6_det_medium",
         "multi_PP-OCRv6_rec_medium",
@@ -115,7 +109,7 @@ def validate_model(model: str, directory: Path, *, verify=False):
         if not path.is_file():
             command = (
                 "python -m research.workbench prepare-models --model"
-                if model in {"ppocr-v5", "tesseract"}
+                if model == "tesseract"
                 else "vipi setup --ocr-model"
             )
             raise ValueError(f"Model files missing. Run: {command} {model}")
@@ -123,20 +117,6 @@ def validate_model(model: str, directory: Path, *, verify=False):
             raise ValueError(
                 f"Model checksum mismatch: {path.name}. Prepare models again."
             )
-
-
-def model_options(directory: Path) -> list[dict]:
-    options = []
-    for key, label in PUBLIC_MODEL_NAMES.items():
-        try:
-            validate_model(key, directory)
-            reason = None
-        except ValueError as error:
-            reason = str(error)
-        options.append(
-            {"id": key, "label": label, "available": reason is None, "reason": reason}
-        )
-    return options
 
 
 def prepare_models(directory: Path, model: str | None = None, on_progress=print):

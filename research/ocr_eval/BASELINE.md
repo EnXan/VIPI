@@ -41,9 +41,9 @@ inference, text output, timing and available cost metadata, not dataset quality.
 The default image says `Baseline OCR 123`; `--image` can replace it.
 
 ```bash
-.venv-ocr/bin/python -m research.workbench check-models
+uv run python -m research.workbench check-models
 # Retry one model after fixing its runtime:
-.venv-ocr/bin/python -m research.workbench check-models --model lightonocr-3-1b
+uv run python -m research.workbench check-models --model lightonocr-3-1b
 ```
 
 Reports and the actual PNG are saved under ignored
@@ -72,7 +72,7 @@ rotation, mirroring, crop/filter passes, assembly or text repair. Models retain
 their required native preprocessing. EXIF orientation and alpha compositing
 are part of input decoding; saved PNGs record the exact decoded input.
 The previous `transforms` profile remains an explicit historical control.
-The public scanner keeps its existing release processing.
+The public scanner uses the [shared recovery workflow](../../docs/ocr-recovery.md); baseline remains the research comparison control.
 
 ## Measurements and interpretation
 
@@ -84,7 +84,7 @@ API usage, dated price assumptions and estimates are saved with each result.
 Unknown costs remain unknown. Local API fees are zero, excluding hardware and
 electricity. Estimates are not provider invoices.
 
-Evaluation v3 requires word locations for references without known reading
+Evaluation v4 requires word locations for references without known reading
 order, including TextOCR. Transcription-only models cannot be ranked on that
 spatial metric. Nonempty results without coordinates are marked **Unscored**,
 with raw text, duration and cost retained. The scored-image denominator

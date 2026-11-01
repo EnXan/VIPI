@@ -21,7 +21,7 @@ previous 30-image sample as a comparison. The parameters are documented
 experimental thresholds, including minimum word length and text length to
 avoid basing evidence on isolated punctuation. They do not restrict OCR input.
 
-The results in [EXTENDED_OCR_SIGNALS.md](../research/ocr_eval/EXTENDED_OCR_SIGNALS.md)
+The results in [EXTENDED_OCR_SIGNALS.md](../research/ocr_eval/reports/EXTENDED_OCR_SIGNALS.md)
 show more known reference failures marked but also more passed references
 marked. A one-region confidence trigger is particularly prone to false alarms.
 This is insufficient evidence to select production thresholds or infer that
@@ -29,7 +29,7 @@ any correction succeeds. At the time of this decision, ADR 0032 and the active
 adaptive profile remained unchanged. The later Research Workbench default is
 recorded in [ADR 0044](0044-product-research-recovery.md). The alternative
 policies and original results remain documented in
-[OCR_SIGNAL_ARCHITECTURES.md](../research/ocr_eval/OCR_SIGNAL_ARCHITECTURES.md).
+[OCR_SIGNAL_ARCHITECTURES.md](../research/ocr_eval/reports/OCR_SIGNAL_ARCHITECTURES.md).
 
 ## Alternatives and validation boundary
 

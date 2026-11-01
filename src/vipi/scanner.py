@@ -167,7 +167,7 @@ def scan(
     except (Exception, KeyboardInterrupt) as error:
         message = (
             "Missing runtime dependencies. Install VIPI with the ocr extra "
-            "(and detector-local for Prompt Guard)."
+            "and detector-local for local decision models or Prompt Guard."
             if isinstance(error, ModuleNotFoundError)
             else str(error) or "Scan interrupted."
         )

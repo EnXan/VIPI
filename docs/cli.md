@@ -1,210 +1,106 @@
 # VIPI CLI
 
-Use Python 3.12 and uv. From the repository root, sync the OCR dependency extra:
+The public commands are `vipi setup` and `vipi scan` (`python -m vipi`
+provides the same interface). Use Python 3.12 and uv.
+For installation and the exact model-to-purpose mapping, see the
+[README](../README.md#models-and-their-roles). From a checkout:
 
 ```bash
 uv sync --extra ocr --extra detector-local
-uv run vipi setup
-uv run vipi scan image.png
+uv run vipi setup --ocr-mode balanced
+uv run vipi scan image.png --ocr-mode balanced --output report.json
 ```
 
-For cloud execution, configure a provider key in the environment or copy
-[`.env.example`](../.env.example) to `.env` and fill in the key. Research and
-development commands are documented in [development setup](development.md).
+## Commands and options
 
-## Platform validation status
+`vipi setup` explicitly prepares pinned OCR weights and the selected local
+decision/detector models. Without an OCR mode/model, it prepares all three local
+OCR sizes and the default Clef decision model. `--ocr-mode` prepares one local
+profile. Cloud setup downloads no weights and makes no billable request;
+credentials are checked when scanning. Scanning never downloads models.
 
-Earlier CLI versions were tested on macOS, Linux x86-64 and native Windows
-x86-64 as of 2026-10-24. This recovery/model integration does not inherit
-trained-model validation for every platform. Python 3.12 is required; branch-diff scans also require Git on
-`PATH`. The earlier OCR scanner used CPU processing. The newly integrated Clef/d1 runtimes select CUDA, Apple MPS or CPU according to availability and have not yet been validated with trained weights on these platforms.
+`vipi scan PATH [PATH ...]` scans static PNG/JPEG/WebP files and directories
+recursively. With `--diff` and no paths, it scans the current directory's scope.
+Without `--diff`, at least one path is required.
 
-macOS validation covers 252 tests, wheel and source-archive builds, a CLI smoke
-test from the built wheel, and a complete PP-OCRv6 smoke scan with real OCR
-weights and a simulated detector response. Linux and Windows have also been
-tested. The detailed validation matrix for those platforms is not recorded
-here.
+| Shared setup/scan option | Meaning and default |
+| --- | --- |
+| `--modus local|cloud` | Full execution mode. Default local; a direct cloud `--ocr-model` also infers cloud for compatibility. |
+| `--ocr-mode speed|balanced|quality|fast` | Local profile; `quality` is the scan default and `fast` aliases `speed`. Setup without this option prepares all OCR sizes. |
+| `--ocr-model ID` | Override OCR with `ppocr-v6`, `ppocr-v6-medium`, `ppocr-v6-small`, `ppocr-v6-tiny`, `google-cloud-vision`, `gpt-6-luna` or `mistral-ocr-4-1`. |
+| `--ocr-provider google|openai|mistral` | Cloud OCR selection, default Google. Requires explicit `--modus cloud`; cannot be combined with `--ocr-model`. |
+| `--decision-provider clef|d1|jev|openai` | OCR review model. Default local quality: Clef; other local profiles: d1; cloud: OpenAI Decisions. |
+| `--detector auto|jev|openai|prompt-guard|clef|d1` | Final text detector. Default `auto` follows the decision provider. |
+| `-h`, `--help` | Show root or command help and exit without preparing models. |
 
-For future platform validation, record installation in a fresh Python 3.12
-environment, model setup, an image scan, a committed branch-diff scan, JSON
-output and exit codes on each system. Include the selected provider's credential
-handling and the optional local detector when claiming its support.
+| Scan-only option | Meaning and default |
+| --- | --- |
+| `--diff REFERENCE` | Select committed images added/modified since the common ancestor of REFERENCE and HEAD. |
+| `--exclude PATTERN` | Repeatable ordered filesystem exclusion; `!` re-includes matching paths. No user rules by default. |
+| `--threshold 0–100` | Finding threshold, default 80. Equality is a finding. |
+| `--output FILE` | Also write an atomic JSON report, including findings or incomplete scans. |
+| `--verbose` | Print each image's final OCR text. Off by default. |
 
-The production recovery workflow, model mapping and validation boundaries are described in [Product OCR recovery](ocr-recovery.md).
-
-## Commands
-
-`vipi setup` explicitly downloads and verifies the pinned PP-OCRv6 Tiny, Small
-and Medium detector/recognizer files plus the shared orientation-classifier file.
-The OCR adapter disables orientation classification. Setup does not require an
-external detector API key. Scanning never downloads models. To prepare just one
-mode, pass `--ocr-mode`; `--ocr-model` selects one supported model ID directly. Setup also prepares the local decision model chosen for that profile (Clef for quality, d1 for balanced/speed/fast), plus an explicitly selected local detector.
-
-`vipi scan <path ...>` scans static PNG, JPEG and WebP images, including images
-in nested directories. Supply individual images, multiple paths, or directories:
+Local/cloud choices must agree. Explicit cloud mode rejects `--ocr-mode`, and
+local/cloud detector or decision providers cannot be mixed. A local explicit
+OCR model does not change the profile's decision model. There is no provider
+fallback. The final detector receives the selected OCR text, never dataset
+references or individual transformation variants. See
+[recovery stages](ocr-recovery.md) for spatial retries and retained evidence.
 
 ```bash
 uv run vipi scan label.png screenshot.jpg
-uv run vipi scan ./images
 uv run vipi scan ./images --verbose
-uv run vipi scan ./images --modus cloud --detector openai --threshold 90 --output report.json
-uv run vipi scan ./images --exclude 'generated/' --exclude '*.webp'
 uv run vipi scan ./images --ocr-mode speed
-uv run vipi scan ./images --ocr-mode balanced
-uv run vipi scan ./images --ocr-model ppocr-v6-medium
-uv run vipi setup --ocr-mode speed
-uv run vipi setup --modus cloud
-uv run vipi scan ./images --modus cloud
-uv run vipi scan ./images --modus cloud --ocr-provider openai
-uv run vipi scan ./images --modus cloud --ocr-provider mistral
+uv run vipi scan image.png --modus cloud --ocr-provider mistral --decision-provider jev
+uv run vipi setup --ocr-mode balanced --detector prompt-guard
+uv run vipi scan ./images --ocr-mode balanced --detector prompt-guard
 ```
 
-| Scan option | Meaning | Default |
-| --- | --- | --- |
-| `--diff REFERENCE` | Scan committed images added or modified since the common ancestor with REFERENCE | Scan all supported images under the supplied paths |
-| `--exclude PATTERN` | Exclude a path; repeat to add ordered rules. Prefix with `!` to re-include | No user rules |
-| `--detector NAME` | Injection detector: `auto`, `clef`, `d1`, `prompt-guard`, `jev`, `openai`; must match execution mode | Same provider as OCR review |
-| `--modus NAME` | Full scan execution: `local` or `cloud` | `local`; an explicit cloud model also selects cloud for compatibility |
-| `--ocr-mode NAME` | Local OCR and decision profile: `speed`, `balanced`, `quality`; legacy alias `fast` | `quality` for local OCR |
-| `--decision-provider NAME` | Local: `clef`, `d1`; cloud: `openai`, `jev` | Local quality: Clef; balanced/speed/fast: d1; cloud: OpenAI Decisions |
-| `--ocr-provider NAME` | Cloud OCR: `google`, `openai`, `mistral`; requires `--modus cloud` | `google` in cloud mode |
-| `--ocr-model ID` | Select a supported model directly; cannot be combined with `--ocr-provider` | Model for the selected local profile or cloud provider |
-| `--threshold NUMBER` | Finding threshold on a 0–100 score scale; equality counts as a finding | `80` |
-| `--output FILE` | Also save the JSON report, including partial results and errors | Terminal output |
-| `--verbose` | Print the final extracted OCR text for each scanned image | Off |
+## Credentials and local models
 
-`--modus local` runs OCR, visual decisions and injection detection locally.
-Cloud mode sends image/OCR evidence to the selected hosted providers. Choices
-must match the execution mode. Cloud OCR has no local quality tiers:
+Environment variables take precedence over `.env` in the current directory.
+All aliases are checked in the environment first; an explicitly empty provider
+setting prevents fallback to the file. See [`.env.example`](../.env.example).
 
-| Provider | Model/service | Credential |
-| --- | --- | --- |
-| `google` (default) | Google Cloud Vision `DOCUMENT_TEXT_DETECTION` | `GOOGLE_CLOUD_API_KEY` or `GOOGLE_API_KEY` |
-| `openai` | `gpt-6-luna`, Responses API | `OPENAI_API_KEY` |
-| `mistral` | `mistral-ocr-4-1`, OCR API | `MISTRAL_API_KEY` |
+| Provider | Credential |
+| --- | --- |
+| Google OCR | `GOOGLE_CLOUD_API_KEY`, alias `GOOGLE_API_KEY` |
+| OpenAI OCR/review/detection | `OPENAI_API_KEY` |
+| Mistral OCR | `MISTRAL_API_KEY` |
+| Jev review/detection | `TYPESAFE_API_KEY`, alias `JEV_API_KEY` |
+| Clef/d1 | Prepared local weights and verified code; no inference API key |
+| Prompt Guard | Prepared local weights; authorized Hugging Face access (`HF_TOKEN` or existing login) for downloads |
 
-Configure cloud keys in the environment or the existing ignored `.env` file.
-Cloud setup makes no billable request and skips local weights. Credentials are
-checked at scan time. The shared recovery flow can submit selected transformed
-views for additional OCR; actual provider text, geometry and usage are saved.
-Transient visual-decision failures retry with backoff; provider failures produce
-incomplete scans (exit 2). There is no provider or execution-mode fallback.
-
-Explicit `--modus local` with a cloud model, `--modus cloud` with a local model,
-and `--ocr-provider` without cloud mode are rejected. `--ocr-mode` is a local
-profile and cannot be supplied with explicit cloud mode. Existing direct
-`--ocr-model mistral-ocr-4-1` calls continue to select cloud OCR.
-
-Provider charges apply; consult [Google pricing](https://cloud.google.com/vision/pricing),
-[OpenAI model documentation](https://developers.openai.com/api/docs/models/gpt-6-luna),
-and [Mistral OCR documentation](https://docs.mistral.ai/models/ocr-4-1).
+The `ocr` extra supplies local OCR and shared image operations. Local decision
+models and Prompt Guard additionally need `detector-local`. Local PP-OCRv6 runs
+through ONNX on CPU in the public scanner; decision models select available
+CUDA, Apple MPS or CPU. The research tools expose additional OCR backends.
+Cloud recovery can submit additional transformed images and make billable OCR
+and decision requests. Reports retain actual usage and unknown costs as unknown.
 
 ## Excluding images from local scans
 
-VIPI reads `.vipiignore` from the Git repository root. Outside a Git repository,
-it reads the file from the scanned directory, or the parent directory for an
-explicit image path. A missing file is allowed. Command-line `--exclude` rules
-are evaluated after file rules, in the order supplied; the last matching rule
-decides whether a path is skipped or scanned.
-
-The repository includes a [`.vipiignore.example`](../.vipiignore.example)
-template. Copy it to `.vipiignore` in your repository root and edit the rules.
+Copy [`.vipiignore.example`](../.vipiignore.example) to `.vipiignore`. VIPI reads
+it from the Git repository root, or the scanned directory/explicit file's parent
+outside Git. `--exclude` rules follow file rules; the last matching rule wins.
 
 ```text
-# Skip generated images and WebP files, except this reviewed image
 generated/
 *.webp
 !generated/reviewed.webp
 ```
 
-Rules use forward-slash paths relative to the rule root. A pattern without a
-slash, such as `*.webp`, matches a path component at any depth. A path pattern
-with a slash, such as `docs/logo.png`, matches from the rule root; a leading
-slash also anchors it there. A trailing slash marks a directory and its
-contents. `**` spans any number of directories. Blank lines and lines starting
-with `#` are ignored. The syntax supports ordered `!` re-inclusion and does not
-claim complete `.gitignore` compatibility.
+Patterns use forward-slash paths relative to the rule root. Names without `/`
+match a component at any depth; paths with `/` are rooted. A leading `/` anchors
+a pattern, a trailing `/` includes directory contents, and `**` spans directories.
+Blank lines and `#` comments are ignored. Ordered `!` rules re-include images
+within the requested scope, but cannot override built-in exclusions. To select
+only PNG files, use `*` followed by `!*.png`.
 
-Local scans include every supported image by default. To scan only PNG files,
-exclude every path first and then re-include PNG files:
-
-```text
-*
-!*.png
-```
-
-In this example, `generated/` and `*.webp` exclude images first, then
-`!generated/reviewed.webp` selects that one image. A later `--exclude '*.webp'`
-would exclude it again because the last matching rule wins. Put exceptions
-after broader exclusions when the image should be scanned. Re-included images
-remain within the requested scan path. Excluded paths and the matching rule are
-listed in the report; VIPI does not label excluded images as safe. Re-inclusion
-does not override built-in directory and cache exclusions.
-
-In this implementation slice, user rules apply to filesystem scans. Passing
-`--exclude` with `--diff`, or scanning a repository containing `.vipiignore`
-with `--diff`, returns an error until Git diff integration is completed.
-
-Verbose output labels each text block with its image path. Images with no extracted
-text are marked explicitly. The normal completion summary and errors remain visible
-without this option.
-
-In an interactive terminal, setup and scans show the large VIPI wordmark in a
-framed terminal banner and use a live spinner for the current step. VIPI uses
-color when the terminal supports it. Logs and redirected streams get a compact
-one-line name instead of the banner.
-
-The local OCR profile mapping is `speed` → PP-OCRv6 Tiny, `balanced` → Small and `quality`
-→ Medium. Omitting `--ocr-mode` keeps the previous Medium default by selecting
-`quality`. The explicit model ID overrides the mode; `ppocr-v6-medium` and the
-legacy ID `ppocr-v6` both select Medium. `vipi setup` prepares all three mode
-models by default, or only the requested mode/model when either setup option is
-provided. `fast` remains a compatibility alias for `speed`. `--ocr-model`
-accepts registered PP-OCRv6 IDs and all three cloud model/service IDs.
-
-Scans use the shared signal-driven recovery workflow described in
-[Product OCR recovery](ocr-recovery.md), including PDFMiner grouping for native
-boxed OCR, targeted orientation/contrast, guarded scaling, insertion recovery
-and original-resolution tiles. Original-only and legacy fixed-transform runs
-remain research controls. Reports retain resolved OCR execution/provider/model,
-decision provider, profile, pass counts, signals and fee estimates. The internal
-profile ID `adaptive-jev` is historical; the saved provider/model fields identify
-the actual local or cloud decision model. Images run sequentially with reused
-OCR and decision sessions.
-
-The threshold applies to the selected detector's normalized score, not a
-calibrated probability of an attack. Detection uses the final assembled OCR
-text; raw variant readings are saved as evidence but are not independently
-submitted to detectors. A below-threshold result does not prove safety.
-
-## Credentials and local detection
-
-External detectors read credentials from environment variables, with a `.env`
-in the current working directory as local fallback. Copy
-[`.env.example`](../.env.example) to `.env` and fill in the provider keys you
-use. Environment values take precedence; an explicitly empty variable disables
-the file fallback. Missing credentials fail before OCR processing.
-
-| Detector | Credential |
-| --- | --- |
-| Jev | `TYPESAFE_API_KEY`, with `JEV_API_KEY` as an alias |
-| OpenAI | `OPENAI_API_KEY` |
-| Prompt Guard | No inference API key; local weights required |
-| Clef / d1 | No inference API key; pinned local weights and model code prepared by setup |
-
-For local Prompt Guard, install the additional runtime and prepare its pinned
-revision. The model download requires authorized Hugging Face access and any
-required license acceptance; the Hugging Face client can use `HF_TOKEN`.
-
-```bash
-uv sync --extra ocr --extra detector-local
-uv run vipi setup --detector prompt-guard
-uv run vipi scan ./images --detector prompt-guard
-```
-
-Setup pins `meta-llama/Llama-Prompt-Guard-2-86M` to revision
-`a8ded8e697ce7c355e395a0df51f94adb4a2fd27`. The existing loader verifies model
-files and uses local weights without executing remote model code.
+This is a supported subset, not full `.gitignore` syntax. Excluded paths and
+their rules appear as skipped, not safe. User exclusions currently apply only
+to filesystem scans: `--diff` rejects `--exclude` and a repository `.vipiignore`.
 
 ## Branch and PR scans
 
@@ -212,111 +108,74 @@ files and uses local weights without executing remote model code.
 uv run vipi scan . --diff origin/main --output report.json
 ```
 
-This selects branch changes between the common ancestor of `origin/main` and
-`HEAD`, and `HEAD`. It reads each selected image's complete committed bytes from
-Git objects. Uncommitted edits and untracked files do not affect the scan. The
-reference may be a branch or commit. Paths restrict the selection; with `--diff`
-and no paths, the scope defaults to the current directory.
+Selection compares the common ancestor with HEAD against HEAD, then reads full
+committed image bytes from Git objects. Uncommitted edits and untracked files
+do not affect it. Paths restrict the selection. Deleted images are skipped;
+renames are deletion plus addition. Image symlinks are errors. Missing refs or
+insufficient history are errors; fetch the target and enough history first.
 
-Deleted images are excluded. Renames are treated as deletion plus addition, so
-the destination is scanned. Only regular Git image files are accepted; image
-symlinks produce an error. Changes exclusive to the target branch are excluded.
-Missing references or insufficient history produce an error, rather than an
-empty successful scan. Fetch the target branch and sufficient history first.
+## GitHub Action
 
-Use the packaged GitHub Action to scan changed images on pull requests:
+See the [complete workflow example](../README.md#github-actions).
 
-```yaml
-name: VIPI image scan
-on:
-  pull_request:
-    branches: [main]
-permissions:
-  contents: read
-jobs:
-  scan:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          fetch-depth: 0
-      - uses: EnXan/VIPI@v0.7.1
-        env:
-          TYPESAFE_API_KEY: ${{ secrets.TYPESAFE_API_KEY }}
-      - name: Upload scan report
-        if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: vipi-report
-          path: vipi-report.json
-```
+| Input | Default | Meaning |
+| --- | --- | --- |
+| `paths` | `.` | Newline-separated scan paths |
+| `base-ref` | Unset | Base branch for non-PR diffs; PRs always use their actual base branch |
+| `modus` | `local` | Full local/cloud execution mode |
+| `ocr-mode` | `quality` | Local profile; ignored in cloud mode |
+| `ocr-provider` | `google` | Cloud OCR; ignored in local mode |
+| `decision-provider` | Unset | Override the mode's decision model |
+| `detector` | `auto` | Final text detector |
+| `threshold` | `80` | Finding score on a 0–100 scale |
+| `report-path` | `vipi-report.json` | JSON output, also exposed as the `report-path` Action output |
 
-The Action installs VIPI from the tagged repository source, prepares the
-selected OCR model and detector, then scans the requested paths. On every
-`pull_request` or `pull_request_target` event, it automatically uses the PR base
-branch and scans only added or modified supported images. It reads the complete
-image bytes from Git at the PR commit, then runs OCR on each full image. The diff
-selects files; it does not reduce images to textual patches. The `paths` input
-can restrict the scan further. Outside PR events, it scans all supported images
-under `paths` unless `base-ref` is set explicitly. The checkout needs
-`fetch-depth: 0` so Git can find the common ancestor and base branch.
+The Action installs from the selected tag/commit and prepares the requested
+models. PR events scan images added/modified at the PR commit relative to the
+actual base, with `paths` restricting scope. Use checkout `fetch-depth: 0`.
+Outside PR events it scans all images under `paths`, unless `base-ref` is set.
 
-The default local decision model also detects injections. To select Prompt Guard
-for the final check while retaining d1 for OCR review:
-
-```yaml
-- uses: EnXan/VIPI@v0.7.1
-  with:
-    detector: prompt-guard
-    modus: local
-    ocr-mode: balanced
-  env:
-    HF_TOKEN: ${{ secrets.HF_TOKEN }}
-```
-
-OCR, d1 review and Prompt Guard inference run on the GitHub runner; it needs
-enough memory for the local decision runtime. Hugging Face requires
-access approval for the weights, and the model is under Meta's Llama 4 Community
-License; `HF_TOKEN` downloads the model and is not used for inference API calls.
-Jev and OpenAI require their API keys and can incur provider charges. Fork PRs
-normally receive neither repository secrets nor Hugging Face credentials, so
-those scans fail closed. All modes use GitHub runner time. A finding returns
-exit code 1 and an incomplete scan returns 2; the JSON report is written in
-either case. Use `if: always()` on an artifact upload step to retain it after
-either result. Public repositories can reference the Action with
-`EnXan/VIPI@<tag>`; consumers can pin a release tag or full commit SHA.
+For hosted execution, set `modus: cloud` and provide the OCR and decision keys.
+For local execution, ensure sufficient runner memory and authorized access to
+any gated weights. Fork PRs normally lack secrets. A finding returns 1 and an
+incomplete scan returns 2; upload reports with `if: always()` to retain either.
 
 ## Results and storage
 
 | Exit code | Meaning |
 | --- | --- |
-| `0` | Every selected image completed without a detection; also an empty image selection |
-| `1` | At least one detection, with all selected images completed |
-| `2` | Invalid configuration, unreadable image, missing models/key, provider failure, interruption or incomplete evidence |
+| `0` | All selected images completed without findings, including an empty selection |
+| `1` | At least one finding and all images completed |
+| `2` | Invalid settings, missing runtime/models/keys, provider failure, unreadable input, interruption or incomplete evidence |
 
-Errors take precedence over findings. A report may contain detections and still
-return 2. Empty final OCR text and below-threshold checks with incomplete context
-remain incomplete rather than being reported as clean. Explicit unsupported
-file inputs are errors. Directory scans list unsupported files as skipped and
-exclude `.git`, `.venv*`, `node_modules`, `__pycache__`, directory symlinks and the
-scanner's own cache. Image symlinks are errors. The report lists skipped paths,
-selected paths, per-image verdicts/scores, failures and files not scanned.
+Errors take precedence. Empty final OCR text is incomplete, not a clean result.
+Scores are operating thresholds, not calibrated attack probabilities.
+Explicit unsupported files are errors. Directory scans record unsupported files
+as skipped and exclude `.git`, `.venv*`, `node_modules`, `__pycache__`, directory
+symlinks and VIPI's cache. Image symlinks are errors.
 
-Reports include pinned OCR filenames and hashes, OCR runtime versions, detector
-model identity, threshold, timing, artifact paths and (for a diff) base,
-merge-base and HEAD commit IDs. JSON reports are written atomically, including
-when a scan returns 1 or 2. An output path cannot overwrite a selected image.
+Reports include resolved models, hashes, runtime identities, threshold, timing,
+usage/cost evidence, artifact paths, skipped/error/not-scanned inputs and diff
+commit IDs. `--output` cannot overwrite a selected image. Terminal output uses
+a live progress display when supported; redirected output uses a compact brand.
 
-Setup and scan share a user cache across working directories:
+| Platform | Default cache |
+| --- | --- |
+| macOS | `~/Library/Caches/vipi/` |
+| Linux | `~/.cache/vipi/` |
+| Windows | `%LOCALAPPDATA%/vipi/` |
 
-- macOS: `~/Library/Caches/vipi/`
-- Linux: `~/.cache/vipi/`
-- Windows: `%LOCALAPPDATA%/vipi/`
-- If set, `XDG_CACHE_HOME/vipi/` overrides the platform default.
+`XDG_CACHE_HOME/vipi/` overrides these defaults. OCR files live in `ocr/`, local
+decision models in `decisions/clef` and `decisions/d1`, Prompt Guard in
+`prompt-guard/`, and persistent input/variant/result artifacts in `runs/`.
 
-OCR weights live under `ocr/`, optional local detector weights under
-`prompt-guard/`, and persistent image runs under `runs/`. Runs include input
-copies, transformed images, OCR text and detector artifacts. CI can cache the
-model directories; cache keys should include the VIPI version and pinned model
-manifest. Large images may require substantial RAM, processing time and disk
-space; GitHub runner performance has not yet been benchmarked.
+## Platform validation status
+
+Earlier CLI versions were tested on macOS, Linux and Windows on 2026-10-24.
+That does not validate the current trained recovery models on every platform.
+Current unit/integration/research checks and package smoke tests use fixtures;
+CI runs on Ubuntu. The recorded trained Tiny+d1 run was on Apple MPS; see
+[the recovery measurement boundary](ocr-recovery.md#measurement-and-costs).
+Fresh Clef quality, cloud-provider and Windows/Linux inference require separate
+validation. A platform claim should record a fresh install, model setup, image
+and Git-diff scan, JSON output, exit codes and the actual model/provider.

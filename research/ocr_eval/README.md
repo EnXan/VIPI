@@ -10,28 +10,11 @@ and ignored by Git. From the repository root:
 uv run python -m research.download ocr_eval
 ```
 
-The catalog loader, metrics and research trials are grouped under `evaluation/`.
-Shared OCR recovery is implemented in `vipi.ocr.recovery`; the evaluation runner
-imports it directly. See [Product OCR recovery](../../docs/ocr-recovery.md) for
-the selected workflow and its measurement boundary.
-The [baseline protocol and complete candidate inventory](BASELINE.md) describe
-the original-image comparison and subsequent measured improvement rounds.
-The adaptive Research Workbench profile combines OpenAI Decisions correction
-selection with signal-based local tile OCR. Its full 113-image result, cost and
-provider comparison are summarized in
-[the current adaptive OCR report](GATED_OCR.md).
-The [adaptive Jev experiment](ADAPTIVE_JEV.md) records earlier transformation
-selection and review results separately from the current default.
-The [controlled Jev diagnosis](JEV_DIAGNOSIS.md) investigates why that first
-selector failed, without changing the pipeline during the experiment.
-The [raw detector and empty-region retry experiment](OCR_RAW_DETECTOR_EXPERIMENT.md)
-records a local test for OCR regions that were detected but not transcribed.
-The [PP-OCRv6 Medium detector benchmark](OCR_MEDIUM_DETECTOR.md) compares its
-box recall and CPU time with Tiny without running recognition retries.
-The [under-80% diagnosis](OCR_UNDER80_CAUSES.md) records the hypothetical
-threshold result and targeted follow-up trials for the remaining cases.
-The [local resolution correction trial](OCR_RESOLUTION_INSERTIONS.md) records
-a subsequent improvement to 94/113 strict passes, with the 80% count unchanged.
+`evaluation/` owns catalog loading, metrics and the workbench adapter.
+The shared scanner recovery lives in `vipi.ocr.recovery`; retained trials live
+under `experiments/`. See [product recovery](../../docs/ocr-recovery.md) for the
+selected workflow, [the baseline protocol](BASELINE.md) for active comparison
+models, and [historical reports](reports/README.md) for measured trial results.
 
 The catalog preserves exact transcripts, source references, rights, reference
 scope and word regions. Catalog image paths are relative to this directory.

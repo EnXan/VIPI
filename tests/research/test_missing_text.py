@@ -1,7 +1,7 @@
 from PIL import Image
 import pytest
 
-from research.ocr_eval.evaluation.missing_text import (
+from research.ocr_eval.experiments.missing_text import (
     find_uncovered,
     recognize_uncovered,
 )

@@ -76,10 +76,10 @@ The first selector run found that direct transformation prediction was
 unreliable. At the time, the profile remained opt-in; the OCR-first
 preview-selection pilot below tests the next architecture iteration. The
 current Research Workbench default is recorded in
-[ADR 0044](../../adr-code/0044-product-research-recovery.md). Local Clef/d1
+[ADR 0044](../../../adr-code/0044-product-research-recovery.md). Local Clef/d1
 tests were pending at the time of the historical experiment.
 
-See [Workbench usage](../workbench/README.md).
+See [Workbench usage](../../workbench/README.md).
 
 ## Follow-up diagnosis
 

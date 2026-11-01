@@ -13,6 +13,7 @@ def sha256(path):
 
 
 def write_json(path, value):
+    """Atomically replace a JSON document, rejecting non-finite numeric values."""
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary = None

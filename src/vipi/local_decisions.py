@@ -78,6 +78,8 @@ def prepare_model(name, directory):
 
 
 class LocalDecisionModel:
+    """Load verified, prepared Clef/d1 files and reuse their inference runtime."""
+
     def __init__(self, name, directory):
         self.name = name
         self.directory = Path(directory).resolve()
@@ -96,20 +98,12 @@ class LocalDecisionModel:
             if key not in _loaded:
                 import torch
 
-                device = (
-                    "cuda"
-                    if torch.cuda.is_available()
-                    else "mps"
-                    if torch.backends.mps.is_available()
-                    else "cpu"
-                )
-                dtype = (
-                    torch.float32
-                    if device == "cpu"
-                    else torch.float16
-                    if device == "mps"
-                    else torch.bfloat16
-                )
+                if torch.cuda.is_available():
+                    device, dtype = "cuda", torch.bfloat16
+                elif torch.backends.mps.is_available():
+                    device, dtype = "mps", torch.float16
+                else:
+                    device, dtype = "cpu", torch.float32
                 if self.name == "d1":
                     from transformers import AutoModel
 

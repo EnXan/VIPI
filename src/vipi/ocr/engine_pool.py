@@ -4,7 +4,8 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 import threading
 
-from .engines import OcrEngine, create_engine
+from .engines import create_engine
+from .types import OcrEngine
 from .runtime import threads_per_worker, validate_backend
 from .workers import worker_count
 

@@ -35,4 +35,4 @@ The full 113-image comparison improves from 93 to 94 strict passes, with zero
 pass regressions and one additional exact reference word. The 80%-coverage
 count remains 107. This is post-hoc development-set evidence for a small
 correction, not held-out validation or proof of improved attack recall. See
-[the experiment report](../research/ocr_eval/OCR_RESOLUTION_INSERTIONS.md).
+[the experiment report](../research/ocr_eval/reports/OCR_RESOLUTION_INSERTIONS.md).

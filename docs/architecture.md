@@ -50,7 +50,7 @@ detectors; dataset references never become classifier evidence.
 
 ## OCR implementation
 
-`OcrEngine.recognize(image)` returns text and regions in raster coordinates.
+`vipi.ocr.types.OcrEngine.recognize(image)` returns text and regions in raster coordinates.
 Transformation/assembly code uses this contract rather than a provider-specific
 result. `OcrSession` owns the engine pool, model verification and artifact details.
 Assembly preserves native line orientation and reads independent paragraph
@@ -74,7 +74,9 @@ The selected recovery workflow lives in `vipi.ocr.recovery`:
 | `resolution_retention`, `upscale_retry`, `reading_edits` | Token retention and supported corrections |
 
 `OcrSession` and research evaluation import this implementation directly.
-Shared engines, raster transforms, multi-view assembly and cost reporting stay
+Local engines and the factory stay in `engines`, hosted adapters in `cloud`,
+and their existing recognition contract in `types`. Raster transforms,
+multi-view assembly and cost reporting stay
 in `vipi.ocr`. Its separate `pipeline` module supports the workbench's native
 baseline and fixed-transform comparison profiles. `vipi.local_decisions` owns
 the prepared Clef/d1 runtimes reused by OCR review and injection detection.
@@ -88,10 +90,13 @@ limits, [CLI usage](cli.md) for execution modes and model selection, and
 `research/` imports `vipi`; `vipi` must not import `research` or Flask. Package
 initializers and model metadata imports do not load inference frameworks.
 
-- `research/workbench/`: local Flask UI, dataset browsing, uploads, batches, SSE
-  and diagnostic commands.
+- `research/workbench/`: local Flask UI and job orchestration in `web`;
+  catalog/run transport adapters in `dataset_routes` and `run_routes`; batch
+  scheduling in `batch`; report conversion in `reporting`. Browser report
+  rendering lives in `static/reports.js`, scan controls in `static/app.js`.
 - `research/ocr_eval/`: active OCR reference catalog, evaluation metrics and
-  the adapter used by the workbench.
+  the adapter used by the workbench. Retained trial operators live in
+  `experiments/`, with historical findings under `reports/`.
 - `research/detection_eval/`: reviewed image prompt-injection cases, labels and
   ignored local image files.
 

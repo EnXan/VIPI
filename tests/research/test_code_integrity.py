@@ -1,6 +1,6 @@
 import pytest
 
-from research.ocr_eval.evaluation.code_integrity import code_disagreements
+from research.ocr_eval.experiments.code_integrity import code_disagreements
 
 
 def group(text, x=0):
