@@ -1,0 +1,83 @@
+{
+  "method": "Independent arithmetic audit of retained steps.jsonl and decision response usage; no model/API calls. Input tokens include cache read/write subsets, priced once at standard global default-30m rates. Failed requests without usage remain unpriced. Local compute costs are unmeasured.",
+  "google_usd_per_1000_units": 1.5,
+  "decision_pricing": {
+    "checked_at": "2026-11-02",
+    "input_per_million": 0.1,
+    "cached_input_per_million": 0.01,
+    "cache_write_per_million": 0.125,
+    "cache_ttl": "30m",
+    "scope": "standard global rates; regional and long-context premiums excluded",
+    "source": "https://developers.openai.com/api/docs/guides/decisions",
+    "cache_source": "https://developers.openai.com/api/docs/guides/prompt-caching",
+    "rates_source": "https://developers.openai.com/api/docs/pricing"
+  },
+  "trials": {
+    "local-speed": {
+      "entries": 1113,
+      "statuses": {
+        "completed": 1113
+      },
+      "successful_units": 0,
+      "recorded_ocr_requests": 0,
+      "decision_input_tokens": 0,
+      "cached_input_tokens": 0,
+      "cache_write_tokens": 0,
+      "saved_decision_responses": 0,
+      "observed_decision_models": {},
+      "wall_seconds": 15254.186724708008,
+      "manifest_sha256": "b0d8339182a32d8298b04431af03dece73a1d6e39920c3e97a7414c61300f2a8",
+      "max_decision_request_input_tokens": 0,
+      "decision_requests": 0,
+      "requests_without_retained_usage": 0,
+      "legacy_flat_input_estimate_usd": 0,
+      "recorded_usage_estimate_usd": 0.0
+    },
+    "cloud-default": {
+      "entries": 1113,
+      "statuses": {
+        "completed": 1100,
+        "failed": 13
+      },
+      "successful_units": 4297,
+      "recorded_ocr_requests": 4307,
+      "decision_input_tokens": 8154628,
+      "cached_input_tokens": 2473,
+      "cache_write_tokens": 7350403,
+      "saved_decision_responses": 2104,
+      "observed_decision_models": {
+        "gpt-6-luna": 2104
+      },
+      "wall_seconds": 5688.864404875028,
+      "manifest_sha256": "50ea85413935787cdb5564ce5951fab46b5f63f11482ee124e1fee880b915f4c",
+      "max_decision_request_input_tokens": 49461,
+      "decision_requests": 2107,
+      "requests_without_retained_usage": 13,
+      "legacy_flat_input_estimate_usd": 7.2609628,
+      "recorded_usage_estimate_usd": 7.444500305
+    },
+    "original-cloud": {
+      "entries": 1113,
+      "statuses": {
+        "completed": 397,
+        "failed": 716
+      },
+      "successful_units": 2719,
+      "recorded_ocr_requests": 2720,
+      "decision_input_tokens": 1331993,
+      "cached_input_tokens": 3517,
+      "cache_write_tokens": 703057,
+      "saved_decision_responses": 1135,
+      "observed_decision_models": {
+        "gpt-6-luna": 1135
+      },
+      "wall_seconds": 3200.294122499996,
+      "manifest_sha256": "b0d8339182a32d8298b04431af03dece73a1d6e39920c3e97a7414c61300f2a8",
+      "max_decision_request_input_tokens": 2614,
+      "decision_requests": 1138,
+      "requests_without_retained_usage": 4,
+      "legacy_flat_input_estimate_usd": 4.2116993,
+      "recorded_usage_estimate_usd": 4.228959195
+    }
+  }
+}

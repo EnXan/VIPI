@@ -6,6 +6,42 @@ from vipi.config import GOOGLE_OCR_MODEL as GOOGLE_MODEL, LUNA_OCR_MODEL as LUNA
 
 PRICING_DATE = "2026-10-25"
 API_MODELS = (LUNA_MODEL, GOOGLE_MODEL, "mistral-ocr-4-1")
+DECISIONS_PRICING = {
+    "checked_at": "2026-11-02",
+    "input_per_million": 0.10,
+    "cached_input_per_million": 0.01,
+    "cache_write_per_million": 0.125,
+    "cache_ttl": "30m",
+    "scope": "standard global rates; regional and long-context premiums excluded",
+    "source": "https://developers.openai.com/api/docs/guides/decisions",
+    "cache_source": "https://developers.openai.com/api/docs/guides/prompt-caching",
+    "rates_source": "https://developers.openai.com/api/docs/pricing",
+}
+
+
+def decisions_estimated_usd(usage):
+    """Price default global Decisions usage, including 30-minute cache writes.
+
+    Read/write counts are subsets of input_tokens. Output is uncharged. These
+    list rates exclude discounts, regional/long-context premiums and unknown retries.
+    """
+    incoming = usage.get("input_tokens")
+    details = usage.get("input_tokens_details") or {}
+    cached = details.get("cached_tokens", 0)
+    written = details.get("cache_write_tokens", 0)
+    if (
+        any(
+            type(value) is not int or value < 0 for value in (incoming, cached, written)
+        )
+        or cached + written > incoming
+    ):
+        return None
+    rates = DECISIONS_PRICING
+    return (
+        (incoming - cached - written) * rates["input_per_million"]
+        + cached * rates["cached_input_per_million"]
+        + written * rates["cache_write_per_million"]
+    ) / 1_000_000
 
 
 def cost_for_result(result):
@@ -43,7 +79,7 @@ def cost_for_result(result):
             "ocr": ocr,
             "usage": [d["response"].get("usage") for d in decisions],
             "note": (
-                "Input-token estimate from the configured OpenAI Decisions rate; not an invoice."
+                "Sum of saved Decisions fee estimates; not an invoice."
                 if provider == "openai-decisions"
                 else "No external decision API fee; local compute is not measured."
                 if provider in {"clef", "d1"}

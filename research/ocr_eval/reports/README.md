@@ -1,4 +1,10 @@
-# Historical OCR reports
+# OCR reports
+
+Current measured product run: [1,113-entry local/cloud benchmark](PRODUCT_OCR_1113_2026-11-02.md),
+[per-image JSON and provenance](PRODUCT_OCR_1113_2026-11-02.json), and
+[protocol and limitations](../../../docs/ocr-benchmark.md).
+
+## Historical development trials
 
 These reports retain the measured protocols, results and limitations of the
 development trials. They do not describe the current scanner by default.

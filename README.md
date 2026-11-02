@@ -126,6 +126,51 @@ capacity only, not verified backend support. CUDA requires a compatible
 CUDA-enabled PyTorch build; source-checkout defaults use CPU Torch wheels on
 Linux/Windows. Cloud mode still processes images locally but hosts the models.
 
+## Measured OCR benchmark
+
+On 1–2 November 2026, the 0.7.1 PR candidate ran both configurations over the
+same **1,113 catalog entries, 1,106 distinct image files and 31,140 reference
+words**. Host: Apple M2, 8 CPU cores, 16 GB unified memory, macOS 27.0.1. Local
+OCR used CPU; d1 used MPS/FP16 with fresh processes every four images.
+
+| Configuration | Completed | Word coverage | Exact word coverage | Mean image coverage | Images ≥80% | Images at 100% |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Local speed: Tiny + d1 | 1,113/1,113 | 69.46% | 63.00% | 70.91% | 649/1,113 (58.31%) | 567/1,113 (50.94%) |
+| Cloud defaults: Google + OpenAI Decisions | 1,100/1,113 | 85.38% | 73.01% | 83.49% | 797/1,113 (71.61%) | 634/1,113 (56.96%) |
+
+These figures use every planned entry/reference word, giving failures zero
+credit. Word coverage uses evaluation v4's spelling tolerance; exact coverage
+is literal and case-sensitive. The 100% column measures tolerant coverage.
+
+| Category | N | Local: word coverage / ≥80% images / 100% images | Cloud: word coverage / ≥80% images / 100% images |
+| --- | ---: | ---: | ---: |
+| Typographic visual prompt injection | 125 | 99.72% / 100.00% / 96.80% | 97.50% / 97.60% / 97.60% |
+| TextOCR | 500 | 47.98% / 16.60% / 7.80% | 76.67% / 43.20% / 16.00% |
+| VPI-Bench | 125 | 99.76% / 100.00% / 95.20% | 97.64% / 98.40% / 97.60% |
+| CyberSecEval3 visual prompt injection | 125 | 70.31% / 72.80% / 60.80% | 88.90% / 90.40% / 83.20% |
+| MM-SafetyBench | 125 | 98.92% / 96.80% / 96.80% | 97.18% / 96.80% / 96.80% |
+| Scanner evaluation catalog | 113 | 96.19% / 92.04% / 80.53% | 95.47% / 90.27% / 75.22% |
+| Anamorpher subset, already included above | 3 | 28.57% / 0.00% / 0.00% | 71.43% / 66.67% / 66.67% |
+
+| Configuration | Total wall time | Wall time/image | Known-usage API-fee estimate, total / image |
+| --- | ---: | ---: | ---: |
+| Local speed | 4h 14m 14s | 13.71s | $0 / $0; local compute unmeasured |
+| Cloud defaults | 1h 34m 49s | 5.11s | $7.44450 / $0.006689; full fee unknown |
+
+Cloud retained nine service-unavailable failures, three review refusals and one
+request-size rejection. Fees include recorded cache reads/writes and partial
+work before failure; 13 requests have no retained usage. These are list-rate
+estimates before free quota, discounts and taxes, not invoices or total operating
+costs. Wall time includes process overhead and repeated local loading; category
+timings in the full report measure OCR calls separately.
+
+This measures **annotated OCR recovery**, including payload-only references,
+on a development dataset. It does not establish independent general OCR accuracy
+or injection-detection recall; the three Anamorpher samples are a small subset.
+See the [protocol, pinned dataset revision and failure history](https://github.com/EnXan/VIPI/blob/main/docs/ocr-benchmark.md),
+[full category/time/cost tables](https://github.com/EnXan/VIPI/blob/main/research/ocr_eval/reports/PRODUCT_OCR_1113_2026-11-02.md)
+and [per-image results and source hashes](https://github.com/EnXan/VIPI/blob/main/research/ocr_eval/reports/PRODUCT_OCR_1113_2026-11-02.json).
+
 ## Usage
 
 ```bash

@@ -30,6 +30,7 @@ Temporary planning and review queues belong in `.llm-plans/`.
 | [0042](0042-local-resolution-letter-insertions.md) | Trial local missing-letter corrections from a resolution probe |
 | [0044](0044-product-research-recovery.md) | Shared product recovery and full local/cloud execution (replaces 0021, 0027 and 0043) |
 | [0045](0045-shared-ocr-recovery-ownership.md) | Explicit recovery package ownership and direct research imports |
+| [0046](0046-product-ocr-benchmark.md) | Reproducible live product OCR benchmark and explicit reporting denominators |
 
 When revising an agreed decision, write its replacement with a summary of the
 old ADR (identifier, decision, rationale and reason for revision), then delete

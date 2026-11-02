@@ -14,7 +14,8 @@ uv run python -m research.download ocr_eval
 The shared scanner recovery lives in `vipi.ocr.recovery`; retained trials live
 under `experiments/`. See [product recovery](../../docs/ocr-recovery.md) for the
 selected workflow, [the baseline protocol](BASELINE.md) for active comparison
-models, and [historical reports](reports/README.md) for measured trial results.
+models, [the full product benchmark](../../docs/ocr-benchmark.md) for reproducible
+local/cloud runs, and [historical reports](reports/README.md) for measured trial results.
 
 The catalog preserves exact transcripts, source references, rights, reference
 scope and word regions. Catalog image paths are relative to this directory.

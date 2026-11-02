@@ -94,6 +94,25 @@ The standalone detector returns 0 when checks finish and 2 on operational
 failure or missing required text evidence; it is report-only. See
 [detection semantics and JSON formats](../research/workbench/DETECTION.md).
 
+## Product OCR benchmark
+
+```bash
+uv run python -m research.ocr_eval.benchmark runs/benchmarks/ocr-1113
+uv run python -m research.ocr_eval.benchmark_report runs/benchmarks/ocr-1113 --output runs/benchmarks/ocr-1113/report.json
+```
+
+`benchmark` requires a run directory and accepts `--configuration local-speed
+cloud-default` (both, sequentially, by default); either name can be used alone.
+The same command resumes a matching frozen run, retaining failed attempts.
+`benchmark_report` requires the run directory and `--output FILE`; optional
+`--cloud-directory DIR` uses a separate cloud trial with matching inputs/evaluation
+rules and retains each configuration's source provenance. It writes JSON and a
+Markdown sibling without inference. Both accept `-h` / `--help`. A successful
+runner exit means attempts were recorded, not that all OCR outputs passed;
+inspect report failure/unscored counts. Invalid inputs or unrecoverable worker
+startup errors exit nonzero. See the [benchmark protocol](ocr-benchmark.md) for
+metrics, timing, fees, artifacts and claim boundaries.
+
 ## Separate model environments
 
 `VIPI_OCR_PYTHON` selects the standard OCR interpreter; `VIPI_OCR_VLM_PYTHON`

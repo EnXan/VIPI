@@ -1,3 +1,5 @@
+import json
+
 import numpy as np
 from PIL import Image
 import pytest
@@ -281,6 +283,49 @@ def test_pair_comparison_sends_real_ocr_and_keep_options(tmp_path, monkeypatch):
     )
     saved = (tmp_path / "pair" / "request.json").read_text()
     assert "fixture-key" not in saved and "data:image/" not in saved
+
+
+@pytest.mark.parametrize(
+    "group, expected",
+    [
+        ({"text": "WORD", "box": [1, 2, 3, 4]}, [1, 2, 3, 4]),
+        (
+            {
+                "text": "WORD",
+                "polygon": [[40, 20], [80, 20], [80, 30], [40, 30]],
+                "input_polygon": [[20, 10], [40, 10], [40, 15], [20, 15]],
+            },
+            [40, 20, 80, 30],
+        ),
+    ],
+)
+def test_cloud_comparison_accepts_native_polygons_and_existing_group_boxes(
+    tmp_path, monkeypatch, group, expected
+):
+    payloads = []
+
+    def transport(url, key, payload, **options):
+        payloads.append(payload)
+        return {
+            "answers": [{"name": "comparison", **answer("equivalent")}],
+            "usage": {},
+        }, {}
+
+    monkeypatch.setenv("OPENAI_API_KEY", "fixture-key")
+    image = Image.new("RGB", (200, 100), "white")
+    attempt = {
+        "id": "0001",
+        "raster": image,
+        "text": "WORD",
+        "groups": [group],
+        "step": {"regions": []},
+    }
+    DecisionsDecider(transport=transport).compare(
+        image, attempt, {**attempt, "id": "0002"}, tmp_path / "pair"
+    )
+    state = json.loads(payloads[0]["input"][0]["content"][0]["text"])
+    assert state["incumbent"]["groups"] == [{"text": "WORD", "box": expected}]
+    assert state["candidate"]["groups"] == state["incumbent"]["groups"]
 
 
 def test_adaptive_cost_never_reports_zero_for_unpriced_jev_calls():

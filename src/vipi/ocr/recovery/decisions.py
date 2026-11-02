@@ -12,6 +12,8 @@ from PIL import Image, ImageOps
 
 from vipi.config import api_key, JEV_MODEL
 from vipi.detection.providers.http import post_json
+from vipi.ocr.merge import bounds
+from vipi.ocr.costs import decisions_estimated_usd
 from vipi.ocr.measured_transforms import ORIENTATIONS, orientation_view
 from vipi.ocr.transforms import render_view
 from vipi.storage.files import write_json
@@ -172,7 +174,12 @@ class _AdaptiveDecider:
                     else {
                         "ocr_text": attempt["text"],
                         "groups": [
-                            {"text": group["text"], "box": group["box"]}
+                            {
+                                "text": group["text"],
+                                "box": group["box"]
+                                if "box" in group
+                                else bounds(group["polygon"]),
+                            }
                             for group in attempt["groups"]
                         ],
                     }
@@ -493,14 +500,11 @@ class DecisionsDecider(_AdaptiveDecider):
         }
         for name, question in questions.items():
             read_choice(response, name, question["criteria"])
-        tokens = response["usage"].get("input_tokens")
         record = {
             "response": response,
             "elapsed_seconds": time.perf_counter() - started,
             "attempts": meta.get("attempts", 1),
-            "estimated_usd": tokens * 0.10 / 1_000_000
-            if isinstance(tokens, int) and tokens >= 0
-            else None,
+            "estimated_usd": decisions_estimated_usd(response["usage"]),
         }
         write_json(directory / "response.json", record)
         return record
