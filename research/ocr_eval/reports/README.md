@@ -4,6 +4,8 @@ Current measured product run: [1,113-entry local/cloud benchmark](PRODUCT_OCR_11
 [per-image JSON and provenance](PRODUCT_OCR_1113_2026-11-02.json), and
 [protocol and limitations](../../../docs/ocr-benchmark.md).
 
+Focused case analysis: [book-spine OCR diagnosis](BOOK_SPINE_DIAGNOSIS_2026-11-02.md).
+
 ## Historical development trials
 
 These reports retain the measured protocols, results and limitations of the
