@@ -2,8 +2,11 @@
 
 - [Repository working agreement](../AGENTS.md) and [decision records](../adr-code/README.md)
 - [CLI usage, Secrets, PR scans and platform status](cli.md)
+- [Models, overrides and hardware estimates](models.md)
 - [Architecture and package boundaries](architecture.md)
+- [OCR recovery flow and measured limits](ocr-recovery.md)
 - [Development setup and checks](development.md)
+- [Complete research CLI reference](research-cli.md)
 - [Research environment and tools](../research/README.md)
 - [Download evaluation images](../research/README.md#download-images) and
   [contribute new images](../research/README.md#add-images)

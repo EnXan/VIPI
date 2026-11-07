@@ -30,7 +30,8 @@ from vipi.ocr.runtime import DEFAULT_BACKEND, threads_per_worker, validate_backe
 from vipi.cancellation import check_cancelled
 from .model_registry import backend_for, SINGLE_PASS_MODELS
 from .model_runtime import ModelInitializationError
-from .ocr_costs import cost_for_result, performance_summary
+from .reporting import ocr_record, performance_summary
+from vipi.ocr.costs import cost_for_result
 
 
 def reference_digest(reference):
@@ -61,7 +62,7 @@ class Batch:
             raise ValueError("Choose each OCR model once.")
         for selected_model in selected_models:
             validate_backend(selected_model, backend_for(selected_model, backend))
-        if ocr_profile == "baseline":
+        if ocr_profile in {"baseline", "adaptive-jev"}:
             workers = 1
         catalogs = catalog if isinstance(catalog, dict) else {dataset: catalog}
         selections = [
@@ -369,51 +370,13 @@ class Batch:
                     backend=pool.backend,
                     cancel_event=self.cancel_event,
                 )
-                evaluation = result.get("evaluation")
                 detection_result = (
                     detection_service.enqueue(check_store, options).result()
                     if check_store
                     else None
                 )
                 with self.lock:
-                    item.update(
-                        state="running",
-                        recognized_text=result.get("text", ""),
-                        ocr_profile=result.get("ocr_profile"),
-                        elapsed_seconds=result.get("elapsed_seconds"),
-                        cost=result.get("cost"),
-                        inference_seconds=sum(
-                            step.get("preprocessing", {}).get(
-                                "runtime_inference_seconds",
-                                step.get("timing", {}).get("ocr_seconds", 0),
-                            )
-                            for step in result.get("variants", [])
-                        ),
-                        initialization_seconds=sum(
-                            step.get("timing", {}).get("engine_acquire_seconds", 0)
-                            + step.get("preprocessing", {}).get(
-                                "runtime_initialization_seconds", 0
-                            )
-                            for step in result.get("variants", [])
-                        ),
-                    )
-                    if evaluation:
-                        item.update(
-                            valid=evaluation["valid"],
-                            coverage=evaluation["final"]["coverage"],
-                            missing=evaluation["final"]["missing"],
-                            exact_valid=evaluation["final"]["exact"]["valid"],
-                            exact_coverage=evaluation["final"]["exact"]["coverage"],
-                            exact_missing=evaluation["final"]["exact"]["missing"],
-                            pipeline_coverage=evaluation["detection"]["coverage"],
-                            final_valid=evaluation["final"]["valid"],
-                            best_step_id=evaluation["best_step_id"],
-                            effects=evaluation["effects"],
-                        )
-                    if result.get("evaluation_unavailable"):
-                        item["scoring_unavailable"] = result["evaluation_unavailable"][
-                            "reason"
-                        ]
+                    item.update(ocr_record(result))
                     if check_store:
                         item["detection"] = {
                             "check_id": check_store.id,

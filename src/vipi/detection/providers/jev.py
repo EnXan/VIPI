@@ -1,6 +1,6 @@
 """Direct TypeSafe System One API (Noul is a scalar, not confidence)."""
 
-from vipi.config import api_key
+from vipi.config import api_key, JEV_MODEL
 from ..policy import INSTRUCTIONS, QUESTION_ID
 from ..verdict import probability
 from .http import post_json
@@ -8,7 +8,7 @@ from .http import post_json
 
 class Jev:
     name = "jev"
-    model = "jev-1.13.0"
+    model = JEV_MODEL
     identity = model
     native = False
 

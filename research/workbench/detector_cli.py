@@ -16,7 +16,8 @@ from vipi.detection.pipeline import detect_saved_run as detect
 from vipi.detection.providers.prompt_guard import MODEL_DIR, prepare_model
 
 
-def main(argv=None):
+def build_parser():
+    """Build the CLI contract without starting inference or model downloads."""
     parser = argparse.ArgumentParser(description="VIPI prompt-injection detector")
     commands = parser.add_subparsers(dest="command", required=True)
     scan = commands.add_parser("detect", help="Inspect a saved OCR run")
@@ -31,6 +32,11 @@ def main(argv=None):
     )
     prepare.add_argument("--revision", required=True)
     prepare.add_argument("--detector-models-dir", type=Path, default=Path(MODEL_DIR))
+    return parser
+
+
+def main(argv=None):
+    parser = build_parser()
     args = parser.parse_args(argv)
     try:
         if args.command == "prepare-detector":

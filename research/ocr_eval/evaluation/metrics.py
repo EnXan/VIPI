@@ -7,7 +7,7 @@ from collections import Counter
 from vipi.ocr.merge import bounds
 from .words import WORD_ERROR_RATE, word_distance, word_matches, words
 
-EVALUATION_VERSION = 3
+EVALUATION_VERSION = 4
 
 
 def evaluation_policy():
@@ -20,6 +20,14 @@ def evaluation_policy():
         "normalization": "NFKC, casefold and punctuation removal for tolerant coverage only",
         "exact": "literal case-sensitive words including attached symbols; standalone punctuation excluded",
         "word_splits": "adjacent OCR fragments may cover one reference word",
+        "region_order": (
+            "word order is preserved within each reference region; "
+            "order between regions is ignored"
+        ),
+        "region_grouping": (
+            "observations overlapping multiple independent reference regions "
+            "are reported as conflicts and prevent passing"
+        ),
         "reference_scope": "annotated reference only, not necessarily all visible image text",
     }
 
@@ -131,6 +139,32 @@ def final_observations(regions, variants):
     return observations
 
 
+def region_group_conflicts(reference, observations):
+    if not reference.get("regions_are_independent"):
+        return []
+    reference_boxes = [
+        bounds(region["input_polygon"]) for region in reference["regions"]
+    ]
+    conflicts = []
+    for index, observation in enumerate(observations):
+        polygon = observation.get("input_polygon")
+        if not polygon:
+            continue
+        matched_regions = [
+            region_index
+            for region_index, box in enumerate(reference_boxes)
+            if box_overlap(bounds(polygon), box) >= 0.5
+        ]
+        if len(matched_regions) > 1:
+            conflicts.append(
+                {
+                    "observation_index": index,
+                    "reference_region_indexes": matched_regions,
+                }
+            )
+    return conflicts
+
+
 def region_matches(
     reference, observations, *, word_mode=False, exact=False, cache=None
 ):
@@ -217,7 +251,12 @@ def compare(reference, text, regions):
         if not reference["regions"]:
             raise ValueError("Unordered references require annotated word regions.")
         expected, matched = region_matches(reference, regions)
-    return score(expected, matched), expected, matched
+    result = score(expected, matched)
+    conflicts = region_group_conflicts(reference, regions)
+    if conflicts:
+        result["valid"] = False
+        result["group_conflicts"] = conflicts
+    return result, expected, matched
 
 
 def compare_words(reference, text, regions, *, cache=None):
@@ -232,8 +271,13 @@ def compare_words(reference, text, regions, *, cache=None):
             reference, regions, word_mode=True, cache=cache
         )
         _, exact = region_matches(reference, regions, word_mode=True, exact=True)
+    conflicts = region_group_conflicts(reference, regions)
     result = score(expected, matched)
     result["exact"] = score(expected, exact)
+    if conflicts:
+        result["valid"] = False
+        result["exact"]["valid"] = False
+        result["group_conflicts"] = conflicts
     return result, expected, matched
 
 
@@ -279,7 +323,7 @@ def effect_summary(evaluations, variants):
     return list(effects.values())
 
 
-def evaluate(reference, text, regions, variants):
+def evaluate(reference, text, regions, variants, *, include_effects=True):
     evaluations, all_matched, cache = {}, set(), {}
     for step in variants:
         result, expected, matched = compare_words(
@@ -326,7 +370,7 @@ def evaluate(reference, text, regions, variants):
             step["id"] for step in variants if evaluations[step["id"]]["valid"]
         ],
         "steps": evaluations,
-        "effects": effect_summary(evaluations, variants),
+        "effects": effect_summary(evaluations, variants) if include_effects else [],
     }
 
 

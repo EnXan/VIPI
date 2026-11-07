@@ -12,11 +12,13 @@ class OcrResult:
     regions: list[dict]
     variants: list[dict]
     input_size: list[int]
-    assembly_version: int | None
+    assembly_version: int | str | None
     elapsed_seconds: float
     artifacts: Path | None = None
     image: bytes | None = field(default=None, repr=False)
     ocr_profile: str = "legacy-unrecorded"
+    selection: dict = field(default_factory=dict)
+    cost: dict = field(default_factory=dict)
 
     @classmethod
     def from_dict(cls, data, *, artifacts=None, image=None):
@@ -35,6 +37,8 @@ class OcrResult:
                 )
             },
             ocr_profile=data.get("ocr_profile", "legacy-unrecorded"),
+            selection=data.get("selection", {}),
+            cost=data.get("cost", {}),
             artifacts=artifacts,
             image=image,
         )
@@ -52,6 +56,8 @@ class OcrResult:
                 "input_size",
                 "assembly_version",
                 "elapsed_seconds",
+                "selection",
+                "cost",
             )
         }
 

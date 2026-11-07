@@ -26,7 +26,8 @@ def parse_workers(value):
         raise argparse.ArgumentTypeError(str(error)) from error
 
 
-def main(argv=None):
+def build_parser():
+    """Build the CLI contract without starting inference or model downloads."""
     parser = argparse.ArgumentParser(description="VIPI local image-to-text pipeline")
     subparsers = parser.add_subparsers(dest="command", required=True)
     prepare = subparsers.add_parser(
@@ -71,7 +72,7 @@ def main(argv=None):
         "--workers",
         type=parse_workers,
         default=DEFAULT_WORKERS,
-        help="Transformation workers, 1–8 (default: 4); baseline uses one worker",
+        help="Transformation workers, 1–8 (default: 4); baseline and adaptive use one worker",
     )
     merge = subparsers.add_parser(
         "reassemble", help="Reassemble saved OCR results without rerunning OCR"
@@ -89,6 +90,11 @@ def main(argv=None):
         type=Path,
         default=Path("models/detector/prompt-guard-2-86m"),
     )
+    return parser
+
+
+def main(argv=None):
+    parser = build_parser()
     args = parser.parse_args(argv)
     try:
         detection_options = None
@@ -180,7 +186,7 @@ def main(argv=None):
                     workers=(
                         1
                         if args.model in WORKBENCH_OCR_MODELS
-                        or args.ocr_profile == "baseline"
+                        or args.ocr_profile in {"baseline", "adaptive-jev"}
                         else args.workers
                     ),
                     reference=reference,

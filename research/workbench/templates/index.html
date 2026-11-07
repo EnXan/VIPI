@@ -7,6 +7,7 @@
   <link rel="icon" href="/static/brand/favicon.svg">
   <link rel="stylesheet" href="/static/brand/tokens.css">
   <link rel="stylesheet" href="/static/style.css">
+  <script src="{{ url_for('static', filename='reports.js') }}" defer></script>
   <script src="/static/app.js" defer></script>
   <script src="/static/detection.js" defer></script>
 </head>
@@ -70,7 +71,7 @@
         <div class="option-grid">
           <fieldset class="classifier-checklist" id="ocr-model-selection"><legend>OCR models</legend><div id="ocr-model-options"></div><p class="muted">Selected models run one after another in the order shown. Each model scans all selected images.</p></fieldset>
           <select id="model" aria-label="Current OCR model" hidden></select>
-          <label>OCR profile<select id="ocr-profile" aria-label="OCR profile" required><option value="baseline" selected>Original only · baseline</option><option value="transforms">Previous VIPI pipeline · control</option></select><span class="muted runtime-note">Baseline uses native OCR once and preserves the model's text. The previous VIPI profile includes its customized processing and assembly.</span></label>
+          <label>OCR profile<select id="ocr-profile" aria-label="OCR profile" required><option value="adaptive-jev">Current research · Decisions + local recovery</option><option value="baseline" selected>Original only · local baseline</option><option value="transforms">Previous VIPI pipeline · local control</option></select><span class="muted runtime-note">The adaptive profile uses the shared product recovery flow. Local quality signals decide whether image previews and OCR text need review by OpenAI Decisions. Large images and detected small text also receive local overlapping-tile OCR when the OCR returns spatial boxes. Tile output is kept only when it preserves every word already read. Choose baseline or control for local-only OCR.</span></label>
           <label>Hardware<select id="backend" aria-label="Hardware backend" required></select><span id="backend-note" class="muted runtime-note"></span></label>
           <label>Parallel workers<select id="workers" aria-label="Parallel workers" required>{% for count in range(1, max_workers + 1) %}<option value="{{ count }}"{% if count == default_workers %} selected{% endif %}>{{ count }}</option>{% endfor %}</select></label>
           <fieldset id="text-classifiers" class="classifier-checklist">

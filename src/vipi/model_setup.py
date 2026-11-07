@@ -6,7 +6,8 @@ from .config import (
     CLOUD_OCR_MODELS,
     PROMPT_GUARD_REVISION,
     cache_directory,
-    resolve_ocr_model,
+    LOCAL_DECISION_PROVIDERS,
+    ScanOptions,
 )
 
 
@@ -17,18 +18,23 @@ def setup(
     ocr_model=None,
     ocr_execution_mode=None,
     ocr_provider=None,
+    decision_provider=None,
     progress=None,
 ):
     from .ocr.models import MODEL_NAMES, prepare_models
 
     notify = progress or print
     root = cache_directory()
-    selected_model = resolve_ocr_model(
-        ocr_mode or DEFAULT_OCR_MODE,
-        ocr_model,
-        execution_mode=ocr_execution_mode,
-        provider=ocr_provider,
+    options = ScanOptions(
+        detector=detector,
+        ocr_mode=ocr_mode or DEFAULT_OCR_MODE,
+        ocr_model=ocr_model,
+        ocr_execution_mode=ocr_execution_mode,
+        ocr_provider=ocr_provider,
+        decision_provider=decision_provider,
     )
+    detector = options.resolved_detector
+    selected_model = options.resolved_ocr_model
     model = None
     if (
         ocr_mode is not None
@@ -52,4 +58,14 @@ def setup(
 
         notify("Preparing Prompt Guard 2 86M")
         prepare_model(root / "prompt-guard", revision=PROMPT_GUARD_REVISION)
+    local_models = {
+        name
+        for name in (options.resolved_decision_provider, detector)
+        if name in LOCAL_DECISION_PROVIDERS
+    }
+    for name in sorted(local_models):
+        from .local_decisions import prepare_model
+
+        notify(f"Preparing local decision model {name}")
+        prepare_model(name, root / "decisions" / name)
     return root

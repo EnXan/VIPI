@@ -2,7 +2,7 @@
 
 Accepted package boundaries are recorded in [ADR 0002](../adr-code/0002-product-and-research-boundaries.md).
 The public scan contract is recorded in [ADR 0003](../adr-code/0003-public-cli-contract.md).
-The current OCR profile and evaluation boundary are recorded in [ADR 0021](../adr-code/0021-low-contrast-ocr-profile.md).
+The current OCR profile and evaluation boundary are recorded in [ADR 0044](../adr-code/0044-product-research-recovery.md).
 Research module ownership and dataset distribution are recorded in
 [ADR 0012](../adr-code/0012-hugging-face-evaluation-dataset.md).
 
@@ -48,39 +48,59 @@ previous runs and replaying compatible provider answers. Both adapters share the
 same detection and verdict implementation. Only final OCR text enters text
 detectors; dataset references never become classifier evidence.
 
-## OCR replacement
+## OCR implementation
 
-`OcrEngine.recognize(image)` returns text and regions in raster coordinates.
+`vipi.ocr.types.OcrEngine.recognize(image)` returns text and regions in raster coordinates.
 Transformation/assembly code uses this contract rather than a provider-specific
 result. `OcrSession` owns the engine pool, model verification and artifact details.
-Assembly preserves native line orientation and reads independent paragraph
-columns within horizontal bands; simple aligned tables retain row order.
-It keeps competing readings as evidence and records its assembly version.
+Geometry matching lives in `vipi.ocr.merge_geometry`; `vipi.ocr.merge` selects
+observed readings and assembles lines in page reading order. Assembly preserves
+native line orientation and reads independent paragraph columns within horizontal
+bands; simple aligned tables retain row order. Competing readings remain evidence,
+and each result records its assembly version.
 See [ADR 0020](../adr-code/0020-ocr-assembly-geometry-and-reading-order.md)
 for the geometry rules and validation boundary.
 `OCR_MODES`, `REQUIRED` and `model_files.json` map the public speed/quality modes
 to checksum-pinned models. Setup and scan use that same description. A model
 replacement changes this package/adapter, not input selection or detector code.
 
-`--modus local|cloud` selects OCR execution. Local profiles are `quality`,
-`balanced` and `speed` (`fast` remains an alias); cloud providers are `google`
-(default), `openai` and `mistral`. `vipi.config` resolves these selections for
-setup, scanning and Python sessions. An explicit legacy cloud model remains an
-opt-in to that provider. Contradictory execution/model/provider choices fail
-before inference. Providers run once per original image and retain raw text;
-they share the same adapters between product and Workbench. OCR provider and
-downstream detector selection are independent. See
-[ADR 0027](../adr-code/0027-local-and-cloud-ocr-selection.md).
+The selected recovery workflow lives in `vipi.ocr.recovery`:
+
+| Module | Owns |
+| --- | --- |
+| `pipeline` | Engine lifetime, run state, completion and artifact persistence |
+| `attempts`, `selection` | Transformed OCR attempts, recovery routing and candidate review |
+| `decisions`, `decision_adapters` | Shared decision questions and local/hosted request adapters |
+| `signals`, `extended_signals` | Local quality evidence and recovery routing |
+| `layout`, `_layout_*` | Grouping in the readable image's coordinate frame |
+| `probes`, `tiles` | Guarded resolution recovery and source-resolution tile retries |
+| `resolution_retention`, `reading_edits` | Token retention and supported corrections |
+
+`OcrSession` and research evaluation import this implementation directly.
+Local engines and the factory stay in `engines`, hosted adapters in `cloud`,
+and their existing recognition contract in `types`. Raster transforms,
+multi-view assembly and per-run API cost estimates stay in `vipi.ocr`. The
+workbench owns batch-level performance summaries in `reporting`.
+`vipi.ocr.pipeline` supports the workbench's native baseline and fixed-transform
+comparison profiles. `vipi.local_decisions` owns
+the prepared Clef/d1 runtimes reused by OCR review and injection detection.
+
+See [Product OCR recovery](ocr-recovery.md) for the recovery stages and measured
+limits, [CLI usage](cli.md) for execution modes and model selection, and
+[ADR 0045](../adr-code/0045-shared-ocr-recovery-ownership.md) for package ownership.
 
 ## Research boundary
 
 `research/` imports `vipi`; `vipi` must not import `research` or Flask. Package
 initializers and model metadata imports do not load inference frameworks.
 
-- `research/workbench/`: local Flask UI, dataset browsing, uploads, batches, SSE
-  and diagnostic commands.
+- `research/workbench/`: local Flask UI and job orchestration in `web`;
+  catalog/run transport adapters in `dataset_routes` and `run_routes`; batch
+  scheduling in `batch`; report conversion in `reporting`. Browser report
+  rendering lives in `static/reports.js`, scan controls in `static/app.js`.
 - `research/ocr_eval/`: active OCR reference catalog, evaluation metrics and
-  the adapter used by the workbench.
+  the adapter used by the workbench. Retained trial operators live in
+  `experiments/`, with historical findings under `reports/`.
 - `research/detection_eval/`: reviewed image prompt-injection cases, labels and
   ignored local image files.
 

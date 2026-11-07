@@ -1,0 +1,78 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 300" role="img" aria-labelledby="title desc">
+  <title id="title">VIPI scans images before an AI agent reads them</title>
+  <desc id="desc">An image goes to VIPI first. VIPI reads the text in the image and checks it for prompt injections. Clean images continue to the AI agent; for images with an injection, your workflow decides whether to report, block or allow them.</desc>
+  <defs>
+    <style>
+      .bg { fill: #FFFFFF; stroke: rgba(11,12,16,.12); }
+      .dot { fill: rgba(11,12,16,.10); }
+      .card { fill: #F2F3F5; stroke: rgba(11,12,16,.16); }
+      .ink { fill: #0B0C10; }
+      .paper { fill: #F2F3F5; }
+      .wire { fill: none; stroke: #5C616C; stroke-width: 1.5; }
+      .head { fill: #5C616C; }
+      .frame { fill: none; stroke: #0B0C10; stroke-width: 1.5; }
+      .hidden { fill: #0B0C10; opacity: .45; }
+      .title { fill: #0B0C10; font: 500 17px "Geist", "Helvetica Neue", Arial, sans-serif; letter-spacing: -0.01em; }
+      .mono { fill: #5C616C; font: 500 11px "Geist Mono", ui-monospace, Menlo, Consolas, monospace; letter-spacing: .08em; }
+      .mono-inv { fill: #A3A8B2; font: 500 11px "Geist Mono", ui-monospace, Menlo, Consolas, monospace; letter-spacing: .08em; }
+      .clean { fill: #30A46C; }
+      .injection { fill: #E5484D; }
+      @media (prefers-color-scheme: dark) {
+        .bg { fill: #121318; stroke: rgba(242,243,245,.12); }
+        .dot { fill: rgba(242,243,245,.09); }
+        .card { fill: #0B0C10; stroke: rgba(242,243,245,.16); }
+        .ink { fill: #F2F3F5; }
+        .paper { fill: #0B0C10; }
+        .wire { stroke: #A3A8B2; }
+        .head { fill: #A3A8B2; }
+        .frame { stroke: #F2F3F5; }
+        .hidden { fill: #F2F3F5; }
+        .title { fill: #F2F3F5; }
+        .mono { fill: #A3A8B2; }
+        .mono-inv { fill: #5C616C; }
+      }
+    </style>
+    <pattern id="raster" width="24" height="24" patternUnits="userSpaceOnUse" x="12" y="12">
+      <circle class="dot" cx="12" cy="12" r="1.2"/>
+    </pattern>
+  </defs>
+
+  <rect class="bg" x="0.5" y="0.5" width="999" height="299" rx="4"/>
+  <rect x="1" y="1" width="998" height="298" rx="4" fill="url(#raster)"/>
+
+  <!-- 1 · Image input: an image whose instruction sits in sub-pixel "hidden" marks -->
+  <rect class="card" x="24.5" y="115.5" width="240" height="90" rx="4"/>
+  <rect class="frame" x="44.75" y="141.75" width="40" height="36" rx="2"/>
+  <g class="hidden">
+    <rect x="51" y="152" width="3" height="3"/><rect x="57" y="152" width="3" height="3"/><rect x="63" y="152" width="3" height="3"/><rect x="69" y="152" width="3" height="3"/><rect x="75" y="152" width="3" height="3"/>
+    <rect x="51" y="160" width="3" height="3"/><rect x="57" y="160" width="3" height="3"/><rect x="63" y="160" width="3" height="3"/>
+    <rect x="51" y="168" width="3" height="3"/><rect x="57" y="168" width="3" height="3"/><rect x="63" y="168" width="3" height="3"/><rect x="69" y="168" width="3" height="3"/>
+  </g>
+  <text class="title" x="102" y="166">Image input</text>
+
+  <path class="wire" d="M265 160H326"/>
+  <path class="head" d="M334 160l-9-5v10z"/>
+
+  <!-- 2 · VIPI -->
+  <rect class="ink" x="334" y="100" width="240" height="120" rx="4"/>
+  <g transform="translate(397 120) scale(.6)">
+    <path class="paper" d="M10,30 L10,50 L20,50 L20,60 L30,60 L30,70 L40,70 L40,60 L50,60 L50,50 L60,50 L60,30 L70,30 L70,0 L50,0 L50,30 L40,30 L40,50 L30,50 L30,30 L20,30 L20,0 L0,0 L0,30 Z M80,0 L80,70 L100,70 L100,0 Z M113.5,3.5 h3 v3 h-3 Z M123.5,3.5 h3 v3 h-3 Z M133.5,3.5 h3 v3 h-3 Z M143.5,3.5 h3 v3 h-3 Z M113.5,13.5 h3 v3 h-3 Z M123.5,13.5 h3 v3 h-3 Z M143.5,13.5 h3 v3 h-3 Z M153.5,13.5 h3 v3 h-3 Z M113.5,23.5 h3 v3 h-3 Z M123.5,23.5 h3 v3 h-3 Z M143.5,23.5 h3 v3 h-3 Z M153.5,23.5 h3 v3 h-3 Z M113.5,33.5 h3 v3 h-3 Z M123.5,33.5 h3 v3 h-3 Z M133.5,33.5 h3 v3 h-3 Z M143.5,33.5 h3 v3 h-3 Z M113.5,43.5 h3 v3 h-3 Z M123.5,43.5 h3 v3 h-3 Z M113.5,53.5 h3 v3 h-3 Z M123.5,53.5 h3 v3 h-3 Z M113.5,63.5 h3 v3 h-3 Z M123.5,63.5 h3 v3 h-3 Z M173.5,3.5 h3 v3 h-3 Z M183.5,3.5 h3 v3 h-3 Z M173.5,13.5 h3 v3 h-3 Z M183.5,13.5 h3 v3 h-3 Z M173.5,23.5 h3 v3 h-3 Z M183.5,23.5 h3 v3 h-3 Z M173.5,33.5 h3 v3 h-3 Z M183.5,33.5 h3 v3 h-3 Z M173.5,43.5 h3 v3 h-3 Z M183.5,43.5 h3 v3 h-3 Z M173.5,53.5 h3 v3 h-3 Z M183.5,53.5 h3 v3 h-3 Z M173.5,63.5 h3 v3 h-3 Z M183.5,63.5 h3 v3 h-3 Z"/>
+  </g>
+  <text class="mono-inv" x="454" y="196" text-anchor="middle">INJECTION SCAN</text>
+
+  <!-- 3 · Result routes the image -->
+  <path class="wire" d="M574 160H634M634 90V230M634 90H736M634 230H736"/>
+  <path class="head" d="M744 90l-9-5v10z"/>
+  <path class="head" d="M744 230l-9-5v10z"/>
+
+  <rect class="clean" x="652" y="73" width="8" height="8"/>
+  <text class="mono" x="667" y="81">CLEAN</text>
+  <rect class="injection" x="652" y="213" width="8" height="8"/>
+  <text class="mono" x="667" y="221">INJECTION</text>
+
+  <rect class="card" x="744.5" y="55.5" width="231" height="70" rx="4"/>
+  <text class="title" x="764" y="96">AI agent</text>
+
+  <rect class="card" x="744.5" y="195.5" width="231" height="70" rx="4"/>
+  <text class="title" x="764" y="236">Respond</text>
+</svg>

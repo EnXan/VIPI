@@ -14,10 +14,15 @@ from vipi.ocr.transforms import BASELINE_OCR_PROFILE
 
 
 @pytest.mark.parametrize(
-    "profile,workers", [(None, 1), ("baseline", 1), ("transforms", 4)]
+    "profile,workers,expected_profile",
+    [
+        (None, 1, "baseline"),
+        ("baseline", 1, "baseline"),
+        ("transforms", 4, "transforms"),
+    ],
 )
-def test_cli_uses_recorded_profile_and_single_baseline_worker(
-    monkeypatch, profile, workers
+def test_cli_uses_recorded_profile_and_profile_worker_count(
+    monkeypatch, profile, workers, expected_profile
 ):
     from research.workbench.__main__ import main
 
@@ -32,11 +37,11 @@ def test_cli_uses_recorded_profile_and_single_baseline_worker(
     if profile:
         args += ["--ocr-profile", profile]
     assert main(args) == 0
-    assert calls[0]["ocr_profile"] == (profile or "baseline")
+    assert calls[0]["ocr_profile"] == expected_profile
     assert calls[0]["workers"] == workers
 
 
-def test_web_defaults_to_one_original_call_and_rejects_invalid_profile(
+def test_web_defaults_to_original_control_and_rejects_invalid_profile(
     tmp_path, monkeypatch
 ):
     from research.workbench.web import create_app
@@ -131,7 +136,11 @@ def test_profile_selects_native_backend_and_preserves_injected_engines(
         calls.append(kwargs)
 
     monkeypatch.setattr("vipi.ocr.engines.create_engine", create)
-    for profile, native in (("baseline", True), ("transforms", False)):
+    for profile, native in (
+        ("baseline", True),
+        ("transforms", False),
+        ("adaptive-jev", True),
+    ):
         engine_factory_for(profile, workers=1)("ppocr-v6", tmp_path)
         assert calls[-1]["native_pipeline"] is native
 
@@ -139,7 +148,7 @@ def test_profile_selects_native_backend_and_preserves_injected_engines(
         return None
 
     assert engine_factory_for("baseline", override=injected) is injected
-    with pytest.raises(ValueError, match="baseline or transforms"):
+    with pytest.raises(ValueError, match="baseline, transforms or adaptive-jev"):
         validate_profile("unknown")
 
 
@@ -155,7 +164,7 @@ def test_baseline_batch_runs_each_selected_image_once_and_records_profile(
             return {"text": "Required", "regions": [], "preprocessing": {}}
 
     root = dataset_repository / "runs"
-    batch = Batch(root, catalog, list(catalog.items), "test", 4)
+    batch = Batch(root, catalog, list(catalog.items), "test", 4, ocr_profile="baseline")
     batch.run(root, dataset_repository / "models", catalog, {}, lambda *args: Engine())
     report = json.loads((batch.directory / "report.json").read_text())
     assert report["state"] == "completed"
@@ -173,7 +182,7 @@ def test_batch_records_current_source_without_freeze_gate(dataset_repository):
     catalog = Catalog(dataset_repository)
     identifier = next(iter(catalog.items))
     root = dataset_repository / "runs"
-    batch = Batch(root, catalog, [identifier], "test", 1)
+    batch = Batch(root, catalog, [identifier], "test", 1, ocr_profile="baseline")
     before = batch.status["items"][0]["input_sha256"]
     Image.new("RGB", (32, 24), "black").save(catalog.path(identifier))
 

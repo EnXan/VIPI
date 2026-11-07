@@ -8,8 +8,18 @@ from pathlib import Path
 
 from dotenv import dotenv_values
 
-DETECTORS = ("jev", "openai", "prompt-guard")
-DEFAULT_DETECTOR = "jev"
+LOCAL_DECISION_PROVIDERS = ("clef", "d1")
+CLOUD_DECISION_PROVIDERS = ("jev", "openai")
+LOCAL_DETECTORS = (*LOCAL_DECISION_PROVIDERS, "prompt-guard")
+DETECTORS = (
+    "auto",
+    *CLOUD_DECISION_PROVIDERS,
+    "prompt-guard",
+    *LOCAL_DECISION_PROVIDERS,
+)
+DEFAULT_DETECTOR = "auto"
+DECISION_PROVIDERS = (*LOCAL_DECISION_PROVIDERS, *CLOUD_DECISION_PROVIDERS)
+JEV_MODEL = "jev-1.14.0"
 DEFAULT_THRESHOLD = 80
 OCR_MODES = {
     "speed": "ppocr-v6-tiny",
@@ -50,6 +60,7 @@ PROMPT_GUARD_REVISION = "a8ded8e697ce7c355e395a0df51f94adb4a2fd27"
 def resolve_ocr_model(
     mode=DEFAULT_OCR_MODE, model=None, *, execution_mode=None, provider=None
 ):
+    """Resolve profile/provider aliases and reject contradictory execution choices."""
     if mode not in OCR_MODES:
         raise ValueError(
             "Choose the speed, balanced or quality OCR mode (fast is a legacy alias)."
@@ -84,12 +95,15 @@ def resolve_ocr_model(
 
 @dataclass(frozen=True)
 class ScanOptions:
+    """Validated scan settings shared by the CLI and Python entrypoints."""
+
     detector: str = DEFAULT_DETECTOR
     threshold: float = DEFAULT_THRESHOLD
     ocr_mode: str = DEFAULT_OCR_MODE
     ocr_model: str | None = None
     ocr_execution_mode: str | None = None
     ocr_provider: str | None = None
+    decision_provider: str | None = None
 
     def __post_init__(self):
         if self.detector not in DETECTORS:
@@ -102,6 +116,8 @@ class ScanOptions:
         ):
             raise ValueError("Threshold must be a number between 0 and 100.")
         self.resolved_ocr_model
+        self.resolved_decision_provider
+        self.resolved_detector
 
     @property
     def resolved_ocr_model(self):
@@ -131,14 +147,50 @@ class ScanOptions:
     def resolved_ocr_mode(self):
         return self.ocr_mode if self.resolved_ocr_execution_mode == "local" else None
 
+    @property
+    def resolved_decision_provider(self):
+        """Resolve OCR review without mixing local and hosted execution."""
+        local = self.resolved_ocr_execution_mode == "local"
+        if self.decision_provider:
+            selected = self.decision_provider
+        elif not local:
+            selected = "openai"
+        elif self.ocr_mode == "quality":
+            selected = "clef"
+        else:
+            selected = "d1"
+        if selected not in DECISION_PROVIDERS:
+            raise ValueError("Choose clef, d1, jev or openai as the decision provider.")
+        if (selected in LOCAL_DECISION_PROVIDERS) != local:
+            raise ValueError(
+                "The decision provider conflicts with --modus; local execution requires clef or d1, cloud requires jev or openai."
+            )
+        return selected
+
+    @property
+    def resolved_detector(self):
+        selected = (
+            self.resolved_decision_provider
+            if self.detector == "auto"
+            else self.detector
+        )
+        local = self.resolved_ocr_execution_mode == "local"
+        if (selected in LOCAL_DETECTORS) != local:
+            raise ValueError(
+                "The injection detector conflicts with --modus; local execution requires a local detector."
+            )
+        return selected
+
     def detection_options(self):
         from .detection.pipeline import settings
 
         return settings(
-            text_classifier=self.detector,
+            text_classifier=self.resolved_detector,
             thresholds={
                 "version": "vipi-cli-score-v1",
-                "signals": {self.detector: {"threshold": self.threshold / 100}},
+                "signals": {
+                    self.resolved_detector: {"threshold": self.threshold / 100}
+                },
             },
         )
 

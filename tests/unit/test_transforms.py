@@ -44,7 +44,9 @@ def test_reduced_transform_profile_and_large_image_skip():
     assert len(production_passes_for_size(3200, 3200)) == 14
     assert len(production_passes_for_size(2000, 1000)) == 15
     assert len(production_passes_for_size(2001, 1000)) == 14
-    assert all(view.backend not in {"tile", "pytorch", "tensorflow"} for view, _ in passes)
+    assert all(
+        view.backend not in {"tile", "pytorch", "tensorflow"} for view, _ in passes
+    )
 
 
 @pytest.mark.parametrize("angle", [90, 180, 270])
@@ -70,6 +72,25 @@ def test_floor_dimensions_and_actual_mapping():
     assert min(view.width for view in views_for_size(1, 1)) == 1
     with pytest.raises(ValueError, match="80 megapixels"):
         views_for_size(5000, 5000)
+
+
+def test_original_cloud_view_keeps_source_dimensions_above_view_resize_limit():
+    view = views_for_size(
+        10_000,
+        9_000,
+        selected_ids={"original-unchanged-1x"},
+    )[0]
+    assert (view.width, view.height) == (10_000, 9_000)
+    assert view.backend == "original"
+
+
+def test_image_decoder_can_defer_the_application_pixel_limit(tmp_path):
+    source = tmp_path / "large.png"
+    Image.new("RGB", (40, 30), (25, 50, 75)).save(source)
+
+    with pytest.raises(ValueError, match="0.001199 megapixels"):
+        decode_image(source, max_pixels=1200 - 1)
+    assert decode_image(source, max_pixels=None).size == (40, 30)
 
 
 def test_nearest_sampling_phases():

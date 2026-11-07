@@ -1,14 +1,95 @@
 """Dated API list-rate estimates, separate from provider invoices and local compute."""
 
-from statistics import mean, median
-import math
 from vipi.config import GOOGLE_OCR_MODEL as GOOGLE_MODEL, LUNA_OCR_MODEL as LUNA_MODEL
 
 PRICING_DATE = "2026-10-25"
 API_MODELS = (LUNA_MODEL, GOOGLE_MODEL, "mistral-ocr-4-1")
+DECISIONS_PRICING = {
+    "checked_at": "2026-11-02",
+    "input_per_million": 0.10,
+    "cached_input_per_million": 0.01,
+    "cache_write_per_million": 0.125,
+    "cache_ttl": "30m",
+    "scope": "standard global rates; regional and long-context premiums excluded",
+    "source": "https://developers.openai.com/api/docs/guides/decisions",
+    "cache_source": "https://developers.openai.com/api/docs/guides/prompt-caching",
+    "rates_source": "https://developers.openai.com/api/docs/pricing",
+}
+
+
+def decisions_estimated_usd(usage):
+    """Price default global Decisions usage, including 30-minute cache writes.
+
+    Read/write counts are subsets of input_tokens. Output is uncharged. These
+    list rates exclude discounts, regional/long-context premiums and unknown retries.
+    """
+    incoming = usage.get("input_tokens")
+    details = usage.get("input_tokens_details") or {}
+    cached = details.get("cached_tokens", 0)
+    written = details.get("cache_write_tokens", 0)
+    if (
+        any(
+            type(value) is not int or value < 0 for value in (incoming, cached, written)
+        )
+        or cached + written > incoming
+    ):
+        return None
+    rates = DECISIONS_PRICING
+    return (
+        (incoming - cached - written) * rates["input_per_million"]
+        + cached * rates["cached_input_per_million"]
+        + written * rates["cache_write_per_million"]
+    ) / 1_000_000
 
 
 def cost_for_result(result):
+    """Estimate saved OCR and visual-decision API charges for one run."""
+    selection = result.get("selection")
+    if selection:
+        decisions = []
+        for decision in selection["decisions"]:
+            decisions.extend(decision.get("records", [decision]))
+        estimates = [decision.get("estimated_usd") for decision in decisions]
+        provider = selection.get("provider")
+        estimate = (
+            sum(estimates)
+            if all(isinstance(value, (int, float)) for value in estimates)
+            else None
+        )
+        ocr = _ocr_cost_for_result(result)
+        total = (
+            estimate + ocr["estimated_usd"]
+            if estimate is not None and ocr["estimated_usd"] is not None
+            else None
+        )
+        cloud = provider in {"openai-decisions", "jev"}
+        return {
+            "currency": "USD",
+            "estimated_usd": total,
+            "selection_estimated_usd": estimate,
+            "selection_api_calls": len(decisions) if cloud else 0,
+            "selection_http_attempts": sum(d.get("attempts", 1) for d in decisions)
+            if cloud
+            else 0,
+            "ocr_api_calls": len(result.get("variants", []))
+            if result["model"] in API_MODELS
+            else 0,
+            "kind": "ocr_and_visual_selection",
+            "ocr": ocr,
+            "usage": [d["response"].get("usage") for d in decisions],
+            "note": (
+                "Sum of saved Decisions fee estimates; not an invoice."
+                if provider == "openai-decisions"
+                else "No external decision API fee; local compute is not measured."
+                if provider in {"clef", "d1"}
+                else "Jev usage is recorded. Total API cost is unknown because no verified Jev rate is configured."
+            ),
+        }
+    return _ocr_cost_for_result(result)
+
+
+def _ocr_cost_for_result(result):
+    """Estimate OCR fees from each recorded provider usage entry."""
     model = result["model"]
     if model not in API_MODELS:
         return {
@@ -89,50 +170,4 @@ def cost_for_result(result):
                 else ""
             )
         ).strip(),
-    }
-
-
-def performance_summary(items):
-    done = [
-        item
-        for item in items
-        if item["state"] in {"completed", "failed"}
-        or (item["state"] == "cancelled" and item.get("run_id"))
-    ]
-    times = sorted(
-        item["elapsed_seconds"]
-        for item in done
-        if isinstance(item.get("elapsed_seconds"), (int, float))
-    )
-    costs = [item.get("cost") or {} for item in done]
-    amounts = [
-        cost["estimated_usd"]
-        for cost in costs
-        if isinstance(cost.get("estimated_usd"), (int, float))
-    ]
-    unknown = len(done) - len(amounts)
-    subtotal = sum(amounts)
-    complete = subtotal if done and not unknown else None
-    valid = sum(item.get("valid") is True for item in done)
-    return {
-        "measured_images": len(times),
-        "total_seconds": sum(times),
-        "mean_seconds": mean(times) if times else None,
-        "median_seconds": median(times) if times else None,
-        "initialization_seconds": sum(
-            item.get("initialization_seconds", 0) for item in done
-        ),
-        "inference_seconds": sum(item.get("inference_seconds", 0) for item in done),
-        "p95_seconds": times[max(0, math.ceil(len(times) * 0.95) - 1)]
-        if times
-        else None,
-        "known_estimated_api_cost_usd": subtotal,
-        "estimated_api_cost_usd": complete,
-        "cost_unknown_images": unknown,
-        "estimated_api_cost_per_image_usd": complete / len(done)
-        if complete is not None
-        else None,
-        "estimated_api_cost_per_pass_usd": complete / valid
-        if complete is not None and valid
-        else None,
     }

@@ -7,11 +7,17 @@ from pathlib import Path
 from huggingface_hub import snapshot_download
 
 
-def main(argv=None):
+def build_parser():
+    """Build the CLI contract without starting inference or model downloads."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "suite", choices=("all", "detection_eval", "ocr_eval"), nargs="?", default="all"
     )
+    return parser
+
+
+def main(argv=None):
+    parser = build_parser()
     args = parser.parse_args(argv)
     root = Path(__file__).resolve().parent
     dataset = json.loads((root / "dataset.json").read_text(encoding="utf-8"))

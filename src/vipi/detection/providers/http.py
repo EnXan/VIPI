@@ -17,7 +17,9 @@ class NoRedirect(urllib.request.HTTPRedirectHandler):
         return None
 
 
-def post_json(url, key, body, *, timeout=30, attempts=3, sleep=time.sleep):
+def post_json(
+    url, key, body, *, timeout=30, attempts=3, sleep=time.sleep, headers=None
+):
     request = urllib.request.Request(
         url,
         data=json.dumps(body, ensure_ascii=False).encode(),
@@ -25,6 +27,7 @@ def post_json(url, key, body, *, timeout=30, attempts=3, sleep=time.sleep):
             "Authorization": f"Bearer {key}",
             "Content-Type": "application/json",
             "User-Agent": "VIPI-Detector/0.1",
+            **(headers or {}),
         },
     )
     opener = urllib.request.build_opener(NoRedirect())
