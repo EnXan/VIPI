@@ -41,6 +41,44 @@ See [Development](docs/development.md) for available commands and setup details.
 - Do not commit API keys, credentials, downloaded model weights, or generated
   run artifacts.
 
+## Evaluating improvements
+
+A change that claims to improve OCR, image-text detection, injection detection
+or the end-to-end scan needs a matched comparison, not just a higher primary
+score. Currently supported paths are `ocr/cloud-default` and
+`ocr/local-speed`; see the [contribution evaluation guide](research/contrib_eval/README.md)
+for details.
+
+1. **Name the affected path** before editing: the capability and its
+   configuration (mode, provider/model, profile). Include only paths your
+   change can affect.
+2. **Check the baseline before changing code.** Run
+   `uv run python -m research.contrib_eval status <path>`. `fresh` means the
+   latest committed baseline matches the current suite and configuration.
+3. **Refresh a stale or missing baseline** on unmodified code:
+   `uv run python -m research.contrib_eval run <path> --role baseline`, then
+   commit its summary. Run only the affected path. A baseline produced after
+   implementation started does not count.
+4. **Run the candidate on the identical cases:**
+   `uv run python -m research.contrib_eval run <path> --role candidate --against <baseline-run-id>`.
+   A candidate whose inputs differ from the baseline is refused unless you
+   record the reason with `--allow-mismatch`; such a run is not a direct
+   comparison.
+5. **Compare and report:**
+   `uv run python -m research.contrib_eval compare <baseline-run-id> <candidate-run-id>`.
+   Link the generated Markdown report in the pull request. Keep OCR, detection
+   and end-to-end outcomes separate, and include failures, time, resources and
+   cost.
+6. **Review value against complexity.** Describe the modules, branches,
+   dependencies and operational requirements you added, and whether the
+   measured change justifies them. A small gain does not automatically justify
+   a large expansion.
+
+Use the `development` split for all of this. The `test` split is reserved for
+one confirmation run before a default, profile or threshold changes
+(`--confirm-test-split`); never iterate or tune on it. Live runs call providers
+and may incur charges; check a request with `--dry-run` first.
+
 ## Pull requests
 
 1. Create a branch for your change (or work in a fork).

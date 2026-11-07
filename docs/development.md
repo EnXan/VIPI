@@ -35,6 +35,10 @@ uv run ruff check src/vipi research tests
 uv build
 ```
 
+Changes that claim a quality or efficiency improvement also need a matched
+baseline/candidate comparison; see
+[evaluating improvements](../CONTRIBUTING.md#evaluating-improvements).
+
 Tests use temporary catalogs, fixture engines and simulated provider responses;
 they require no paid API calls. Builds and help smoke tests do not establish
 trained-model accuracy. Report the actual operating system/model tested; see

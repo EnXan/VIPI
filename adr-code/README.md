@@ -34,6 +34,7 @@ Temporary planning and review queues belong in `.llm-plans/`.
 | [0047](0047-cloud-decision-image-resolution.md) | Preserve full-resolution images for cloud decisions |
 | [0048](0048-separate-ocr-completeness-and-repair.md) | Separate OCR completeness from repair selection |
 | [0049](0049-provider-specific-confidence-validation.md) | Validate provider confidence against OCR reference outcomes |
+| [0050](0050-contribution-evaluation-pipeline.md) | Matched contribution evaluation on a grouped development/test split |
 
 When revising an agreed decision, write its replacement with a summary of the
 old ADR (identifier, decision, rationale and reason for revision), then delete

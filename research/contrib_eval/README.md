@@ -2,7 +2,9 @@
 
 Tools that make a contribution's evaluation comparable: one frozen split of
 both pinned catalogs, a freshness check for the latest committed baseline, and
-scoped baseline/candidate runs and a comparison report.
+scoped baseline/candidate runs and a comparison report. The contributor
+workflow is in [CONTRIBUTING.md](../../CONTRIBUTING.md#evaluating-improvements);
+the design is recorded in [ADR 0050](../../adr-code/0050-contribution-evaluation-pipeline.md).
 
 ## Splits
 
