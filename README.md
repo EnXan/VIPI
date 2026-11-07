@@ -1,6 +1,10 @@
 <h1 align="center">
-  <img src="https://raw.githubusercontent.com/EnXan/VIPI/main/assets/motion/vipi-reveal.gif" alt="VIPI" width="720">
+  VIPI — Visual Prompt Injection Scanner for Images
 </h1>
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/EnXan/VIPI/main/assets/motion/vipi-reveal.gif" alt="Animated VIPI logo reveal" width="720">
+</p>
 
 <p align="center">
   <b>Scan images for prompt injections before an AI agent reads them.</b><br>
