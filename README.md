@@ -1,5 +1,5 @@
 <h1 align="center">
-  <img src="assets/motion/vipi-reveal.gif" alt="VIPI" width="720">
+  <img src="https://raw.githubusercontent.com/EnXan/VIPI/main/assets/motion/vipi-reveal.gif" alt="VIPI" width="720">
 </h1>
 
 <p align="center">
@@ -26,7 +26,7 @@ changes.
   on them.
 
 <p align="center">
-  <img src="assets/diagrams/vipi-scan-flow.svg" alt="VIPI scans an image before it reaches an AI agent. Clean images continue to the agent; for images with findings, your workflow reports, blocks or allows them." width="900">
+  <img src="https://raw.githubusercontent.com/EnXan/VIPI/main/assets/diagrams/vipi-scan-flow.svg" alt="VIPI scans an image before it reaches an AI agent. Clean images continue to the agent; for images with findings, your workflow reports, blocks or allows them." width="900">
 </p>
 
 ## Quick start
@@ -62,9 +62,9 @@ uncertain. The mode decides who provides the models.
 
 | Step | Local `quality` (default) | Local `balanced` | Local `speed` | Cloud |
 | :-- | :-- | :-- | :-- | :-- |
-| 1 · Read text | <img src="assets/providers/paddlepaddle.svg" width="14" height="14" alt="PaddlePaddle"> PP-OCRv6 Medium<br><sub>or Small · Tiny</sub> | <img src="assets/providers/paddlepaddle.svg" width="14" height="14" alt="PaddlePaddle"> PP-OCRv6 Small<br><sub>or Medium · Tiny</sub> | <img src="assets/providers/paddlepaddle.svg" width="14" height="14" alt="PaddlePaddle"> PP-OCRv6 Tiny<br><sub>or Medium · Small</sub> | <img src="assets/providers/google.svg" width="14" height="14" alt="Google"> Cloud Vision<br><sub>or <img src="assets/providers/openai.svg" width="12" height="12" alt=""> OpenAI · <img src="assets/providers/mistralai.svg" width="12" height="12" alt=""> Mistral</sub> |
-| 2 · Verify OCR visually | <img src="assets/providers/cloudflare.svg" width="14" height="14" alt="Cloudflare"> Clef 27B<br><sub>or <img src="assets/providers/liquidai.svg" width="12" height="12" alt="Liquid AI"> d1 3B</sub> | <img src="assets/providers/liquidai.svg" width="14" height="14" alt="Liquid AI"> d1 3B<br><sub>or <img src="assets/providers/cloudflare.svg" width="12" height="12" alt="Cloudflare"> Clef 27B</sub> | <img src="assets/providers/liquidai.svg" width="14" height="14" alt="Liquid AI"> d1 3B<br><sub>or <img src="assets/providers/cloudflare.svg" width="12" height="12" alt="Cloudflare"> Clef 27B</sub> | <img src="assets/providers/openai.svg" width="14" height="14" alt="OpenAI"> Decisions API<br><sub>or <img src="assets/providers/typesafe.svg" width="12" height="12" alt=""> TypeSafe Jev</sub> |
-| 3 · Detect injections | <img src="assets/providers/cloudflare.svg" width="14" height="14" alt="Cloudflare"> Clef 27B<br><sub>or <img src="assets/providers/liquidai.svg" width="12" height="12" alt="Liquid AI"> d1 3B · <img src="assets/providers/meta.svg" width="12" height="12" alt="Meta"> Prompt Guard 2</sub> | <img src="assets/providers/liquidai.svg" width="14" height="14" alt="Liquid AI"> d1 3B<br><sub>or <img src="assets/providers/cloudflare.svg" width="12" height="12" alt="Cloudflare"> Clef 27B · <img src="assets/providers/meta.svg" width="12" height="12" alt="Meta"> Prompt Guard 2</sub> | <img src="assets/providers/liquidai.svg" width="14" height="14" alt="Liquid AI"> d1 3B<br><sub>or <img src="assets/providers/cloudflare.svg" width="12" height="12" alt="Cloudflare"> Clef 27B · <img src="assets/providers/meta.svg" width="12" height="12" alt="Meta"> Prompt Guard 2</sub> | <img src="assets/providers/openai.svg" width="14" height="14" alt="OpenAI"> Decisions API<br><sub>or <img src="assets/providers/typesafe.svg" width="12" height="12" alt=""> TypeSafe Jev</sub> |
+| 1 · Read text | <img src="https://raw.githubusercontent.com/EnXan/VIPI/main/assets/providers/paddlepaddle.svg" width="14" height="14" alt="PaddlePaddle"> PP-OCRv6 Medium<br><sub>or Small · Tiny</sub> | <img src="https://raw.githubusercontent.com/EnXan/VIPI/main/assets/providers/paddlepaddle.svg" width="14" height="14" alt="PaddlePaddle"> PP-OCRv6 Small<br><sub>or Medium · Tiny</sub> | <img src="https://raw.githubusercontent.com/EnXan/VIPI/main/assets/providers/paddlepaddle.svg" width="14" height="14" alt="PaddlePaddle"> PP-OCRv6 Tiny<br><sub>or Medium · Small</sub> | <img src="https://raw.githubusercontent.com/EnXan/VIPI/main/assets/providers/google.svg" width="14" height="14" alt="Google"> Cloud Vision<br><sub>or <img src="https://raw.githubusercontent.com/EnXan/VIPI/main/assets/providers/openai.svg" width="12" height="12" alt=""> OpenAI · <img src="https://raw.githubusercontent.com/EnXan/VIPI/main/assets/providers/mistralai.svg" width="12" height="12" alt=""> Mistral</sub> |
+| 2 · Verify OCR visually | <img src="https://raw.githubusercontent.com/EnXan/VIPI/main/assets/providers/cloudflare.svg" width="14" height="14" alt="Cloudflare"> Clef 27B<br><sub>or <img src="https://raw.githubusercontent.com/EnXan/VIPI/main/assets/providers/liquidai.svg" width="12" height="12" alt="Liquid AI"> d1 3B</sub> | <img src="https://raw.githubusercontent.com/EnXan/VIPI/main/assets/providers/liquidai.svg" width="14" height="14" alt="Liquid AI"> d1 3B<br><sub>or <img src="https://raw.githubusercontent.com/EnXan/VIPI/main/assets/providers/cloudflare.svg" width="12" height="12" alt="Cloudflare"> Clef 27B</sub> | <img src="https://raw.githubusercontent.com/EnXan/VIPI/main/assets/providers/liquidai.svg" width="14" height="14" alt="Liquid AI"> d1 3B<br><sub>or <img src="https://raw.githubusercontent.com/EnXan/VIPI/main/assets/providers/cloudflare.svg" width="12" height="12" alt="Cloudflare"> Clef 27B</sub> | <img src="https://raw.githubusercontent.com/EnXan/VIPI/main/assets/providers/openai.svg" width="14" height="14" alt="OpenAI"> Decisions API<br><sub>or <img src="https://raw.githubusercontent.com/EnXan/VIPI/main/assets/providers/typesafe.svg" width="12" height="12" alt=""> TypeSafe Jev</sub> |
+| 3 · Detect injections | <img src="https://raw.githubusercontent.com/EnXan/VIPI/main/assets/providers/cloudflare.svg" width="14" height="14" alt="Cloudflare"> Clef 27B<br><sub>or <img src="https://raw.githubusercontent.com/EnXan/VIPI/main/assets/providers/liquidai.svg" width="12" height="12" alt="Liquid AI"> d1 3B · <img src="https://raw.githubusercontent.com/EnXan/VIPI/main/assets/providers/meta.svg" width="12" height="12" alt="Meta"> Prompt Guard 2</sub> | <img src="https://raw.githubusercontent.com/EnXan/VIPI/main/assets/providers/liquidai.svg" width="14" height="14" alt="Liquid AI"> d1 3B<br><sub>or <img src="https://raw.githubusercontent.com/EnXan/VIPI/main/assets/providers/cloudflare.svg" width="12" height="12" alt="Cloudflare"> Clef 27B · <img src="https://raw.githubusercontent.com/EnXan/VIPI/main/assets/providers/meta.svg" width="12" height="12" alt="Meta"> Prompt Guard 2</sub> | <img src="https://raw.githubusercontent.com/EnXan/VIPI/main/assets/providers/liquidai.svg" width="14" height="14" alt="Liquid AI"> d1 3B<br><sub>or <img src="https://raw.githubusercontent.com/EnXan/VIPI/main/assets/providers/cloudflare.svg" width="12" height="12" alt="Cloudflare"> Clef 27B · <img src="https://raw.githubusercontent.com/EnXan/VIPI/main/assets/providers/meta.svg" width="12" height="12" alt="Meta"> Prompt Guard 2</sub> | <img src="https://raw.githubusercontent.com/EnXan/VIPI/main/assets/providers/openai.svg" width="14" height="14" alt="OpenAI"> Decisions API<br><sub>or <img src="https://raw.githubusercontent.com/EnXan/VIPI/main/assets/providers/typesafe.svg" width="12" height="12" alt=""> TypeSafe Jev</sub> |
 | Memory&nbsp;¹ | ~128 GB RAM | ~24 GB RAM | ~24 GB RAM | ~8 GB RAM |
 
 ¹ Untested planning estimates for CPU-only use with the defaults. GPU alternatives, disk space,
@@ -80,15 +80,25 @@ vipi scan . --diff origin/main --output report.json
 vipi scan image.png --modus cloud --detector openai --threshold 90
 ```
 
+| Format | Extensions | Notes |
+| :-- | :-- | :-- |
+| PNG | `.png` | Static images only; animated PNGs are rejected |
+| JPEG | `.jpg`, `.jpeg` | EXIF orientation is applied |
+| WebP | `.webp` | Static images only; animated WebPs are rejected |
+
+Extensions are matched case-insensitively. Local inputs are limited to 40
+megapixels; hosted inputs follow provider limits. Other file types in scanned
+folders or diffs are skipped and listed in the report.
+
 A score at or above the threshold (default 80/100) is a finding. Scores are not
 calibrated probabilities, and a score below the threshold does not prove an
 image is safe. Cloud scans can make additional billable requests.
 
 | Exit code | Result |
 | :-- | :-- |
-| <img src="assets/readme/status-clean.svg" width="10" height="10" alt=""> `0` | Scan complete, no findings |
-| <img src="assets/readme/status-injection.svg" width="10" height="10" alt=""> `1` | Injection found, every image completed |
-| <img src="assets/readme/status-review.svg" width="10" height="10" alt=""> `2` | Error or incomplete scan; wins over findings |
+| <img src="https://raw.githubusercontent.com/EnXan/VIPI/main/assets/readme/status-clean.svg" width="10" height="10" alt=""> `0` | Scan complete, no findings |
+| <img src="https://raw.githubusercontent.com/EnXan/VIPI/main/assets/readme/status-injection.svg" width="10" height="10" alt=""> `1` | Injection found, every image completed |
+| <img src="https://raw.githubusercontent.com/EnXan/VIPI/main/assets/readme/status-review.svg" width="10" height="10" alt=""> `2` | Error or incomplete scan; wins over findings |
 
 Every option, credential and report field is in the
 [CLI reference](https://github.com/EnXan/VIPI/blob/main/docs/cli.md).
