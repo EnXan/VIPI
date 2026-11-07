@@ -4,6 +4,16 @@
   const labels = {jev:'Jev',openai:'OpenAI Decisions','prompt-guard':'Prompt Guard 2',image:'Source image',context:'Image + OCR + context'};
   const verdicts = {flagged:'Flagged · review needed',not_flagged:'No issues found in configured checks',unclear:'Unclear · review needed'};
   const thresholdValues = new Map(['jev','openai','prompt-guard','image','context'].map(signal => [signal,80]));
+  function localApiUrl(value) {
+    try {
+      const url = new URL(value, window.location.href);
+      return url.origin === window.location.origin && url.pathname.startsWith('/api/')
+        ? url.href
+        : null;
+    } catch {
+      return null;
+    }
+  }
   let currentRun, checkId, stream, answers = [], readings = [], revision = 0, terminal = false;
   let savedChecks = [], observing = null, checking = false, settingsEdited = false;
   const prettyScore = value => value == null ? '—' : value.toFixed(4);
@@ -149,7 +159,11 @@
     node('detect-saved').disabled = !terminal || !optionsEnabled() || !['completed','failed','cancelled'].includes(state.state);
     if (result) {
       node('download-detection').hidden = false;
-      node('download-detection').href = `/api/runs/${currentRun}/detections/${checkId}/result.json`;
+      const resultUrl = localApiUrl(
+        `/api/runs/${currentRun}/detections/${checkId}/result.json`,
+      );
+      if (resultUrl) node('download-detection').href = resultUrl;
+      else node('download-detection').removeAttribute('href');
     }
   }
   async function loadReadings(token) {

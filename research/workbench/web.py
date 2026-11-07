@@ -177,8 +177,8 @@ def create_app(
                 if not isinstance(data["detection"], dict):
                     raise ValueError("Detection options must be a JSON object.")
                 detection_options = settings(**data["detection"])
-        except (ValueError, OSError, TypeError) as error:
-            return jsonify(error=str(error)), 400
+        except (ValueError, OSError, TypeError):
+            return jsonify(error="Invalid dataset selection or detection options."), 400
         if not active.acquire(blocking=False):
             return jsonify(
                 error="A pipeline is already running. Wait for it to finish."
@@ -214,9 +214,9 @@ def create_app(
                 target=run_batch, daemon=True, name=f"batch-{batch.id}"
             ).start()
             return jsonify(batch_id=batch.id), 202
-        except (ValueError, OSError) as error:
+        except (ValueError, OSError):
             active.release()
-            return jsonify(error=str(error)), 400
+            return jsonify(error="Could not start dataset selection."), 400
 
     @app.post("/api/runs")
     def start_run():
@@ -260,8 +260,8 @@ def create_app(
                 )
             if len(selected_models) == 1:
                 backend = backend_for(model, backend)
-        except (ValueError, TypeError) as error:
-            return jsonify(error=str(error)), 400
+        except (ValueError, TypeError):
+            return jsonify(error="Invalid OCR request."), 400
         if not active.acquire(blocking=False):
             return jsonify(
                 error="A pipeline is already running. Wait for it to finish."
@@ -368,11 +368,11 @@ def create_app(
 
             threading.Thread(target=worker, daemon=True, name=f"ocr-{store.id}").start()
             return jsonify(run_id=store.id), 202
-        except Exception as error:
+        except Exception:
             if temporary:
                 temporary.unlink(missing_ok=True)
             active.release()
-            return jsonify(error=str(error)), 400
+            return jsonify(error="Could not process uploaded image."), 400
 
     register_run_routes(app, root, jobs, batches, run_cancellations, detection)
 

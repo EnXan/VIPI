@@ -195,6 +195,24 @@ def test_missing_credentials_are_visible_without_fallback(tmp_path, monkeypatch)
     assert len(state["answers"]) == 1
 
 
+def test_detector_availability_does_not_expose_local_errors(tmp_path, monkeypatch):
+    def fail_manifest(*args, **kwargs):
+        raise ValueError("private model path: /srv/models/internal")
+
+    monkeypatch.setattr("research.workbench.detection.model_manifest", fail_manifest)
+    client = create_app(tmp_path / "runs").test_client()
+
+    response = client.get("/api/detectors")
+
+    local = next(
+        provider
+        for provider in response.json["providers"]
+        if provider["id"] == "prompt-guard"
+    )
+    assert local["reason"] == "Local detector is unavailable."
+    assert "/srv/models/internal" not in response.text
+
+
 def test_dotenv_keys_enable_web_and_cli_without_exposing_secrets(
     tmp_path, monkeypatch, capsys
 ):

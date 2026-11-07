@@ -121,8 +121,8 @@ def register_routes(app, service):
             model_manifest(service.model_dir, verify=False)
             if not importlib.util.find_spec("transformers"):
                 raise ValueError("Install detector-local dependencies.")
-        except ValueError as error:
-            reason = str(error)
+        except ValueError:
+            reason = "Local detector is unavailable."
         return jsonify(
             default=[],
             providers=[
@@ -172,8 +172,8 @@ def register_routes(app, service):
             store = service.prepare(run_id, options)
             service.enqueue(store, options)
             return jsonify(check_id=store.id, run_id=run_id), 202
-        except (ValueError, OSError, TypeError) as error:
-            return jsonify(error=str(error)), 400
+        except (ValueError, OSError, TypeError):
+            return jsonify(error="Invalid detection request."), 400
 
     @app.get("/api/runs/<run_id>/detections/<check_id>", endpoint="detection_snapshot")
     def snapshot(run_id, check_id):

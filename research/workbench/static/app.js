@@ -13,6 +13,17 @@ function selectedModelChanged() { $('model').value = selectedOCRModels()[0] || '
 function imageThumbnail(item,data) { return item.dataset === 'upload' ? `/api/batches/${data.batch_id}/input` : `/api/datasets/${encodeURIComponent(item.dataset_id)}/thumbnail?dataset=${encodeURIComponent(item.dataset || data.dataset || 'ocr_evaluation')}`; }
 function duration(value) { return Number.isFinite(value) ? `${value.toFixed(2)} s` : '—'; }
 function money(value) { return Number.isFinite(value) ? `$${value.toFixed(6)}` : '—'; }
+function safeLocalUrl(value) {
+  try {
+    const url = new URL(value, window.location.href);
+    const sameOrigin = url.origin === window.location.origin;
+    const localBlob = url.protocol === 'blob:' && sameOrigin;
+    const localApi = sameOrigin && url.pathname.startsWith('/api/');
+    return localBlob || localApi ? url.href : null;
+  } catch {
+    return null;
+  }
+}
 const datasetLabels = new Map();
 const datasetItems = new Map();
 let catalogPage, catalogOffset = 0, catalogRequest = 0, searchTimer;
@@ -49,7 +60,11 @@ function applyScanActivity(imageUrl, stage, verdict = '') {
   const frame = $('scan-image-frame'), image = $('scan-activity-image');
   const label = $('scan-activity-label');
   if (!frame || !image || !label) return;
-  if (imageUrl && image.getAttribute('src') !== imageUrl) image.src = imageUrl;
+  if (imageUrl) {
+    const safeUrl = safeLocalUrl(imageUrl);
+    if (safeUrl && image.getAttribute('src') !== safeUrl) image.src = safeUrl;
+    else if (!safeUrl) image.removeAttribute('src');
+  }
   image.hidden = !image.getAttribute('src');
   frame.dataset.stage = stage;
   if (verdict) frame.dataset.outcome = verdict; else delete frame.dataset.outcome;
@@ -460,7 +475,8 @@ function selectFile(file) {
   selectedDatasets.clear(); refreshSelection();
   selectedFile = file; error(''); $('file-label').textContent = file.name || 'Pasted image';
   if (filePreview) URL.revokeObjectURL(filePreview); filePreview = URL.createObjectURL(file);
-  $('input-preview').src = filePreview; $('input-preview').hidden = false; busy(false);
+  $('input-preview').src = safeLocalUrl(filePreview) || '';
+  $('input-preview').hidden = !$('input-preview').getAttribute('src'); busy(false);
 }
 $('image-input').onchange = () => selectFile($('image-input').files[0]);
 $('dropzone').onkeydown = event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); if (!running) $('image-input').click(); } };

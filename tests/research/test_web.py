@@ -177,7 +177,8 @@ def test_web_rejects_invalid_workers_without_job(tmp_path, workers):
     data = upload()
     data["workers"] = workers
     response = client.post("/api/runs", data=data)
-    assert response.status_code == 400 and "between 1 and 8" in response.json["error"]
+    assert response.status_code == 400
+    assert response.json["error"] == "Invalid OCR request."
     assert list((tmp_path / "runs").iterdir()) == []
 
 

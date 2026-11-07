@@ -25,16 +25,16 @@ def register_routes(app, get_catalog, get_browser):
                     limit,
                 )
             )
-        except (ValueError, OSError) as error:
-            return jsonify(error=str(error)), 400
+        except (ValueError, OSError):
+            return jsonify(error="Invalid dataset request."), 400
 
     @app.get("/api/datasets/<identifier>/reference")
     def dataset_reference(identifier):
         try:
             catalog = get_catalog(request.args.get("dataset", "ocr_evaluation"))
             return jsonify(catalog.reference(identifier))
-        except (ValueError, OSError) as error:
-            return jsonify(error=str(error)), 404
+        except (ValueError, OSError):
+            return jsonify(error="Dataset reference not found."), 404
 
     @app.get("/api/datasets/<identifier>/image")
     def dataset_image(identifier):
@@ -45,8 +45,8 @@ def register_routes(app, get_catalog, get_browser):
                 ),
                 conditional=True,
             )
-        except (ValueError, OSError) as error:
-            return jsonify(error=str(error)), 404
+        except (ValueError, OSError):
+            return jsonify(error="Dataset image not found."), 404
 
     thumbnail_slots = threading.Semaphore(2)
 
@@ -61,5 +61,5 @@ def register_routes(app, get_catalog, get_browser):
                     mimetype="image/jpeg",
                     max_age=3600,
                 )
-        except (ValueError, OSError) as error:
-            return jsonify(error=str(error)), 404
+        except (ValueError, OSError):
+            return jsonify(error="Dataset thumbnail not found."), 404
