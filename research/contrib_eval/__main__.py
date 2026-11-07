@@ -2,9 +2,10 @@
 
 import argparse
 import json
+from pathlib import Path
 import sys
 
-from . import splits, suite
+from . import runs, splits, suite
 
 
 def build_parser():
@@ -28,11 +29,74 @@ def build_parser():
         sub = commands.add_parser(command, help=description)
         sub.add_argument("path", choices=sorted(suite.PATHS))
         sub.add_argument("--split", choices=suite.SPLIT_NAMES, default="development")
+    run = commands.add_parser(
+        "run",
+        help="Run or resume a scoped baseline/candidate evaluation.",
+        description="Runs live inference and may incur provider charges. Use "
+        "--dry-run to check the request first.",
+    )
+    run.add_argument("path", choices=sorted(suite.PATHS))
+    run.add_argument("--role", choices=runs.ROLES, required=True)
+    run.add_argument("--split", choices=suite.SPLIT_NAMES, default="development")
+    run.add_argument("--against", help="Baseline run ID or summary path (candidate)")
+    run.add_argument(
+        "--allow-mismatch",
+        metavar="REASON",
+        help="Record a non-matched candidate run instead of refusing it",
+    )
+    run.add_argument(
+        "--confirm-test-split",
+        action="store_true",
+        help="Required for the one-time confirmation run on the test split",
+    )
+    run.add_argument("--run-id", help="Resume this run ID; default: a new ID")
+    run.add_argument("--runs-dir", type=Path, default=runs.DEFAULT_RUNS_DIRECTORY)
+    run.add_argument("--dry-run", action="store_true")
     return parser
+
+
+def run_command(args):
+    result = runs.run(
+        args.path,
+        args.role,
+        args.split,
+        runs_directory=args.runs_dir,
+        run_id=args.run_id,
+        against=args.against,
+        mismatch_reason=args.allow_mismatch,
+        confirm_test=args.confirm_test_split,
+        dry_run=args.dry_run,
+    )
+    print(
+        f"{result['state']}: {result['role']} {result['path']} "
+        f"({result['split']}, {result['entries']} entries) run {result['run_id']}"
+    )
+    print(f"local artifacts {result['directory']}")
+    comparison = result.get("comparison")
+    if comparison:
+        state = "matched" if comparison["matched"] else "NOT matched"
+        print(f"against baseline {comparison['baseline_run_id']}: {state}")
+        for field in comparison["differences"]:
+            print(f"differs: {field}")
+    if result["state"] == "incomplete":
+        print(f"resume with --run-id {result['run_id']}")
+    if result["state"] == "complete":
+        print(f"summary {result['summary']} (commit this file)")
+    return 0 if result["state"] in {"planned", "complete"} else 1
 
 
 def main(argv=None):
     args = build_parser().parse_args(argv)
+    try:
+        return dispatch(args)
+    except ValueError as error:
+        print(f"error: {error}", file=sys.stderr)
+        return 2
+
+
+def dispatch(args):
+    if args.command == "run":
+        return run_command(args)
     if args.command == "split":
         if args.check:
             matches = splits.check()

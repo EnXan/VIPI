@@ -1,10 +1,11 @@
 """Keep contribution splits grouped/disjoint and baseline freshness explicit."""
 
 import json
+import subprocess
 
 import pytest
 
-from research.contrib_eval import splits, suite
+from research.contrib_eval import runs, splits, suite
 from research.contrib_eval.__main__ import main
 
 
@@ -206,3 +207,208 @@ def test_status_command_exits_nonzero_unless_fresh(monkeypatch, capsys):
     )
     assert main(["status", "ocr/cloud-default"]) == 1
     assert "no committed baseline" in capsys.readouterr().out
+
+
+class FakeMonitor:
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        self.result = {
+            "started_at": "2026-11-07T00:00:00+00:00",
+            "wall_seconds": 2.0,
+            "cpu_seconds_lower_bound": 1.5,
+            "peak_rss_bytes": 100,
+            "sampling_seconds": 0.5,
+            "gpu": {"available": False, "reason": "fixture"},
+        }
+        return False
+
+
+@pytest.fixture
+def run_root(manifest_root, monkeypatch):
+    root, rows, document = manifest_root
+    calls = []
+    state = {"complete": True}
+
+    def fake_main(argv):
+        calls.append(argv)
+        return 0
+
+    def fake_report(directory):
+        return {
+            "inference_complete": state["complete"],
+            "scored_at": "2026-11-07T12:00:00+00:00",
+            "configuration_sources": {
+                "cloud-default": {
+                    "provenance": {"platform": "fixture", "python": "3.12"}
+                }
+            },
+            "configurations": {
+                "cloud-default": {
+                    "summary": {
+                        "completed": 1,
+                        "failed": 0,
+                        "time": {"image_seconds_total": 1.0, "invocations": [{}]},
+                    }
+                }
+            },
+        }
+
+    monkeypatch.setattr(runs, "ResourceMonitor", FakeMonitor)
+    monkeypatch.setattr(runs.benchmark, "main", fake_main)
+    monkeypatch.setattr(runs.benchmark_report, "report", fake_report)
+    monkeypatch.setattr(
+        runs,
+        "implementation",
+        lambda root: {"commit": "abc", "dirty": False, "diff_sha256": "d"},
+    )
+    return root, rows, calls, state
+
+
+def test_baseline_run_freezes_split_keys_and_writes_committable_summary(run_root):
+    root, _rows, calls, _state = run_root
+    result = runs.run("ocr/cloud-default", "baseline", root=root, run_id="base")
+    assert result["state"] == "complete"
+    directory = root / "runs/contrib/base"
+    selection = json.loads((directory / "selection.json").read_text())
+    assert selection["keys"] == ["ocr_eval:a"]
+    assert calls == [
+        [
+            str(directory / "benchmark"),
+            "--configuration",
+            "cloud-default",
+            "--selection-file",
+            str(directory / "selection.json"),
+        ]
+    ]
+    summary = json.loads((root / result["summary"]).read_text())
+    assert summary["role"] == "baseline"
+    assert summary["comparison"] is None
+    assert summary["metrics"]["time"] == {"image_seconds_total": 1.0}
+    assert summary["operations"]["wall_seconds"] == 2.0
+    assert summary["operations"]["gpu"]["available"] is False
+    assert summary["local_artifacts"] == "runs/contrib/base"
+    assert suite.status("ocr/cloud-default", root=root)["state"] == "fresh"
+
+
+def test_incomplete_run_writes_no_summary_and_resume_accumulates_operations(
+    run_root,
+):
+    root, _rows, calls, state = run_root
+    state["complete"] = False
+    assert (
+        runs.run("ocr/cloud-default", "baseline", root=root, run_id="r")["state"]
+        == "incomplete"
+    )
+    assert suite.status("ocr/cloud-default", root=root)["state"] == "none"
+    state["complete"] = True
+    result = runs.run("ocr/cloud-default", "baseline", root=root, run_id="r")
+    summary = json.loads((root / result["summary"]).read_text())
+    assert len(calls) == 2
+    assert len(summary["operations"]["invocations"]) == 2
+    assert summary["operations"]["wall_seconds"] == 4.0
+
+
+def test_candidate_must_match_baseline_unless_mismatch_is_recorded(run_root):
+    root, rows, _calls, _state = run_root
+    runs.run("ocr/cloud-default", "baseline", root=root, run_id="base")
+    matched = runs.run(
+        "ocr/cloud-default", "candidate", root=root, run_id="cand", against="base"
+    )
+    summary = json.loads((root / matched["summary"]).read_text())
+    assert summary["comparison"]["matched"] is True
+    assert suite.status("ocr/cloud-default", root=root)["baseline"]["run_id"] == (
+        "base"
+    )
+
+    rows[0]["reference_sha256"] = "changed"
+    with pytest.raises(ValueError, match="suite.selection_sha256"):
+        runs.run("ocr/cloud-default", "candidate", root=root, against="base")
+    recorded = runs.run(
+        "ocr/cloud-default",
+        "candidate",
+        root=root,
+        run_id="cand2",
+        against="base",
+        mismatch_reason="reference fix",
+    )
+    comparison = json.loads((root / recorded["summary"]).read_text())["comparison"]
+    assert comparison["matched"] is False
+    assert comparison["differences"] == ["suite.selection_sha256"]
+    assert comparison["mismatch_reason"] == "reference fix"
+
+
+def test_resume_refuses_a_different_request_in_the_same_directory(run_root):
+    root, rows, _calls, _state = run_root
+    runs.run("ocr/cloud-default", "baseline", root=root, run_id="r")
+    rows[0]["reference_sha256"] = "changed"
+    with pytest.raises(ValueError, match="different run request"):
+        runs.run("ocr/cloud-default", "baseline", root=root, run_id="r")
+
+
+def test_run_request_validation_and_dry_run_start_nothing(run_root):
+    root, _rows, calls, _state = run_root
+    with pytest.raises(ValueError, match="confirm-test-split"):
+        runs.run("ocr/cloud-default", "baseline", "test", root=root)
+    with pytest.raises(ValueError, match="requires --against"):
+        runs.run("ocr/cloud-default", "candidate", root=root)
+    with pytest.raises(ValueError, match="only to candidate"):
+        runs.run("ocr/cloud-default", "baseline", root=root, against="x")
+    with pytest.raises(ValueError, match="not found"):
+        runs.run("ocr/cloud-default", "candidate", root=root, against="missing")
+    planned = runs.run(
+        "ocr/cloud-default",
+        "baseline",
+        "test",
+        root=root,
+        confirm_test=True,
+        dry_run=True,
+    )
+    assert planned["state"] == "planned"
+    assert planned["entries"] == 1
+    assert calls == []
+    assert not (root / "runs").exists()
+
+
+def test_test_split_summary_is_marked_as_confirmation(run_root):
+    root, _rows, _calls, _state = run_root
+    result = runs.run(
+        "ocr/cloud-default",
+        "baseline",
+        "test",
+        root=root,
+        run_id="t",
+        confirm_test=True,
+    )
+    assert (
+        json.loads((root / result["summary"]).read_text())["test_split_confirmation"]
+        is True
+    )
+
+
+def test_resource_monitor_measures_this_process():
+    pytest.importorskip("psutil")
+    with runs.ResourceMonitor(interval=0.01) as monitor:
+        sum(range(200_000))
+    assert monitor.result["peak_rss_bytes"] > 0
+    assert monitor.result["cpu_seconds_lower_bound"] > 0
+    assert monitor.result["wall_seconds"] >= 0
+
+
+def test_implementation_records_dirty_and_untracked_changes(tmp_path):
+    subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True)
+    (tmp_path / "a.txt").write_text("a")
+    subprocess.run(["git", "add", "a.txt"], cwd=tmp_path, check=True)
+    subprocess.run(
+        ["git", "-c", "user.name=t", "-c", "user.email=t@t", "commit", "-qm", "a"],
+        cwd=tmp_path,
+        check=True,
+    )
+    clean = runs.implementation(tmp_path)
+    assert clean["dirty"] is False
+    (tmp_path / "b.txt").write_text("b")
+    untracked = runs.implementation(tmp_path)
+    assert untracked["dirty"] is True and untracked["untracked_files"] == 1
+    (tmp_path / "a.txt").write_text("changed")
+    assert runs.implementation(tmp_path)["diff_sha256"] != clean["diff_sha256"]

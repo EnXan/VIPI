@@ -3062,6 +3062,7 @@ research = [
     { name = "huggingface-hub" },
     { name = "jsonschema" },
     { name = "pdfminer-six" },
+    { name = "psutil" },
     { name = "scipy" },
     { name = "wordfreq" },
 ]
@@ -3092,6 +3093,7 @@ requires-dist = [
     { name = "pillow", marker = "extra == 'ocr'", specifier = "==11.3.0" },
     { name = "pillow", marker = "extra == 'ocr-cuda'", specifier = "==11.3.0" },
     { name = "pillow", marker = "extra == 'ocr-lighton'", specifier = "==11.3.0" },
+    { name = "psutil", marker = "extra == 'research'", specifier = ">=7.2.2" },
     { name = "pytest", marker = "extra == 'test'", specifier = "==8.4.2" },
     { name = "python-dotenv", specifier = ">=1.2.4,<2" },
     { name = "rapidocr", marker = "extra == 'ocr'", specifier = "==3.9.2" },
