@@ -1,7 +1,5 @@
 """Dated API list-rate estimates, separate from provider invoices and local compute."""
 
-from statistics import mean, median
-import math
 from vipi.config import GOOGLE_OCR_MODEL as GOOGLE_MODEL, LUNA_OCR_MODEL as LUNA_MODEL
 
 PRICING_DATE = "2026-10-25"
@@ -45,6 +43,7 @@ def decisions_estimated_usd(usage):
 
 
 def cost_for_result(result):
+    """Estimate saved OCR and visual-decision API charges for one run."""
     selection = result.get("selection")
     if selection:
         decisions = []
@@ -57,7 +56,7 @@ def cost_for_result(result):
             if all(isinstance(value, (int, float)) for value in estimates)
             else None
         )
-        ocr = cost_for_result({**result, "selection": None})
+        ocr = _ocr_cost_for_result(result)
         total = (
             estimate + ocr["estimated_usd"]
             if estimate is not None and ocr["estimated_usd"] is not None
@@ -86,6 +85,11 @@ def cost_for_result(result):
                 else "Jev usage is recorded. Total API cost is unknown because no verified Jev rate is configured."
             ),
         }
+    return _ocr_cost_for_result(result)
+
+
+def _ocr_cost_for_result(result):
+    """Estimate OCR fees from each recorded provider usage entry."""
     model = result["model"]
     if model not in API_MODELS:
         return {
@@ -166,50 +170,4 @@ def cost_for_result(result):
                 else ""
             )
         ).strip(),
-    }
-
-
-def performance_summary(items):
-    done = [
-        item
-        for item in items
-        if item["state"] in {"completed", "failed"}
-        or (item["state"] == "cancelled" and item.get("run_id"))
-    ]
-    times = sorted(
-        item["elapsed_seconds"]
-        for item in done
-        if isinstance(item.get("elapsed_seconds"), (int, float))
-    )
-    costs = [item.get("cost") or {} for item in done]
-    amounts = [
-        cost["estimated_usd"]
-        for cost in costs
-        if isinstance(cost.get("estimated_usd"), (int, float))
-    ]
-    unknown = len(done) - len(amounts)
-    subtotal = sum(amounts)
-    complete = subtotal if done and not unknown else None
-    valid = sum(item.get("valid") is True for item in done)
-    return {
-        "measured_images": len(times),
-        "total_seconds": sum(times),
-        "mean_seconds": mean(times) if times else None,
-        "median_seconds": median(times) if times else None,
-        "initialization_seconds": sum(
-            item.get("initialization_seconds", 0) for item in done
-        ),
-        "inference_seconds": sum(item.get("inference_seconds", 0) for item in done),
-        "p95_seconds": times[max(0, math.ceil(len(times) * 0.95) - 1)]
-        if times
-        else None,
-        "known_estimated_api_cost_usd": subtotal,
-        "estimated_api_cost_usd": complete,
-        "cost_unknown_images": unknown,
-        "estimated_api_cost_per_image_usd": complete / len(done)
-        if complete is not None
-        else None,
-        "estimated_api_cost_per_pass_usd": complete / valid
-        if complete is not None and valid
-        else None,
     }

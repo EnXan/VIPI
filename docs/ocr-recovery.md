@@ -14,25 +14,30 @@ module ownership. The workbench still defaults to its native baseline profile.
    confidence, small text, unusual symbols, group overlap, regional contrast,
    and multilingual word-frequency evidence. The single weak-box retry signal
    is disabled. A clear route needs no visual decision request.
-3. For an inspect or unresolved route, assess the actual image and OCR. Only a
-   concrete orientation or contrast issue triggers those corrections. Compare
-   actual corrected OCR; retain the incumbent on uncertain decisions.
-4. When the signaled original remains selected, compare a 2× bicubic reading.
+3. For an inspect or unresolved route, ask separately whether readable text is
+   missing, whether the supplied image detail supports a whole-image judgment,
+   and which correction is supported. Code derives the action: it marks the
+   original ready only when completeness is judged, image detail is sufficient,
+   and no repair is supported. Missing or uncertain completeness is never
+   treated as a pass. Empty OCR still triggers local contrast probes.
+4. For a supported orientation or contrast issue, compare actual corrected OCR
+   and retain the incumbent when improvement is uncertain.
+5. When the signaled original remains selected, compare a 2× bicubic reading.
    Accept it only when the decision model prefers it and confident incumbent
    tokens are retained. The measured route excludes originals above 8 million
    pixels from this full-frame 2× probe. That inherited experimental boundary
    is retained to reproduce the selected workflow; it is not a protocol limit.
-5. Use a 1.5× Lanczos probe for spatially supported missing-letter insertions.
+6. Use a 1.5× Lanczos probe for spatially supported missing-letter insertions.
    Candidate letters must retain the original sequence, have higher OCR
    confidence and greater multilingual frequency, and overlap the original
    word. Preserve all other groups. If no confident tokens exist, both scaling
    guards cannot accept a change, so their no-op probes are skipped.
-6. For an original side over 2000 pixels or a ≥0.8-confidence OCR box shorter
+7. For an original side over 2000 pixels or a ≥0.8-confidence OCR box shorter
    than 12 input pixels, recognize overlapping 1024-pixel tiles from the
    original source at 896-pixel strides. Keep the assembled result only if it
    retains both confident native tokens and the full incumbent word multiset.
    Text-only results without spatial regions do not use this merge.
-7. Submit the final OCR text to the selected injection detector.
+8. Submit the final OCR text to the selected injection detector.
 
 References and benchmark scores enter only after output selection. They are
 never passed to model requests or used to select a candidate. Raw OCR variants,
@@ -40,6 +45,27 @@ transforms, quality signals, decisions, insertion evidence and tile guards are
 saved with each run. The internal profile ID `adaptive-jev` remains compatible
 with historical research artifacts; actual provider/model identities are
 recorded independently.
+
+The three assessment answers are recorded independently under
+`selection.initial_assessment`. A route with no triggering signals skips visual
+assessment and records `assessment_status: not_required`; this does not certify
+that the image is complete. The model reports categories, not a numeric text
+coverage estimate. `selection.accepted` means the recovery policy selected that
+OCR candidate; it is not a claim that all visible text was verified. See
+[ADR 0048](../adr-code/0048-separate-ocr-completeness-and-repair.md).
+
+Cloud images bypass the local 40-megapixel decoder guard. Cloud visual review
+sends lossless PNGs at the supplied pixel dimensions. OpenAI Decisions requests
+`detail: original`; VIPI scales an image only when it exceeds the documented
+30,000-patch input limit. Google Vision scales only when the serialized request
+would exceed Google's 10 MB JSON limit. Providers may also apply their own
+preprocessing limits. Local review targets 512 pixels in speed mode, 1024 in
+balanced mode and original dimensions in quality mode. On MPS, the measured
+hardware ceiling remains 1024 for single-image requests and 512 per image for
+multi-image requests. The d1 model may also apply its pinned one-megapixel input
+cap. Quality mode on CPU and CUDA is not measured. The decoder still follows
+Pillow's decompression-bomb protections. See
+[ADR 0047](../adr-code/0047-cloud-decision-image-resolution.md).
 
 ## Local model sources
 

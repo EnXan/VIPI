@@ -14,7 +14,7 @@ from vipi.ocr.models import sha256
 from vipi.ocr.transforms import View, tile_starts
 from vipi.storage.files import write_json
 
-from .upscale_retry import retained_confident_tokens
+from .resolution_retention import retained_confident_tokens
 
 TILE_SIZE = 1024
 TILE_CONFIDENCE = 0.8

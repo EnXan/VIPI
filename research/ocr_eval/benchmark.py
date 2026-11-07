@@ -73,6 +73,57 @@ def selection(root=ROOT):
     return rows
 
 
+def selection_from_file(path, root=ROOT):
+    """Freeze an ordered subset of active catalog keys from a JSON selection."""
+    specification = json.loads(Path(path).read_text(encoding="utf-8"))
+    if not isinstance(specification, dict):
+        raise ValueError("Selection file must contain a JSON object.")
+    keys = specification.get("keys")
+    if (
+        not isinstance(keys, list)
+        or not keys
+        or not all(isinstance(key, str) for key in keys)
+    ):
+        raise ValueError(
+            "Selection file must contain a nonempty string list named keys."
+        )
+    if len(keys) != len(set(keys)):
+        raise ValueError("Selection file contains duplicate keys.")
+
+    complete = selection(root)
+    by_key = {row["key"]: row for row in complete}
+    key_set = set(keys)
+    missing = key_set - set(by_key)
+    if missing:
+        raise ValueError(f"Selection contains unknown catalog keys: {sorted(missing)}")
+    selected = [row for row in complete if row["key"] in key_set]
+    if [row["key"] for row in selected] != keys:
+        raise ValueError("Selection keys must use the active catalog order.")
+
+    split = specification.get("confidence_split")
+    if split is not None:
+        if not isinstance(split, dict):
+            raise ValueError("Confidence split must map image hashes to split names.")
+        hashes = {row["image_sha256"] for row in selected}
+        if (
+            set(split) != hashes
+            or not set(split.values()) <= {"calibration", "evaluation"}
+            or set(split.values()) != {"calibration", "evaluation"}
+        ):
+            raise ValueError("Confidence split must label every selected image hash.")
+
+    filter_record = {
+        "description": specification.get("description", "Selected catalog subset"),
+        "source_report_sha256": specification.get("source_report_sha256"),
+        "keys_sha256": hashlib.sha256(
+            json.dumps(keys, separators=(",", ":")).encode()
+        ).hexdigest(),
+        "confidence_split": split,
+        "split_method": specification.get("split_method"),
+    }
+    return selected, filter_record
+
+
 def provenance(root=ROOT):
     """Capture executed sources, lockfile, host and installed model runtimes."""
     files = sorted(
@@ -101,6 +152,7 @@ def provenance(root=ROOT):
         except PackageNotFoundError:
             packages[name] = None
     hardware = {}
+    hardware_unavailable = []
     if platform.system() == "Darwin":
         for key in (
             "machdep.cpu.brand_string",
@@ -108,9 +160,22 @@ def provenance(root=ROOT):
             "hw.physicalcpu",
             "hw.logicalcpu",
         ):
-            hardware[key] = subprocess.check_output(
-                ["sysctl", "-n", key], text=True
-            ).strip()
+            try:
+                result = subprocess.run(
+                    ["sysctl", "-n", key],
+                    check=False,
+                    capture_output=True,
+                    text=True,
+                )
+            except OSError:
+                hardware[key] = None
+                hardware_unavailable.append(key)
+                continue
+            if result.returncode == 0:
+                hardware[key] = result.stdout.strip()
+            else:
+                hardware[key] = None
+                hardware_unavailable.append(key)
     return {
         "commit": subprocess.check_output(
             ["git", "rev-parse", "HEAD"], cwd=root, text=True
@@ -130,6 +195,7 @@ def provenance(root=ROOT):
         "platform": platform.platform(),
         "python": platform.python_version(),
         "hardware": hardware,
+        "hardware_unavailable": hardware_unavailable,
         "packages": packages,
     }
 
@@ -302,6 +368,11 @@ def build_parser():
         default=list(CONFIGURATIONS),
         help="Run sequentially; default: local-speed then cloud-default",
     )
+    parser.add_argument(
+        "--selection-file",
+        type=Path,
+        help="JSON file freezing an ordered subset of keys from the active catalogs",
+    )
     return parser
 
 
@@ -309,13 +380,23 @@ def main(argv=None):
     args = build_parser().parse_args(argv)
     directory = args.directory.resolve()
     directory.mkdir(parents=True, exist_ok=True)
+    selected, selection_filter = (
+        selection_from_file(args.selection_file)
+        if args.selection_file
+        else (selection(), None)
+    )
+    if not args.configuration or len(args.configuration) != len(
+        set(args.configuration)
+    ):
+        raise ValueError("Choose each benchmark configuration at most once.")
     manifest = {
         "schema_version": 1,
         "provenance": provenance(),
-        "selection": selection(),
+        "selection": selected,
+        "selection_filter": selection_filter,
         "evaluation_policy": evaluation_policy(),
-        "configurations": CONFIGURATIONS,
-        "protocol": "Sequential images/configurations; fresh local process every four images for observed MPS memory growth; no reference access during inference; no benchmark-level retries.",
+        "configurations": {name: CONFIGURATIONS[name] for name in args.configuration},
+        "protocol": "Sequential images/configurations; local-only workers restart every four images for observed MPS memory growth; no reference access during inference; no benchmark-level retries.",
     }
     path = directory / "manifest.json"
     if path.exists():

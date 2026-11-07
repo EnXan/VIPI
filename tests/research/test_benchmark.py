@@ -1,9 +1,11 @@
 """Keep benchmark failures visible and preserve production routing."""
 
+import hashlib
 import json
 from types import SimpleNamespace
 
 import pytest
+from PIL import Image
 
 from research.ocr_eval import benchmark
 from research.ocr_eval import benchmark_report
@@ -84,6 +86,102 @@ def test_selection_retains_reference_scope_and_unique_suite_keys(
     assert rows[0]["scope"] == "source_declared_text"
     assert all(len(row["image_sha256"]) == 64 for row in rows)
     assert "text" not in rows[0]
+
+
+def test_selection_file_freezes_order_and_image_hash_splits(
+    tmp_path, dataset_repository, monkeypatch
+):
+    monkeypatch.setattr(
+        benchmark, "catalogs", lambda root: {"ocr_eval": benchmark.OcrCatalog(root)}
+    )
+    Image.new("RGB", (16, 12), "black").save(
+        dataset_repository / "research/ocr_eval/images/1.png"
+    )
+    rows = benchmark.selection(dataset_repository)
+    selected = [
+        rows[0],
+        next(row for row in rows[1:] if row["image_sha256"] != rows[0]["image_sha256"]),
+    ]
+    specification = {
+        "keys": [row["key"] for row in selected],
+        "confidence_split": {
+            selected[0]["image_sha256"]: "calibration",
+            selected[1]["image_sha256"]: "evaluation",
+        },
+    }
+    path = tmp_path / "selection.json"
+    path.write_text(json.dumps(specification))
+
+    actual, record = benchmark.selection_from_file(path, dataset_repository)
+
+    assert actual == selected
+    assert record["confidence_split"] == specification["confidence_split"]
+    assert len(record["keys_sha256"]) == 64
+
+    specification["keys"] = list(reversed(specification["keys"]))
+    path.write_text(json.dumps(specification))
+    with pytest.raises(ValueError, match="catalog order"):
+        benchmark.selection_from_file(path, dataset_repository)
+
+
+def test_main_manifest_contains_only_requested_configurations(tmp_path, monkeypatch):
+    selected = [{"key": "ocr_eval:fixture", "image_sha256": "a" * 64}]
+    runs = []
+    monkeypatch.setattr(benchmark, "selection", lambda: selected)
+    monkeypatch.setattr(benchmark, "provenance", lambda: {})
+    monkeypatch.setattr(benchmark, "evaluation_policy", lambda: {})
+    monkeypatch.setattr(
+        benchmark,
+        "run_configuration",
+        lambda directory, configuration, rows: runs.append(
+            (directory, configuration, rows)
+        ),
+    )
+
+    output = tmp_path / "cloud-only"
+    benchmark.main([str(output), "--configuration", "cloud-default"])
+
+    manifest = json.loads((output / "manifest.json").read_text())
+    assert list(manifest["configurations"]) == ["cloud-default"]
+    assert runs == [(output / "cloud-default", "cloud-default", selected)]
+
+
+def test_provenance_tolerates_unavailable_macos_sysctl_fields(tmp_path, monkeypatch):
+    for path in (
+        "research/detection_eval/evaluation/catalog.py",
+        "research/ocr_eval/catalog.json",
+        "research/detection_eval/cases.json",
+    ):
+        file = tmp_path / path
+        file.parent.mkdir(parents=True, exist_ok=True)
+        file.write_text("{}")
+    monkeypatch.setattr(benchmark, "ROOT", tmp_path)
+    monkeypatch.setattr(benchmark.platform, "system", lambda: "Darwin")
+    monkeypatch.setattr(benchmark.platform, "platform", lambda: "fixture-platform")
+    monkeypatch.setattr(benchmark, "version", lambda name: "fixture")
+    monkeypatch.setattr(
+        benchmark.subprocess,
+        "run",
+        lambda *args, **kwargs: SimpleNamespace(
+            returncode=1, stdout="", stderr="permission denied"
+        ),
+    )
+    monkeypatch.setattr(
+        benchmark.subprocess, "check_output", lambda *args, **kwargs: "fixture-commit"
+    )
+
+    result = benchmark.provenance()
+
+    assert result["hardware"] == {
+        key: None
+        for key in (
+            "machdep.cpu.brand_string",
+            "hw.memsize",
+            "hw.physicalcpu",
+            "hw.logicalcpu",
+        )
+    }
+    assert result["hardware_unavailable"] == list(result["hardware"])
 
 
 def scored_row(matched, total, exact=None, *, conflict=False):
@@ -216,6 +314,13 @@ def test_report_verifies_output_hash_and_excludes_private_artifact_paths(
     }
     manifest = {
         "selection": [selected],
+        "selection_filter": {
+            "description": "One selected difficult image",
+            "keys_sha256": hashlib.sha256(
+                json.dumps([selected["key"]], separators=(",", ":")).encode()
+            ).hexdigest(),
+            "confidence_split": None,
+        },
         "configurations": {"cloud-default": {}},
         "provenance": {"source_hashes": {}},
         "evaluation_policy": {"version": 4},
@@ -235,7 +340,8 @@ def test_report_verifies_output_hash_and_excludes_private_artifact_paths(
             "cost": {"estimated_usd": 0.01},
         },
     )
-    monkeypatch.setattr(benchmark_report, "selection", lambda: [selected])
+    excluded = {**selected, "key": "ocr_eval:excluded", "id": "excluded"}
+    monkeypatch.setattr(benchmark_report, "selection", lambda: [selected, excluded])
     monkeypatch.setattr(
         benchmark_report,
         "catalogs",
@@ -255,6 +361,8 @@ def test_report_verifies_output_hash_and_excludes_private_artifact_paths(
     assert row["run_id"] == "fixture"
     assert "artifacts" not in row
     assert data["inference_complete"] is True
+    assert data["selection_filter"]["description"] == "One selected difficult image"
+    assert "1 selected difficult images" in benchmark_report.markdown(data)
     assert "100.00%" in benchmark_report.markdown(data)
     separate = tmp_path / "cloud-trial"
     benchmark.write_json(

@@ -11,6 +11,8 @@ from .workers import worker_count
 
 
 class EnginePool:
+    """Own one stateful OCR engine per executor thread for a scan batch."""
+
     def __init__(
         self,
         model,

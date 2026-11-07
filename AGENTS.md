@@ -120,3 +120,6 @@ git push origin v0.1.3
 - For OCR reference work, read [research/ocr_eval/README.md](research/ocr_eval/README.md)
   and the active catalog before changing data. Preserve source files,
   exact reference transcripts and provenance.
+
+## General rules
+- Answer always in the same language as the user asked his question.

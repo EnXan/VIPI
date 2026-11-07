@@ -69,6 +69,84 @@ def test_partial_word_boxes_do_not_drop_recognized_line_text():
     assert result["regions"][0]["level"] == "line"
 
 
+def test_google_vision_resizes_only_when_request_exceeds_provider_limit(monkeypatch):
+    import base64
+    import json
+
+    import vipi.ocr.cloud as cloud
+
+    monkeypatch.setattr(cloud, "api_key", lambda name, *args: "fixture-key")
+    monkeypatch.setattr(cloud, "GOOGLE_REQUEST_MAX_BYTES", 5_000)
+    image_array = np.random.default_rng(4).integers(
+        0, 256, (128, 128, 3), dtype=np.uint8
+    )
+    image = Image.fromarray(image_array)
+    submitted_size = None
+    request_bytes = None
+
+    def request_json(url, payload, key, *, bearer=True):
+        nonlocal submitted_size, request_bytes
+        assert url == "https://vision.googleapis.com/v1/images:annotate"
+        assert key == "fixture-key" and bearer is False
+        request_bytes = len(json.dumps(payload).encode("utf-8"))
+        encoded = payload["requests"][0]["image"]["content"]
+        with Image.open(io.BytesIO(base64.b64decode(encoded))) as submitted:
+            submitted_size = submitted.size
+        width, height = submitted_size
+        return {
+            "responses": [
+                {
+                    "fullTextAnnotation": {
+                        "text": "word",
+                        "pages": [
+                            {
+                                "blocks": [
+                                    {
+                                        "paragraphs": [
+                                            {
+                                                "words": [
+                                                    {
+                                                        "symbols": [{"text": "word"}],
+                                                        "boundingBox": {
+                                                            "vertices": [
+                                                                {"x": 0, "y": 0},
+                                                                {"x": width, "y": 0},
+                                                                {
+                                                                    "x": width,
+                                                                    "y": height,
+                                                                },
+                                                                {"x": 0, "y": height},
+                                                            ]
+                                                        },
+                                                    }
+                                                ]
+                                            }
+                                        ]
+                                    }
+                                ]
+                            }
+                        ],
+                    }
+                }
+            ]
+        }
+
+    monkeypatch.setattr(cloud, "request_json", request_json)
+    result = cloud.GoogleVisionEngine().recognize(image)
+
+    assert submitted_size is not None and max(submitted_size) < 128
+    assert request_bytes is not None and request_bytes <= 5_000
+    assert result["regions"][0]["polygon"] == [
+        [0, 0],
+        [128.0, 0],
+        [128.0, 128.0],
+        [0, 128.0],
+    ]
+    assert result["preprocessing"]["input_size"] == [128, 128]
+    assert result["preprocessing"]["submitted_size"] == list(submitted_size)
+    assert result["preprocessing"]["resize"] == "google-json-request-limit"
+
+
 def test_mistral_request_and_result_use_image_coordinates(monkeypatch):
     import base64
     import json

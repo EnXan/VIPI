@@ -4,7 +4,7 @@ The workbench and diagnostic detector CLI check final OCR text with Jev,
 OpenAI Decisions and/or local Prompt Guard 2 86M. Optional OpenAI checks inspect
 the original image or combined image/OCR/caller context. The public scanner's
 local Clef/d1 defaults are documented separately in the
-[README model table](../../README.md#models-and-their-roles).
+[model reference](../../docs/models.md).
 
 Commands and every option are in the
 [research CLI reference](../../docs/research-cli.md#detection-commands-and-shared-options).

@@ -59,7 +59,7 @@ def source(tmp_path, monkeypatch):
     path = tmp_path / "source.png"
     Image.new("RGB", (128, 96), "white").save(path)
     monkeypatch.setattr(
-        "vipi.ocr.recovery.pipeline.route_extended",
+        "vipi.ocr.recovery.selection.route_extended",
         lambda *args: {"route": "no_signal", "signals": [], "unavailable": []},
     )
     return path

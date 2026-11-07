@@ -92,6 +92,12 @@ class LocalDecisionModel:
             "runtime_policy": "local-v1-mps-fp16-query-chunks-serial-vision",
         }
 
+    @property
+    def device(self):
+        """Return the actual device used by the loaded decision model."""
+        model, *_ = self._runtime()
+        return next(model.parameters()).device.type
+
     def _runtime(self):
         key = (self.name, str(self.directory), self.identity["revision"])
         with _load_lock:

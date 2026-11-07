@@ -1,10 +1,12 @@
-# Decision-model review for OCR recovery
+# Decision-model review and confidence validation for OCR recovery
 
-Date: 2026-11-07. Implementation reviewed at `4e3f6096`.
+Date: 2026-11-07. Initial review at `4e3f6096`; point-4 trial completed in the
+working tree on 2026-11-07.
 
-Status: research findings and proposed experiments. No recovery behavior,
-model weights, reference annotations or published benchmark scores changed.
-No new model inference or paid API requests were made for this review.
+This report records research findings and a scoped live trial. It does not
+itself change production policy, model weights or reference annotations. The
+trial used the current working-tree recovery implementation and incurred an
+estimated $0.85635 in known provider usage.
 
 The product objective discussed here is complete transcription of extensive
 visible text. Decision models remain useful candidates for routing and comparing
@@ -161,3 +163,59 @@ Do not declare improvement solely because the model reports higher confidence.
 Review each concept before production adoption. A same-input comparison with
 strong OCR references remains necessary to estimate the attainable quality gap;
 this review does not establish that VIPI is near or far from state of the art.
+
+## Point 4: scoped cloud confidence trial
+
+The first point-4 trial ran only Cloud-default on 100 category-stratified
+entries selected from the union of previous local/cloud full-reference failures
+and unscored outputs. All 100 selected entries have distinct image hashes: 81
+are TextOCR and 19 cover seven other categories. The preassigned image-hash
+split has 79 calibration and 21 evaluation entries. The frozen selection and
+full method are retained in the [selection JSON](../experiments/DECISION_CONFIDENCE_HARD_100.json),
+[OCR benchmark report](DECISION_CLOUD_HARD_100_2026-11-07.md) and
+[confidence report](DECISION_CONFIDENCE_HARD_100_2026-11-07.md).
+
+The run completed all 100 entries without pipeline failures in 1,144.18 seconds
+of per-image time and 1,145.65 seconds of invocation wall time. Its known-usage
+API estimate is $0.85635 (about $0.00856 per entry); this is not an invoice or
+full operating cost. The runner host was an Apple M2 with 16 GiB memory, but OCR
+and decision inference ran at the providers.
+
+| Cloud-default outcome | Selected 100 | TextOCR subset, 81 |
+| --- | ---: | ---: |
+| Tolerant word coverage | 77.19% | 72.74% |
+| Exact word coverage | 63.90% | 57.56% |
+| Mean image coverage | 68.45% | 63.93% |
+| Images at least 80% | 44.00% | 37.04% |
+| Images at 100% / full-reference pass | 17.00% | 7.41% |
+
+In the prior full evaluation, the same selected keys scored 75.62% tolerant and
+62.63% exact cloud coverage, with 40% at least 80% and 13% full-reference
+passes; two entries were unscored due to provider failures. The earlier run used
+the prior recovery implementation. This comparison is not controlled and does
+not attribute the difference to separate completeness questions, image sizing
+or confidence policy.
+
+OpenAI Decisions (`gpt-6-luna`) answered completeness for all 100 cases. On the
+79-entry calibration group, choice accuracy against the full-reference pass was
+86.1%; four `complete` choices were below 80% tolerant coverage. On the
+21-entry held-out group, accuracy was 90.5%, with no `complete` choice below
+80%. The reported `confidence` averaged 0.889 and 0.907, respectively; this is
+confidence in the selected option, not `P(complete)`. The separate mean native
+`P(complete)` was 0.191 and 0.145. Its Brier score against full-reference pass
+was 0.098 and 0.061; against at-least-80% coverage it was 0.321 and 0.157.
+These small-sample scores are descriptive and do not establish reliability on a
+new dataset.
+
+The trial also recorded 160 candidate comparisons, of which 85 had comparable
+reference scores. Against tolerant matched-word gain, choice accuracy was
+82.5% on calibration and 95.5% on evaluation; the `P(improved)` Brier scores
+were 0.040 and 0.048. This comparison ignores geometry and exact transcription,
+so it validates only one narrow consequence of the decision. Reviewability,
+repair and orientation answers do not have direct objective labels here and
+remain descriptive.
+
+No confidence cutoff was fitted or adopted, and production routing is unchanged.
+This failure-selected development sample is not an independent benchmark;
+TextOCR references come from training annotations. The broader proposed
+four-arm question/evidence comparison remains unrun.

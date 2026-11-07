@@ -1,13 +1,34 @@
-"""Retain incumbent words when applying spatially supported letter insertions."""
+"""Retain OCR evidence when applying spatially supported letter insertions."""
 
 from collections import Counter
 from functools import cache
 import math
+import re
 
 from vipi.ocr.merge import bounds
 
-from .upscale_retry import retained_confident_tokens
 from .reading_edits import apply_approved
+
+
+def retained_confident_tokens(incumbent_regions, candidate_text, confidence=0.9):
+    """Return confident incumbent OCR tokens missing from a candidate.
+
+    This check uses no reference text and can reject a genuine correction when
+    the incumbent OCR is confidently wrong.
+    """
+    old = Counter()
+    for region in incumbent_regions:
+        score = region.get("confidence")
+        if (
+            isinstance(score, (int, float))
+            and not isinstance(score, bool)
+            and confidence <= score <= 1
+        ):
+            old.update(re.findall(r"\w+", region.get("text", "").casefold()))
+    if not old:
+        raise ValueError("No confident OCR tokens available for retention check")
+    new = Counter(re.findall(r"\w+", candidate_text.casefold()))
+    return list((old - new).elements())
 
 
 @cache

@@ -100,6 +100,35 @@ cloud results. Inputs and evaluation rules must match; each configuration keeps
 its own source provenance. A previous failed cloud trial must remain separate,
 rather than replacing only failed images with new outputs.
 
+### Scoped cloud confidence trial
+
+The [100-entry selection](../research/ocr_eval/experiments/DECISION_CONFIDENCE_HARD_100.json)
+is a reproducible, category-stratified sample from the union of entries that
+failed, were unscored or did not pass full reference in either configuration
+of the previous evaluation. It contains 81 TextOCR and 19 other entries, with
+100 distinct image hashes. The fixed image-hash split has 79 calibration and 21
+held-out evaluation entries. This is a first cloud-only experiment; it does not
+rerun local inference or represent every difficult entry.
+
+From the repository root, run only the cloud configuration and then score the
+retained OCR and native decision outputs:
+
+```bash
+uv run python -m research.ocr_eval.benchmark runs/benchmarks/decision-confidence-hard-100 --configuration cloud-default --selection-file research/ocr_eval/experiments/DECISION_CONFIDENCE_HARD_100.json
+uv run python -m research.ocr_eval.benchmark_report runs/benchmarks/decision-confidence-hard-100 --output runs/benchmarks/decision-confidence-hard-100/benchmark-report.json
+uv run python -m research.ocr_eval.experiments.decision_confidence runs/benchmarks/decision-confidence-hard-100 --baseline-report research/ocr_eval/reports/PRODUCT_OCR_1113_2026-11-02.json --output runs/benchmarks/decision-confidence-hard-100/decision-confidence.json
+```
+
+The confidence report groups native values by provider, model, question and
+split. It evaluates the initial OCR completeness choice against both 80%
+tolerant word coverage and the full-reference pass; it checks comparisons
+against reference-scored tolerant word gain. Reviewability and repair choices
+have no direct reference label here and are descriptive. References are read
+only after inference. No confidence cutoff is fitted or applied. The results
+are a small development-set diagnosis, not evidence of a production-safe policy
+or general model calibration. See the [scoped OCR results](../research/ocr_eval/reports/DECISION_CLOUD_HARD_100_2026-11-07.md)
+and [confidence validation](../research/ocr_eval/reports/DECISION_CONFIDENCE_HARD_100_2026-11-07.md).
+
 ## Metrics and denominators
 
 Use the existing [evaluation v4 rules](../research/ocr_eval/README.md), without

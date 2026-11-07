@@ -1,4 +1,7 @@
-"""Convert completed OCR results into selection-report fields."""
+"""Shape OCR result records and summarize workbench batches."""
+
+import math
+from statistics import mean, median
 
 
 def ocr_record(result):
@@ -41,3 +44,50 @@ def ocr_record(result):
         record["scoring_unavailable"] = result["evaluation_unavailable"]["reason"]
 
     return record
+
+
+def performance_summary(items):
+    """Summarize completed image time, validity, and known API fees."""
+    done = [
+        item
+        for item in items
+        if item["state"] in {"completed", "failed"}
+        or (item["state"] == "cancelled" and item.get("run_id"))
+    ]
+    times = sorted(
+        item["elapsed_seconds"]
+        for item in done
+        if isinstance(item.get("elapsed_seconds"), (int, float))
+    )
+    costs = [item.get("cost") or {} for item in done]
+    amounts = [
+        cost["estimated_usd"]
+        for cost in costs
+        if isinstance(cost.get("estimated_usd"), (int, float))
+    ]
+    unknown = len(done) - len(amounts)
+    subtotal = sum(amounts)
+    complete = subtotal if done and not unknown else None
+    valid = sum(item.get("valid") is True for item in done)
+    return {
+        "measured_images": len(times),
+        "total_seconds": sum(times),
+        "mean_seconds": mean(times) if times else None,
+        "median_seconds": median(times) if times else None,
+        "initialization_seconds": sum(
+            item.get("initialization_seconds", 0) for item in done
+        ),
+        "inference_seconds": sum(item.get("inference_seconds", 0) for item in done),
+        "p95_seconds": times[max(0, math.ceil(len(times) * 0.95) - 1)]
+        if times
+        else None,
+        "known_estimated_api_cost_usd": subtotal,
+        "estimated_api_cost_usd": complete,
+        "cost_unknown_images": unknown,
+        "estimated_api_cost_per_image_usd": complete / len(done)
+        if complete is not None
+        else None,
+        "estimated_api_cost_per_pass_usd": complete / valid
+        if complete is not None and valid
+        else None,
+    }

@@ -53,9 +53,11 @@ detectors; dataset references never become classifier evidence.
 `vipi.ocr.types.OcrEngine.recognize(image)` returns text and regions in raster coordinates.
 Transformation/assembly code uses this contract rather than a provider-specific
 result. `OcrSession` owns the engine pool, model verification and artifact details.
-Assembly preserves native line orientation and reads independent paragraph
-columns within horizontal bands; simple aligned tables retain row order.
-It keeps competing readings as evidence and records its assembly version.
+Geometry matching lives in `vipi.ocr.merge_geometry`; `vipi.ocr.merge` selects
+observed readings and assembles lines in page reading order. Assembly preserves
+native line orientation and reads independent paragraph columns within horizontal
+bands; simple aligned tables retain row order. Competing readings remain evidence,
+and each result records its assembly version.
 See [ADR 0020](../adr-code/0020-ocr-assembly-geometry-and-reading-order.md)
 for the geometry rules and validation boundary.
 `OCR_MODES`, `REQUIRED` and `model_files.json` map the public speed/quality modes
@@ -66,19 +68,21 @@ The selected recovery workflow lives in `vipi.ocr.recovery`:
 
 | Module | Owns |
 | --- | --- |
-| `pipeline` | Engine lifetime, original/correction review and completed run results |
-| `decisions` | Visual OCR questions and local/hosted decision adapters |
+| `pipeline` | Engine lifetime, run state, completion and artifact persistence |
+| `attempts`, `selection` | Transformed OCR attempts, recovery routing and candidate review |
+| `decisions`, `decision_adapters` | Shared decision questions and local/hosted request adapters |
 | `signals`, `extended_signals` | Local quality evidence and recovery routing |
 | `layout`, `_layout_*` | Grouping in the readable image's coordinate frame |
 | `probes`, `tiles` | Guarded resolution recovery and source-resolution tile retries |
-| `resolution_retention`, `upscale_retry`, `reading_edits` | Token retention and supported corrections |
+| `resolution_retention`, `reading_edits` | Token retention and supported corrections |
 
 `OcrSession` and research evaluation import this implementation directly.
 Local engines and the factory stay in `engines`, hosted adapters in `cloud`,
 and their existing recognition contract in `types`. Raster transforms,
-multi-view assembly and cost reporting stay
-in `vipi.ocr`. Its separate `pipeline` module supports the workbench's native
-baseline and fixed-transform comparison profiles. `vipi.local_decisions` owns
+multi-view assembly and per-run API cost estimates stay in `vipi.ocr`. The
+workbench owns batch-level performance summaries in `reporting`.
+`vipi.ocr.pipeline` supports the workbench's native baseline and fixed-transform
+comparison profiles. `vipi.local_decisions` owns
 the prepared Clef/d1 runtimes reused by OCR review and injection detection.
 
 See [Product OCR recovery](ocr-recovery.md) for the recovery stages and measured

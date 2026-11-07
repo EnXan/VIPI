@@ -23,7 +23,29 @@ def scanner_decisions(monkeypatch):
             }
 
         def assess(self, *args):
-            return self.record("assessment", "ready")
+            return {
+                "response": {
+                    "answers": {
+                        "completeness": {
+                            "type": "choice",
+                            "choice": "complete",
+                            "confidence": 1.0,
+                        },
+                        "reviewability": {
+                            "type": "choice",
+                            "choice": "sufficient",
+                            "confidence": 1.0,
+                        },
+                        "repair": {
+                            "type": "choice",
+                            "choice": "none",
+                            "confidence": 1.0,
+                        },
+                    }
+                },
+                "estimated_usd": 0.0,
+                "attempts": 1,
+            }
 
         def compare(self, *args):
             return self.record("comparison", "equivalent")

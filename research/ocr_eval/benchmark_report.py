@@ -2,6 +2,7 @@
 
 import argparse
 from collections import Counter, defaultdict
+import hashlib
 import json
 import math
 from pathlib import Path
@@ -228,10 +229,45 @@ def report(directory, cloud_directory=None):
             and digest(ROOT / filename) != expected
         ):
             raise ValueError(f"Evaluation code changed since inference: {filename}")
-    if selection() != manifest["selection"]:
+    complete_selection = selection()
+    complete_by_key = {row["key"]: row for row in complete_selection}
+    selected_keys = [row["key"] for row in manifest["selection"]]
+    selected_key_set = set(selected_keys)
+    if len(selected_keys) != len(set(selected_keys)) or any(
+        complete_by_key.get(row["key"]) != row for row in manifest["selection"]
+    ):
         raise ValueError(
             "Catalogs, references or images differ from the frozen selection."
         )
+    expected_order = [
+        row["key"] for row in complete_selection if row["key"] in selected_key_set
+    ]
+    if selected_keys != expected_order:
+        raise ValueError("Frozen selection is not in active catalog order.")
+    selection_filter = manifest.get("selection_filter")
+    if selection_filter is None and manifest["selection"] != complete_selection:
+        raise ValueError("A partial selection must include its selection basis.")
+    if selection_filter is not None:
+        keys_sha256 = hashlib.sha256(
+            json.dumps(selected_keys, separators=(",", ":")).encode()
+        ).hexdigest()
+        if selection_filter.get("keys_sha256") != keys_sha256:
+            raise ValueError("Selection basis does not match the frozen keys.")
+        split = selection_filter.get("confidence_split")
+        if split is not None:
+            if not isinstance(split, dict):
+                raise ValueError(
+                    "Confidence split must map image hashes to split names."
+                )
+            split_values = set(split.values())
+            if (
+                set(split) != {row["image_sha256"] for row in manifest["selection"]}
+                or not split_values <= {"calibration", "evaluation"}
+                or split_values != {"calibration", "evaluation"}
+            ):
+                raise ValueError(
+                    "Confidence split does not match selected image hashes."
+                )
     loaded_catalogs = catalogs()
     configurations = {}
     sources = {}
@@ -244,8 +280,13 @@ def report(directory, cloud_directory=None):
         )
         source_path = source_directory / "manifest.json"
         source_manifest = json.loads(source_path.read_text())
-        for field in ("selection", "evaluation_policy", "configurations"):
-            if source_manifest[field] != manifest[field]:
+        for field in (
+            "selection",
+            "selection_filter",
+            "evaluation_policy",
+            "configurations",
+        ):
+            if source_manifest.get(field) != manifest.get(field):
                 raise ValueError(f"Configuration manifests disagree on {field}.")
         for filename, expected in source_manifest["provenance"][
             "source_hashes"
@@ -345,6 +386,7 @@ def report(directory, cloud_directory=None):
         "scored_at": utc_now(),
         "scoring_seconds": time.perf_counter() - started,
         "selection": manifest["selection"],
+        "selection_filter": selection_filter,
         "evaluation_policy": manifest["evaluation_policy"],
         "decision_pricing": DECISIONS_PRICING,
         "postprocessing_sources": {
@@ -365,17 +407,44 @@ def percent(value):
 
 def markdown(data):
     """Render the same aggregates used by the machine-readable report."""
+    image_count = len(data["selection"])
+    scope = (
+        "pinned images"
+        if data.get("selection_filter") is None
+        else "selected difficult images"
+    )
     lines = [
-        "# OCR benchmark: 1,113 pinned images",
+        f"# OCR benchmark: {image_count:,} {scope}",
         "",
         "Generated from retained product OCR outputs. See the benchmark protocol for scope, denominators and cost limitations.",
         "",
+        "This selected development sample measures OCR recovery, not final injection detection. USD figures are estimates from retained provider usage, not invoices; host hardware cost and electricity are unmeasured.",
+        "",
     ]
+    if data.get("selection_filter"):
+        lines += [
+            f"Selection: {data['selection_filter']['description']}",
+            f"Selection key SHA-256: `{data['selection_filter']['keys_sha256']}`.",
+            "",
+        ]
     if not data["inference_complete"]:
         lines += ["**Partial run: some planned images have not been attempted.**", ""]
     for configuration, values in data["configurations"].items():
+        provenance = data["configuration_sources"][configuration]["provenance"]
+        hardware = provenance.get("hardware", {})
+        cpu = hardware.get("machdep.cpu.brand_string") or "CPU unavailable"
+        physical = hardware.get("hw.physicalcpu") or "?"
+        logical = hardware.get("hw.logicalcpu") or "?"
+        memory = hardware.get("hw.memsize")
+        memory_text = (
+            f"{int(memory) / 1024**3:.1f} GiB"
+            if memory is not None
+            else "memory unavailable"
+        )
         lines += [
             f"## {configuration}",
+            "",
+            f"Runner host (provider inference runs remotely): {provenance.get('platform', 'platform unavailable')}; {cpu}; {physical} physical / {logical} logical CPUs; {memory_text}.",
             "",
             "| Category/subset | N | Scored / failed | Word coverage | Exact word coverage | Mean image coverage | ≥80% images | 100% images | Full-reference pass | Image seconds total / mean | API estimate USD total / mean |",
             "| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |",
@@ -408,7 +477,7 @@ def markdown(data):
             )
         lines += [
             "",
-            "Category rows partition the 1,113 images. Suite, scope, technique, obfuscation and family rows overlap; do not add them together. Coverage averages use scored images; image success rates use every planned image in the row, including failures and unscored outputs. Durations are measured OCR call durations, including lazy model loading, but excluding worker startup/teardown and offline scoring.",
+            f"Category rows partition the {image_count:,} selected image entries. Suite, scope, technique, obfuscation and family rows overlap; do not add them together. Coverage averages use scored images; image success rates use every planned image in the row, including failures and unscored outputs. Durations are measured OCR call durations, including lazy model loading, but excluding worker startup/teardown and offline scoring.",
             "",
         ]
         wall = values["summary"]["time"]["invocation_wall_seconds"]

@@ -2,8 +2,8 @@
 
 The public commands are `vipi setup` and `vipi scan` (`python -m vipi`
 provides the same interface). Use Python 3.12 and uv.
-For installation and the exact model-to-purpose mapping, see the
-[README](../README.md#models-and-their-roles). From a checkout:
+For installation, see the [README](../README.md#quick-start); for the exact
+model-to-purpose mapping, see [models and hardware](models.md). From a checkout:
 
 ```bash
 uv sync --extra ocr --extra detector-local

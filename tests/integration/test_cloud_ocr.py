@@ -65,6 +65,8 @@ def test_public_cloud_scan_preserves_text_pixels_usage_and_single_calls(
 ):
     monkeypatch.chdir(tmp_path)
     monkeypatch.setenv("XDG_CACHE_HOME", str(tmp_path / "cache"))
+    monkeypatch.setattr("vipi.ocr.pipeline.MAX_INPUT_PIXELS", 100)
+    monkeypatch.setattr("vipi.ocr.recovery.pipeline.MAX_INPUT_PIXELS", 100)
     for name in ("GOOGLE_CLOUD_API_KEY", "OPENAI_API_KEY", "MISTRAL_API_KEY"):
         monkeypatch.setenv(name, "fixture-secret")
     selected = provider or "google"

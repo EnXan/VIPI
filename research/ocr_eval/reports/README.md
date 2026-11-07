@@ -12,6 +12,11 @@ and [raw responses, references and comparable text-only scores](LUNA_ONLY_33_202
 Research review: [decision models and proposed recovery experiments](DECISION_MODEL_REVIEW_2026-11-07.md).
 These proposals have not changed production behavior or established a quality gain.
 
+Scoped point-4 trial: [100 difficult cloud cases and OCR metrics](DECISION_CLOUD_HARD_100_2026-11-07.md),
+[provider confidence and reference validation](DECISION_CONFIDENCE_HARD_100_2026-11-07.md),
+and the [reproducible 100-entry selection](../experiments/DECISION_CONFIDENCE_HARD_100.json).
+The trial does not rerun local inference or establish a production confidence threshold.
+
 ## Historical development trials
 
 These reports retain the measured protocols, results and limitations of the

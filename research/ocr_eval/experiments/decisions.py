@@ -2,7 +2,8 @@
 
 import math
 
-from vipi.ocr.recovery.decisions import DecisionsDecider, VISUAL_TASK, choice
+from vipi.ocr.recovery.decision_adapters import DecisionsDecider
+from vipi.ocr.recovery.decisions import VISUAL_TASK, choice
 
 
 class ResearchDecider(DecisionsDecider):
@@ -64,8 +65,6 @@ class ResearchDecider(DecisionsDecider):
             questions,
             images,
             directory,
-            preview_maximum=1024,
-            image_format="jpeg",
         )
 
     def compare_region_readings(self, original, changes, directory):
@@ -112,8 +111,6 @@ class ResearchDecider(DecisionsDecider):
             questions,
             images,
             directory,
-            preview_maximum=1024,
-            image_format="jpeg",
         )
 
     def compare_layout(self, original, incumbent, candidate, directory):
@@ -146,6 +143,4 @@ class ResearchDecider(DecisionsDecider):
             questions,
             {"<original-image>": original},
             directory,
-            preview_maximum=1024,
-            image_format="jpeg",
         )

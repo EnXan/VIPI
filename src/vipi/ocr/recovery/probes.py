@@ -14,8 +14,10 @@ from vipi.storage.files import write_json
 
 from .decisions import read_choice
 from .layout import LAYOUT_VERSION, group_reading
-from .resolution_retention import repair_resolution_reading
-from .upscale_retry import retained_confident_tokens
+from .resolution_retention import (
+    repair_resolution_reading,
+    retained_confident_tokens,
+)
 
 
 def recognize_scaled(original, factor, method, engine, store, attempts, cancel_event):

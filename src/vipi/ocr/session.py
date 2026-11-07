@@ -16,7 +16,7 @@ from vipi.storage.ocr import RunStore
 from .engine_pool import EnginePool
 from .models import FILES, REQUIRED, validate_model
 from .recovery.pipeline import extract, PROFILE
-from .recovery.decisions import DecisionsDecider, JevDecider, LocalDecider
+from .recovery.decision_adapters import DecisionsDecider, JevDecider, LocalDecider
 
 
 class OcrSession:
@@ -50,7 +50,9 @@ class OcrSession:
             self.decider = decider
         elif self.decision_provider in LOCAL_DECISION_PROVIDERS:
             self.decider = LocalDecider(
-                self.decision_provider, self.root / "decisions" / self.decision_provider
+                self.decision_provider,
+                self.root / "decisions" / self.decision_provider,
+                mode=self.mode,
             )
         elif self.decision_provider == "jev":
             self.decider = JevDecider()

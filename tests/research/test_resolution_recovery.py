@@ -2,7 +2,7 @@ from research.ocr_eval.experiments.upscale import recognize_upscaled
 from PIL import Image
 import pytest
 
-from vipi.ocr.recovery.upscale_retry import (
+from vipi.ocr.recovery.resolution_retention import (
     retained_confident_tokens,
 )
 

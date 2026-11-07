@@ -1,16 +1,22 @@
+import base64
+from io import BytesIO
 import json
 
 import numpy as np
 from PIL import Image
 import pytest
 
+from vipi.ocr.recovery import attempts as recovery_attempts
 from vipi.ocr.recovery import pipeline as recovery_pipeline
 from vipi.ocr.recovery.layout import group_reading
-from vipi.ocr.recovery.decisions import (
+from vipi.ocr.recovery.decision_adapters import (
     DecisionsDecider,
+    JevDecider,
     decision_preview,
-    read_choice,
+    local_preview_maximum,
+    openai_decision_image,
 )
+from vipi.ocr.recovery.decisions import read_choice
 from vipi.ocr.measured_transforms import ORIENTATIONS, orientation_view
 from vipi.ocr.transforms import render_view
 from vipi.storage.ocr import RunStore
@@ -30,11 +36,19 @@ class Decider:
     provider = "fake"
 
     def __init__(
-        self, outcomes=None, engine=None, assessment="ready", orientation="mirror-180"
+        self,
+        outcomes=None,
+        engine=None,
+        completeness="complete",
+        reviewability="sufficient",
+        repair="none",
+        orientation="mirror-180",
     ):
         self.outcomes = outcomes or {}
         self.engine = engine
-        self.assessment = assessment
+        self.completeness = completeness
+        self.reviewability = reviewability
+        self.repair = repair
         self.orientation = orientation
         self.history = []
         self.gates = 0
@@ -44,7 +58,15 @@ class Decider:
         self.gates += 1
         if self.engine is not None:
             assert len(self.engine.rasters) == 1
-        return {"response": {"answers": {"assessment": answer(self.assessment)}}}
+        return {
+            "response": {
+                "answers": {
+                    "completeness": answer(self.completeness),
+                    "reviewability": answer(self.reviewability),
+                    "repair": answer(self.repair),
+                }
+            }
+        }
 
     def choose_orientation(self, original, directory):
         self.orientation_calls += 1
@@ -90,7 +112,7 @@ def test_orientation_crop_pixels_map_back_to_original(orientation, crop):
     pixels = np.arange(32 * 48, dtype=np.uint16).reshape(32, 48)
     image = Image.fromarray(pixels)
     plan = {"orientation": orientation, "crop": crop}
-    view = recovery_pipeline.view_for_plan(image.size, plan)
+    view = recovery_attempts.view_for_plan(image.size, plan)
     rendered = np.asarray(render_view(image, view))
     assert rendered.shape == (view.height, view.width)
     for y, x in [
@@ -145,6 +167,11 @@ def test_ready_original_keeps_selected_reading_after_guarded_resolution_probes(
     assert decider.history == [("0001", "0002")]
     assert decider.orientation_calls == 0
     assert result["selection"]["stop_reason"] == "original_ready"
+    assert result["selection"]["initial_assessment"] == {
+        "completeness": "complete",
+        "reviewability": "sufficient",
+        "repair": "none",
+    }
 
 
 def test_contrast_attempt_starts_from_original_and_stops_on_first_improvement(tmp_path):
@@ -152,7 +179,12 @@ def test_contrast_attempt_starts_from_original_and_stops_on_first_improvement(tm
     original = np.full((300, 400, 3), (15, 60, 120), dtype=np.uint8)
     Image.fromarray(original).save(source)
     engine = Engine()
-    decider = Decider({"0002": "improved"}, engine=engine, assessment="contrast")
+    decider = Decider(
+        {"0002": "improved"},
+        engine=engine,
+        completeness="missing_text",
+        repair="contrast",
+    )
     result = recovery_pipeline.extract(
         source,
         "ppocr-v6-tiny",
@@ -173,7 +205,11 @@ def test_contrast_attempt_starts_from_original_and_stops_on_first_improvement(tm
 def test_unverified_corrections_keep_original(tmp_path, outcome):
     source = tmp_path / "input.png"
     Image.new("RGB", (400, 300), "white").save(source)
-    decider = Decider({f"{i:04d}": outcome for i in range(2, 5)}, assessment="contrast")
+    decider = Decider(
+        {f"{i:04d}": outcome for i in range(2, 5)},
+        completeness="missing_text",
+        repair="contrast",
+    )
     result = recovery_pipeline.extract(
         source,
         "ppocr-v6-tiny",
@@ -206,7 +242,11 @@ def test_empty_ocr_uses_local_probes_without_paying_for_empty_comparisons(tmp_pa
 def test_orientation_route_recognizes_only_selected_orientation(tmp_path):
     source = tmp_path / "input.png"
     Image.new("RGB", (400, 300), "white").save(source)
-    decider = Decider({"0002": "improved"}, assessment="orientation")
+    decider = Decider(
+        {"0002": "improved"},
+        completeness="missing_text",
+        repair="orientation",
+    )
     result = recovery_pipeline.extract(
         source,
         "ppocr-v6-tiny",
@@ -220,14 +260,93 @@ def test_orientation_route_recognizes_only_selected_orientation(tmp_path):
     assert len(result["selection"]["decisions"]) == 3
 
 
+def test_missing_text_without_supported_repair_is_not_marked_ready(tmp_path):
+    source = tmp_path / "input.png"
+    Image.new("RGB", (400, 300), "white").save(source)
+    decider = Decider(completeness="missing_text", repair="none")
+    result = recovery_pipeline.extract(
+        source,
+        "ppocr-v6-tiny",
+        engine=Engine(),
+        decider=decider,
+        runs_dir=tmp_path / "runs",
+    )
+    assert result["selection"]["initial_assessment"]["completeness"] == "missing_text"
+    assert (
+        result["selection"]["stop_reason"]
+        == "visible_text_missing_without_supported_repair"
+    )
+    assert result["selection"]["accepted"] is False
+
+
+def test_incomplete_review_detail_never_accepts_a_complete_answer(tmp_path):
+    source = tmp_path / "input.png"
+    Image.new("RGB", (400, 300), "white").save(source)
+    decider = Decider(reviewability="insufficient")
+    result = recovery_pipeline.extract(
+        source,
+        "ppocr-v6-tiny",
+        engine=Engine(),
+        decider=decider,
+        runs_dir=tmp_path / "runs",
+    )
+    assert result["selection"]["initial_assessment"]["completeness"] == "complete"
+    assert result["selection"]["stop_reason"] == "completeness_unjudged"
+    assert result["selection"]["accepted"] is False
+
+
+def test_both_supported_repairs_are_applied_to_the_same_source_view(tmp_path):
+    source = tmp_path / "input.png"
+    Image.new("RGB", (400, 300), "white").save(source)
+    engine = Engine()
+    decider = Decider(
+        {"0002": "improved"},
+        engine=engine,
+        completeness="missing_text",
+        repair="both",
+    )
+    result = recovery_pipeline.extract(
+        source,
+        "ppocr-v6-tiny",
+        engine=engine,
+        decider=decider,
+        runs_dir=tmp_path / "runs",
+    )
+    assert result["text"] == "candidate2"
+    assert result["selection"]["repair_action"] == "both"
+    assert result["variants"][1]["plan"] == {
+        "orientation": "mirror-180",
+        "contrast": "green-minus-red",
+        "crop": "full",
+    }
+
+
 @pytest.mark.parametrize(
     "size", [(3200, 3200), (4368, 4368), (760, 760), (1600, 40), (40, 40)]
 )
-def test_jev_preview_meets_documented_dimensions(size):
+def test_decision_preview_meets_documented_dimensions(size):
     image = Image.new("RGB", size)
     preview = decision_preview(image)
     assert all(280 <= side <= 1568 for side in preview.size)
     assert image.size == size
+
+
+@pytest.mark.parametrize(
+    "mode, device, image_count, expected",
+    [
+        ("speed", "cpu", 1, 512),
+        ("fast", "cuda", 2, 512),
+        ("balanced", "cuda", 1, 1024),
+        ("balanced", "mps", 2, 512),
+        ("quality", "cpu", 1, None),
+        ("quality", "mps", 1, 1024),
+        ("quality", "mps", 8, 512),
+    ],
+)
+def test_local_preview_maximum_uses_mode_and_hardware(
+    mode, device, image_count, expected
+):
+    assert local_preview_maximum(mode, device, image_count) == expected
 
 
 def test_invalid_or_missing_confidence_is_not_silently_accepted():
@@ -278,11 +397,103 @@ def test_pair_comparison_sends_real_ocr_and_keep_options(tmp_path, monkeypatch):
     images = [
         part for part in payload["input"][0]["content"] if part["type"] == "input_image"
     ]
-    assert images and all(
-        part["image_url"].startswith("data:image/jpeg;base64,") for part in images
+    assert len(images) == 5
+    assert all(part["detail"] == "original" for part in images)
+    assert all(
+        part["image_url"].startswith("data:image/png;base64,") for part in images
     )
+    sizes = []
+    for part in images:
+        encoded = part["image_url"].split(",", 1)[1]
+        with Image.open(BytesIO(base64.b64decode(encoded))) as submitted:
+            sizes.append(submitted.size)
+    assert sizes == [
+        (900, 600),
+        (900, 600),
+        (220, 50),
+        (900, 600),
+        (220, 50),
+    ]
     saved = (tmp_path / "pair" / "request.json").read_text()
     assert "fixture-key" not in saved and "data:image/" not in saved
+
+
+def test_cloud_assessment_sends_full_size_raster_with_original_detail(
+    tmp_path, monkeypatch
+):
+    payloads = []
+
+    def transport(url, key, payload, **options):
+        payloads.append(payload)
+        return {
+            "answers": [
+                {"name": "completeness", **answer("complete")},
+                {"name": "reviewability", **answer("sufficient")},
+                {"name": "repair", **answer("none")},
+            ]
+        }, {}
+
+    monkeypatch.setenv("OPENAI_API_KEY", "fixture-key")
+    image = Image.new("RGB", (2400, 1600), (23, 45, 67))
+    decider = DecisionsDecider(transport=transport)
+    decider.assess(image, {"text": "visible words"}, tmp_path / "assessment")
+    assert {question["name"] for question in payloads[0]["questions"]} == {
+        "completeness",
+        "reviewability",
+        "repair",
+    }
+
+    image_part = next(
+        part
+        for part in payloads[0]["input"][0]["content"]
+        if part["type"] == "input_image"
+    )
+    assert image_part["detail"] == "original"
+    encoded = image_part["image_url"].split(",", 1)[1]
+    with Image.open(BytesIO(base64.b64decode(encoded))) as submitted:
+        assert submitted.size == image.size
+        assert submitted.tobytes() == image.tobytes()
+
+
+def test_jev_assessment_sends_full_size_raster(tmp_path, monkeypatch):
+    monkeypatch.setenv("TYPESAFE_API_KEY", "fixture-key")
+    image = Image.new("RGB", (2400, 1600), (23, 45, 67))
+
+    def transport(url, key, payload, **options):
+        asset = payload["assets"]["<original-image>"]
+        assert set(payload["questions"]) >= {
+            "completeness",
+            "reviewability",
+            "repair",
+        }
+        assert asset["format"] == "png"
+        encoded = base64.b64decode(asset["data_base64"])
+        with Image.open(BytesIO(encoded)) as submitted:
+            assert submitted.size == image.size
+            assert submitted.tobytes() == image.tobytes()
+        return {
+            "answers": {
+                "completeness": answer("complete"),
+                "reviewability": answer("sufficient"),
+                "repair": answer("none"),
+            }
+        }, {"attempts": 1}
+
+    JevDecider(transport=transport).assess(
+        image, {"text": "visible words"}, tmp_path / "jev-assessment"
+    )
+
+
+def test_openai_decision_image_resizes_only_above_provider_patch_limit(monkeypatch):
+    import vipi.ocr.recovery.decision_adapters as decisions
+
+    image = Image.new("RGB", (130, 100))
+    assert openai_decision_image(image).size == image.size
+
+    monkeypatch.setattr(decisions, "OPENAI_MAX_IMAGE_PATCHES", 6)
+    resized = openai_decision_image(image)
+    assert resized.size != image.size
+    assert ((resized.width + 31) // 32 * ((resized.height + 31) // 32)) <= 6
 
 
 @pytest.mark.parametrize(
@@ -417,7 +628,7 @@ def test_decision_failure_keeps_saved_ocr_without_completed_result(tmp_path):
             source,
             "ppocr-v6-tiny",
             engine=Engine(),
-            decider=FailingDecider(assessment="contrast"),
+            decider=FailingDecider(completeness="missing_text", repair="contrast"),
             store=store,
         )
     assert store.snapshot()["state"] == "failed"

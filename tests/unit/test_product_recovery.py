@@ -83,7 +83,7 @@ def test_local_injection_and_visual_review_use_only_the_supplied_local_runtime(
     tmp_path, monkeypatch
 ):
     from vipi.detection.providers.local import LocalDecisionProvider
-    from vipi.ocr.recovery.decisions import LocalDecider
+    from vipi.ocr.recovery.decision_adapters import LocalDecider
 
     monkeypatch.setattr(
         socket,
@@ -95,6 +95,7 @@ def test_local_injection_and_visual_review_use_only_the_supplied_local_runtime(
     class Runtime:
         model = "local-fixture"
         identity = {"revision": "fixture"}
+        device = "mps"
 
         def ask(self, state, questions, images=None):
             calls.append((state, questions, images))
@@ -103,7 +104,14 @@ def test_local_injection_and_visual_review_use_only_the_supplied_local_runtime(
                     name: {
                         "type": q["type"],
                         **(
-                            {"choice": "ready", "confidence": 0.9}
+                            {
+                                "choice": {
+                                    "completeness": "complete",
+                                    "reviewability": "sufficient",
+                                    "repair": "none",
+                                }.get(name, next(iter(q.get("criteria", {})), "ready")),
+                                "confidence": 0.9,
+                            }
                             if q["type"] == "choice"
                             else {"noul": 0.8}
                         ),
@@ -131,10 +139,11 @@ def test_local_injection_and_visual_review_use_only_the_supplied_local_runtime(
 def test_local_comparison_uses_original_and_candidate_with_complete_text_groups(
     tmp_path,
 ):
-    from vipi.ocr.recovery.decisions import LocalDecider
+    from vipi.ocr.recovery.decision_adapters import LocalDecider
 
     class Runtime:
         model = "local-fixture"
+        device = "mps"
 
         def __init__(self):
             self.images = []
@@ -180,6 +189,13 @@ def test_local_comparison_uses_original_and_candidate_with_complete_text_groups(
     assert all("box" not in group for group in state["incumbent"]["text_groups"])
     assert len(images) == 2
     assert all(max(image.size) <= 512 for image in images)
+    saved_request = json.loads((tmp_path / "compare" / "request.json").read_text())
+    assert saved_request["ocr_mode"] == "quality"
+    assert saved_request["decision_device"] == "mps"
+    assert saved_request["preview_maximum"] == 512
+    assert set(map(tuple, saved_request["submitted_image_sizes"].values())) == {
+        (512, 341)
+    }
 
 
 def test_local_scan_requires_prepared_pinned_code_and_never_downloads(
@@ -309,8 +325,7 @@ def test_clear_quality_signals_skip_every_decision_request(tmp_path, monkeypatch
         compare = assess
 
     monkeypatch.setattr(
-        recovery_pipeline,
-        "route_extended",
+        "vipi.ocr.recovery.selection.route_extended",
         lambda *a, **k: {"route": "no_signal", "signals": [], "unavailable": []},
     )
     result = recovery_pipeline.extract(
