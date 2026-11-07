@@ -1,10 +1,11 @@
 # Research
 
 Research tools import `vipi`; product code must not import research or Flask.
-The research workspace now has three areas:
+The research workspace now has four areas:
 
 | Directory | Purpose |
 | --- | --- |
+| [`contrib_eval/`](contrib_eval/README.md) | Frozen development/holdout split and baseline freshness checks for contributions |
 | [`detection_eval/`](detection_eval/README.md) | Reviewed image-based prompt-injection evaluation suite |
 | [`ocr_eval/`](ocr_eval/README.md) | OCR evaluation with one `catalog.json` and local `images/` |
 | [`workbench/`](workbench/README.md) | Local OCR and detection interface, CLI, saved runs and dataset browsing |
