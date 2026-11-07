@@ -9,6 +9,9 @@ Focused case analysis: [book-spine OCR diagnosis](BOOK_SPINE_DIAGNOSIS_2026-11-0
 Direct model diagnostic: [33-image Luna-only comparison](LUNA_ONLY_33_2026-11-07.md)
 and [raw responses, references and comparable text-only scores](LUNA_ONLY_33_2026-11-07.json).
 
+Research review: [decision models and proposed recovery experiments](DECISION_MODEL_REVIEW_2026-11-07.md).
+These proposals have not changed production behavior or established a quality gain.
+
 ## Historical development trials
 
 These reports retain the measured protocols, results and limitations of the
