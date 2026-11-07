@@ -5,7 +5,7 @@ import json
 from pathlib import Path
 import sys
 
-from . import runs, splits, suite
+from . import compare, runs, splits, suite
 
 
 def build_parser():
@@ -52,6 +52,12 @@ def build_parser():
     run.add_argument("--run-id", help="Resume this run ID; default: a new ID")
     run.add_argument("--runs-dir", type=Path, default=runs.DEFAULT_RUNS_DIRECTORY)
     run.add_argument("--dry-run", action="store_true")
+    comparison = commands.add_parser(
+        "compare",
+        help="Compare a candidate run with its baseline and write the report.",
+    )
+    comparison.add_argument("baseline", help="Baseline run ID")
+    comparison.add_argument("candidate", help="Candidate run ID")
     return parser
 
 
@@ -97,6 +103,18 @@ def main(argv=None):
 def dispatch(args):
     if args.command == "run":
         return run_command(args)
+    if args.command == "compare":
+        data = compare.compare(args.baseline, args.candidate)
+        json_path, markdown_path = compare.write(data)
+        counts = data["case_counts"]
+        print("matched inputs" if data["matched"] else "NOT matched inputs")
+        print(
+            f"newly failed {counts['newly_failed']}, recovered {counts['recovered']}, "
+            f"regressed {counts['regressed']}, improved {counts['improved']}"
+        )
+        print(f"wrote {markdown_path.relative_to(splits.ROOT)}")
+        print(f"wrote {json_path.relative_to(splits.ROOT)}")
+        return 0
     if args.command == "split":
         if args.check:
             matches = splits.check()

@@ -2,7 +2,7 @@
 
 Tools that make a contribution's evaluation comparable: one frozen split of
 both pinned catalogs, a freshness check for the latest committed baseline, and
-scoped baseline/candidate runs. Comparison reports are not implemented yet.
+scoped baseline/candidate runs and a comparison report.
 
 ## Splits
 
@@ -79,3 +79,27 @@ Resource figures come from `psutil` sampling of the evaluation process and its
 workers every 0.5 s. CPU time is a lower bound because short-lived workers can
 exit between samples. GPU/MPS memory is allocated inside worker processes and is
 recorded as unavailable.
+
+## Compare a candidate with its baseline
+
+```bash
+uv run python -m research.contrib_eval compare <baseline-run-id> <candidate-run-id>
+```
+
+The command needs both committed summaries and both local `report.json` files
+(checked against the summaries' hashes). It writes
+`research/ocr_eval/reports/contrib/<candidate>__vs__<baseline>.md` and `.json`:
+
+- whether the inputs matched, and the recorded reason when they did not;
+- baseline, candidate and delta for coverage, image pass rates, completions,
+  failures, per-image time, cost, unreported usage, run wall time, CPU time and
+  peak memory; a note when host or package versions differ;
+- tolerant word coverage and failures per category;
+- every newly failed, recovered, regressed and improved case, largest change
+  first;
+- the files changed between the two runs' commits, or a request to describe
+  them manually when a run used uncommitted changes, plus a reviewer section for
+  weighing the measured change against the added complexity.
+
+The report does not decide whether a contribution is accepted. Attach or link
+the Markdown file in the pull request.
