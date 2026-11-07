@@ -6,6 +6,9 @@ Current measured product run: [1,113-entry local/cloud benchmark](PRODUCT_OCR_11
 
 Focused case analysis: [book-spine OCR diagnosis](BOOK_SPINE_DIAGNOSIS_2026-11-02.md).
 
+Direct model diagnostic: [33-image Luna-only comparison](LUNA_ONLY_33_2026-11-07.md)
+and [raw responses, references and comparable text-only scores](LUNA_ONLY_33_2026-11-07.json).
+
 ## Historical development trials
 
 These reports retain the measured protocols, results and limitations of the
