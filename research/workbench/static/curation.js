@@ -55,6 +55,7 @@
     if (node('label-source').value) params.set('source', node('label-source').value);
     if (node('label-query').value.trim()) params.set('q', node('label-query').value.trim());
     if (node('label-group').checked) params.set('group', '1');
+    if (node('label-changed').checked) params.set('changed', '1');
     return params;
   }
 
@@ -68,6 +69,28 @@
     const position = keepId ? state.items.findIndex(item => item.id === keepId) : -1;
     await select(position >= 0 ? position : state.items.length ? 0 : -1);
     await refreshProgress();
+    await refreshBalance();
+  }
+
+  async function refreshBalance() {
+    const data = await request('/api/curation/balance');
+    const missing = data.missing_total;
+    node('label-balance-summary').textContent =
+      `· overall ${data.overall.benign_percent}% benign · missing ${missing.benign} benign, ${missing.attacks} attack images`;
+    const head = element('tr');
+    for (const text of ['Content', 'Images', 'Benign', 'Attack', 'Missing']) head.append(element('th', text));
+    const rows = Object.entries(data.contents).map(([content, row]) => {
+      const line = element('tr');
+      const need = Object.entries(row.missing).map(([side, count]) => `${count} ${side === 'benign' ? 'benign' : 'attack'}`).join('') || 'balanced';
+      for (const text of [content.replaceAll('_', ' '), row.images, `${row.benign_percent}%`, `${row.attack_percent}%`, need]) line.append(element('td', String(text)));
+      if (Object.keys(row.missing).length) line.className = 'label-unbalanced';
+      return line;
+    });
+    const table = element('table');
+    const body = element('tbody'); body.append(...rows);
+    const thead = element('thead'); thead.append(head);
+    table.append(thead, body);
+    node('label-balance-table').replaceChildren(table);
   }
 
   async function refreshProgress() {
@@ -130,13 +153,7 @@
       ['Id', entry.id], ['Image', entry.image], ['Source', source.dataset || 'unknown'],
       ['License', source.license || 'unknown'], ['Sample', source.sample_id || '—'],
     ].flatMap(([term, value]) => [element('dt', term), element('dd', value, 'mono')]));
-    node('label-payload').textContent = entry.payload || '—';
-    const reference = entry.ocr_reference;
-    node('label-reference').textContent = reference ? `[${reference.scope}] ${reference.text}` : '—';
-    node('label-reference').closest('details').open = !entry.payload && Boolean(reference);
-    node('label-cases-summary').textContent = `Cases (${entry.cases.length})`;
-    node('label-cases').replaceChildren(...entry.cases.map(item =>
-      element('li', `${item.expected}${item.context ? ` — ${item.context}` : ' — no context'}`)));
+    renderTexts(entry);
     renderFields();
     renderCuration();
   }
@@ -270,7 +287,7 @@
     options(node('label-value'), field ? [...values(field), '(none)'].map(value => [value, value]) : []);
     refreshList().catch(failure => setSaved(failure.message, true));
   };
-  for (const id of ['label-status', 'label-value', 'label-source', 'label-group']) {
+  for (const id of ['label-status', 'label-value', 'label-source', 'label-group', 'label-changed']) {
     node(id).onchange = () => refreshList().catch(failure => setSaved(failure.message, true));
   }
   let searchTimer;
@@ -298,6 +315,69 @@
     if (event.key === 'ArrowRight' && state.index < state.items.length - 1) { event.preventDefault(); select(state.index + 1); }
     if (event.key.toLowerCase() === 'r') { event.preventDefault(); node('label-reviewed').click(); }
   });
+  // Text, source and caller context ------------------------------------------
+
+  const SOURCE_FIELDS = ['dataset', 'license', 'provenance', 'repository'];
+  function renderTexts(entry) {
+    node('label-payload').value = entry.payload || '';
+    const reference = entry.ocr_reference;
+    const locked = Boolean(reference && reference.regions && reference.regions.length);
+    node('label-reference').value = reference ? reference.text : '';
+    node('label-reference').readOnly = locked;
+    node('label-reference-note').textContent = locked
+      ? 'This reference has word positions, so its text is edited together with them in catalog.json.'
+      : reference
+        ? `Scope: ${reference.scope.replaceAll('_', ' ')} · quality: ${reference.quality.replaceAll('_', ' ')}.`
+        : 'A reference typed here covers the main visible text (scope: primary visible payload).';
+    const source = entry.source || {};
+    for (const key of SOURCE_FIELDS) node(`label-source-${key}`).value = source[key] || '';
+    renderCases(entry.cases);
+    node('label-texts-status').textContent = '';
+  }
+
+  function caseRow(item) {
+    const row = element('div', null, 'label-case');
+    const expected = element('select');
+    for (const label of ['benign', 'injection', 'jailbreak']) {
+      const option = element('option', `expected: ${label}`); option.value = label; expected.append(option);
+    }
+    expected.value = item.expected || 'benign';
+    const context = element('textarea'); context.rows = 2; context.value = item.context || '';
+    context.placeholder = 'e.g. This repository collects phishing screenshots for training detectors.';
+    const remove = element('button', 'Remove', 'small'); remove.type = 'button';
+    remove.onclick = () => row.remove();
+    row.append(expected, context, remove);
+    return row;
+  }
+  function renderCases(cases) {
+    // Cases without context repeat the label and are kept as they are.
+    node('label-cases').replaceChildren(...cases.filter(item => item.context).map(caseRow));
+  }
+  node('label-add-case').onclick = () => node('label-cases').append(caseRow({expected: 'benign'}));
+
+  node('label-texts').onsubmit = async event => {
+    event.preventDefault();
+    const entry = state.entry;
+    if (!entry) return;
+    const contexts = [...node('label-cases').querySelectorAll('.label-case')].map(row => ({
+      expected: row.querySelector('select').value, context: row.querySelector('textarea').value,
+    })).filter(item => item.context.trim());
+    const changes = {
+      payload: node('label-payload').value,
+      source: Object.fromEntries(SOURCE_FIELDS.map(key => [key, node(`label-source-${key}`).value])),
+      cases: [...entry.cases.filter(item => !item.context), ...contexts],
+    };
+    if (!node('label-reference').readOnly) changes.ocr_reference = {text: node('label-reference').value};
+    node('label-texts-status').textContent = 'Saving…';
+    try {
+      state.entry = await post(entryUrl(entry.id), changes);
+      renderTexts(state.entry);
+      node('label-texts-status').textContent = 'Saved.';
+    } catch (failure) {
+      node('label-texts-status').textContent = failure.message;
+    }
+  };
+
   window.vipiCuration = {open};
   if (!node('label-page').hidden) open();
 })();

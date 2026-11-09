@@ -5,6 +5,7 @@ from io import BytesIO
 from flask import jsonify, request, send_file
 from PIL import Image, ImageOps
 
+from research.curation import contribute, schema
 from research.curation.store import DraftMissing
 from research.curation.vocabulary import FIELDS
 
@@ -24,7 +25,20 @@ def thumbnail_bytes(path):
     return buffer
 
 
-def register_routes(app, store):
+def register_routes(app, store, pinned_catalog=None):
+    """``pinned_catalog`` returns the downloaded revision's catalog; by default
+    it is read from the Hugging Face cache (network on first use)."""
+    pinned = {}
+
+    def downloaded():
+        if "catalog" not in pinned:
+            if pinned_catalog is not None:
+                pinned["catalog"] = pinned_catalog()
+            else:
+                _, revision = contribute.pinned_dataset()
+                pinned["catalog"] = contribute.remote_files(revision)[0]
+        return pinned["catalog"]
+
     def failure(error, status=400):
         if isinstance(error, DraftMissing):
             return jsonify(error=str(error)), 409
@@ -50,6 +64,20 @@ def register_routes(app, store):
     @app.get("/api/curation/entries")
     def curation_entries():
         try:
+            only = None
+            if request.args.get("changed") == "1":
+                try:
+                    only = store.changed_ids(downloaded())
+                except (OSError, ValueError, KeyError) as error:
+                    return failure(
+                        ValueError(
+                            "Your changes are found by comparing with the "
+                            "downloaded revision on Hugging Face, which could "
+                            f"not be read ({type(error).__name__}). Check the "
+                            "network connection once."
+                        ),
+                        503,
+                    )
             return jsonify(
                 store.listing(
                     request.args.get("status", "all"),
@@ -58,10 +86,19 @@ def register_routes(app, store):
                     request.args.get("source", ""),
                     request.args.get("q", "").strip(),
                     request.args.get("group") == "1",
+                    only,
                 )
             )
         except (ValueError, DraftMissing) as error:
             return failure(error)
+
+    @app.get("/api/curation/balance")
+    def curation_balance():
+        try:
+            catalog, vocabulary = store.load()
+        except DraftMissing as error:
+            return failure(error)
+        return jsonify(schema.summary(catalog, vocabulary)["balance"])
 
     @app.get("/api/curation/entries/<identifier>")
     def curation_entry(identifier):

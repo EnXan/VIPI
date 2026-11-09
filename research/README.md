@@ -48,28 +48,41 @@ upload the image and updated catalog using **Open as a pull request**. The
 [dataset contribution guide](https://huggingface.co/datasets/EnXan/VIPI-evaluation/blob/main/CONTRIBUTING.md)
 also describes that workflow.
 
-For a CLI submission from this source checkout:
+From this source checkout, after downloading the dataset:
 
-1. Work in the local dataset folder `research/dataset/` (ignored by Git): add
-   images as `images/<id>.png` and their entries in `catalog.json`, label them
-   in the workbench **Label** tab or by hand following the
-   [labeling guide](curation/LABELING_GUIDE.md), and keep each content type
-   at 50 % benign. Describe the source or generation method and the image
-   license in each entry's `source`.
+1. **Add your images.** For images you made or collected:
 
-2. Check the folder:
+   ```bash
+   uv run python -m research.curation add shots/*.png --label benign --content web_page --source my_screenshots --license CC-BY-4.0 --provenance "Screenshots of my demo shop"
+   ```
+
+   Each image gets an unreviewed entry; identical images already in the
+   dataset are skipped. To render new images instead, use the
+   [image generators](curation/README.md#generated-images).
+
+2. **Label them** on the workbench **Label** page
+   (`uv run python -m research.workbench serve`): tick **Only my changes**,
+   set the labels following the [labeling guide](curation/LABELING_GUIDE.md),
+   type the payload and the OCR reference (exactly the text a reader sees),
+   check source and license, and mark each entry reviewed. **Balance per
+   content type** shows where benign or attack images are missing; keep each
+   content type at 50 % benign.
+
+3. **Check and submit:**
 
    ```bash
    uv run python -m research.curation validate
-   uv run python -m research.curation summary --table
-   ```
-
-3. Log in and upload the catalog and new images as a PR:
-
-   ```bash
+   uv run python -m research.curation changes
    uv run hf auth login
-   uv run hf upload EnXan/VIPI-evaluation research/dataset . --repo-type dataset --create-pr --include 'catalog.json' --include 'images/*' --commit-message 'Add evaluation images'
+   uv run python -m research.curation upload --dry-run
+   uv run python -m research.curation upload --message "Add demo shop screenshots"
    ```
+
+   `upload` sends only your changes: entries you added, changed or dropped
+   since your download, applied to the current `main` of the dataset, plus
+   your new images. Others' contributions merged meanwhile stay intact. If
+   someone changed the same entry, it stops and names the conflict; download
+   the new revision and repeat your change.
 
 Only the owner or authorized maintainers merge submissions. Images in a public
 PR can be visible before review; do not submit confidential material or real

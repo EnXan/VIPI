@@ -65,3 +65,13 @@ caption{text-align:left;padding:12px 14px;font:12px var(--vipi-font-mono);color:
 .save-baseline{margin-top:24px;padding:18px;border:1px solid var(--vipi-steel);border-radius:8px;display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap}.save-baseline p{margin:0;max-width:62ch}.save-baseline .primary{margin:0}
 .runs{margin-top:40px}
 @media(max-width:600px){.card{padding:18px}.settings{padding:16px}.workbench-tab{padding:12px 10px}.actions-row .primary{width:100%}}
+/* Label: texts, source, context cases and balance */
+.label-texts{display:grid;gap:14px;margin-top:16px}.label-texts label{display:flex;flex-direction:column;gap:6px;font-size:13px}.label-texts textarea,.label-texts input[type=text],.label-texts input[type=url]{font:13px/1.5 var(--vipi-font-mono);color:var(--vipi-paper);background:var(--vipi-ink);border:1px solid var(--vipi-steel);border-radius:6px;padding:8px 10px;width:100%;resize:vertical}
+.label-texts textarea[readonly]{opacity:.7}.label-texts fieldset{border:1px solid var(--vipi-graphite);border-radius:8px;padding:12px;margin:0}.label-texts legend{font-size:13px;padding:0 4px}
+.label-source{display:grid;grid-template-columns:1fr 1fr;gap:10px}.label-source .wide{grid-column:1/-1}#label-reference-note{margin:-6px 0 0;font-size:12px}
+.label-case{display:grid;grid-template-columns:150px 1fr auto;gap:8px;align-items:start;margin-bottom:8px}.label-case select{padding:8px;font-size:12px}
+.label-text-actions{display:flex;align-items:center;gap:12px}.label-text-actions .small{margin:0}
+.label-balance{margin-top:12px;padding:12px 16px;border:1px solid var(--vipi-graphite);border-radius:12px}.label-balance summary{font-size:13px}.label-balance p{font-size:13px}.label-unbalanced td:last-child{color:var(--vipi-status-review)}
+@media(max-width:700px){.label-source{grid-template-columns:1fr}.label-case{grid-template-columns:1fr}}
+@media(max-width:1100px){.label-detail{position:static}}
+.label-source legend{grid-column:1/-1}

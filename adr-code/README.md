@@ -33,6 +33,7 @@ Temporary planning and review queues belong in `.llm-plans/`.
 | [0053](0053-one-evaluation-dataset.md) | One dataset layout (`catalog.json`, `vocabulary.json`, `images/`) replacing the two catalogs |
 | [0054](0054-evaluation-runs-and-baseline.md) | Evaluation runs of product scan configurations against a saved baseline (replaces 0050) |
 | [0055](0055-workbench-without-research-model-tools.md) | A product-only workbench without research model tools (replaces 0014, 0017, 0018, 0019, 0024, 0026) |
+| [0056](0056-contribute-only-changes.md) | Contributors add images locally and submit only their changes |
 
 When revising an agreed decision, write its replacement with a summary of the
 old ADR (identifier, decision, rationale and reason for revision), then delete

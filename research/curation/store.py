@@ -18,6 +18,15 @@ DEFAULT_DIRECTORY = Path("research/dataset")
 CATALOG_NAME = "catalog.json"
 VOCABULARY_NAME = "vocabulary.json"
 CURATION_KEYS = ("reviewed", "decision", "reason", "duplicate_of")
+SOURCE_KEYS = ("dataset", "repository", "sample_id", "license", "provenance")
+TEXT_KEYS = ("payload", "ocr_reference", "source", "cases")
+# A reference typed on the Label page transcribes the main visible text.
+NEW_REFERENCE = {
+    "scope": "primary_visible_payload",
+    "quality": "reviewed_payload",
+    "reading_order_known": True,
+    "regions": None,
+}
 STATUSES = ("all", "unreviewed", "reviewed", "dropped")
 
 
@@ -187,10 +196,12 @@ class CurationStore:
         source="",
         query="",
         group=False,
+        only=None,
     ):
         """List entries matching the filters.
 
         With ``group``, similar entries are listed together (see similarity.py).
+        ``only`` limits the list to these ids (for example your changes).
         """
         if status not in STATUSES:
             raise ValueError(f"Choose status {', '.join(STATUSES)}.")
@@ -201,6 +212,7 @@ class CurationStore:
             entry
             for entry in catalog
             if self.matches(entry, status, field, value, source, query)
+            and (only is None or entry["id"] in only)
         ]
         items = [
             {
@@ -232,7 +244,7 @@ class CurationStore:
         """Apply field/curation changes to one entry and save if it stays valid."""
         if not isinstance(changes, dict) or not changes:
             raise ValueError("Send the fields to change.")
-        unknown = set(changes) - set(FIELDS) - {"curation"}
+        unknown = set(changes) - set(FIELDS) - set(TEXT_KEYS) - {"curation"}
         if unknown:
             raise ValueError(f"Fields cannot be edited: {sorted(unknown)}")
         with self.lock:
@@ -242,6 +254,7 @@ class CurationStore:
             for field in FIELDS:
                 if field in changes:
                     entry[field] = changes[field]
+            entry = edit_texts(entry, changes)
             curation = changes.get("curation", {})
             if not isinstance(curation, dict) or set(curation) - set(CURATION_KEYS):
                 raise ValueError(f"Curation accepts {list(CURATION_KEYS)}.")
@@ -258,6 +271,14 @@ class CurationStore:
                 raise ValueError("; ".join(errors))
             self.save(catalog=[*catalog[:position], entry, *catalog[position + 1 :]])
             return entry
+
+    def changed_ids(self, pinned):
+        """Ids added, changed or dropped since the downloaded revision."""
+        from .contribute import changes
+
+        catalog, _ = self.load()
+        found = changes(catalog, pinned)
+        return {key for keys in found.values() for key in keys}
 
     # Vocabulary --------------------------------------------------------------
 
@@ -343,3 +364,61 @@ class CurationStore:
             values = [item for item in spec["values"] if item["value"] != value]
             self.save(vocabulary=self.with_values(vocabulary, field, values))
             return {"removed": value}
+
+
+def optional_text(value, name):
+    if value is not None and not isinstance(value, str):
+        raise ValueError(f"{name} must be text.")
+    return (value or "").strip() or None
+
+
+def edit_texts(entry, changes):
+    """Return ``entry`` with edited payload, OCR reference text, source or
+    caller-context cases."""
+    entry = dict(entry)
+    if "payload" in changes:
+        entry["payload"] = optional_text(changes["payload"], "payload")
+    if "ocr_reference" in changes:
+        edit = changes["ocr_reference"]
+        if not isinstance(edit, dict) or set(edit) != {"text"}:
+            raise ValueError('Send the OCR reference as {"text": ...}.')
+        text = optional_text(edit["text"], "OCR reference")
+        reference = entry["ocr_reference"]
+        if reference and reference.get("regions") and text != reference["text"]:
+            raise ValueError(
+                "This reference has word regions; change its text and regions "
+                "together in catalog.json."
+            )
+        if text is None:
+            entry["ocr_reference"] = None
+        elif reference:
+            entry["ocr_reference"] = {**reference, "text": text}
+        else:
+            entry["ocr_reference"] = {"text": text, **NEW_REFERENCE}
+    if "source" in changes:
+        edit = changes["source"]
+        if not isinstance(edit, dict) or set(edit) - set(SOURCE_KEYS):
+            raise ValueError(f"Source accepts {list(SOURCE_KEYS)}.")
+        entry["source"] = {
+            **entry["source"],
+            **{key: optional_text(value, key) for key, value in edit.items()},
+        }
+    if "cases" in changes:
+        cases = changes["cases"]
+        if not isinstance(cases, list) or not all(
+            isinstance(case, dict) and set(case) <= {"expected", "context"}
+            for case in cases
+        ):
+            raise ValueError("Cases are a list of {expected, context}.")
+        entry["cases"] = [
+            {
+                "expected": case.get("expected"),
+                **(
+                    {"context": optional_text(case["context"], "context")}
+                    if case.get("context")
+                    else {}
+                ),
+            }
+            for case in cases
+        ]
+    return entry

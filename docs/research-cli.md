@@ -16,6 +16,22 @@ It fetches `catalog.json`, `vocabulary.json` and `images/` into
 public downloads use no token. See
 [dataset paths and contributions](../research/README.md#download-images).
 
+## Dataset curation
+
+```bash
+uv run python -m research.curation validate
+uv run python -m research.curation summary --table
+uv run python -m research.curation add IMAGE... --label LABEL --content CONTENT --source NAME --license LICENSE --provenance TEXT [--repository URL]
+uv run python -m research.curation generate SPEC.json
+uv run python -m research.curation changes
+uv run python -m research.curation upload [--dry-run] [--message TEXT]
+```
+
+Every command accepts `--dir` (default `research/dataset`). `validate` exits 1
+on errors; `upload` exits 1 on conflicts and needs `hf auth login`; invalid
+input exits 2. See the [curation guide](../research/curation/README.md) and
+[how to add images](../research/README.md#add-images).
+
 ## Workbench
 
 ```bash

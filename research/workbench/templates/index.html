@@ -128,9 +128,15 @@
           <label>Value <select id="label-value" disabled><option value="">Any</option></select></label>
           <label>Source <select id="label-source"><option value="">Any</option></select></label>
           <label class="label-group"><input id="label-group" type="checkbox" checked> Group similar</label>
+          <label class="label-group" title="Entries you added, changed or dropped since the download"><input id="label-changed" type="checkbox"> Only my changes</label>
           <label class="label-search">Search <input id="label-query" type="search" placeholder="Text, id or file"></label>
           <span id="label-progress" class="mono muted" role="status"></span>
         </div>
+        <details id="label-balance" class="label-balance">
+          <summary>Balance per content type <span id="label-balance-summary" class="muted"></span></summary>
+          <p class="muted">Every content type should be about 50 % benign and 50 % attack (injection or jailbreak). Add images where a side is missing; dropped images do not count.</p>
+          <div id="label-balance-table" class="table-scroll"></div>
+        </details>
         <div class="label-grid">
           <ol id="label-list" class="label-list" aria-label="Catalog entries"></ol>
           <section class="label-detail" aria-live="polite">
@@ -141,9 +147,22 @@
             </div>
             <a id="label-image-link" class="label-image" target="_blank" rel="noopener"><img id="label-image" alt="Selected catalog image"></a>
             <dl id="label-meta" class="label-meta"></dl>
-            <h3 class="eyebrow">PAYLOAD</h3><pre id="label-payload" class="label-text"></pre>
-            <details><summary>OCR reference</summary><pre id="label-reference" class="label-text"></pre></details>
-            <details><summary id="label-cases-summary">Cases</summary><ul id="label-cases" class="label-cases"></ul></details>
+            <form id="label-texts" class="label-texts">
+              <label>Payload <span class="muted">— the main visible text the label is about</span><textarea id="label-payload" rows="3"></textarea></label>
+              <label>OCR reference <span class="muted">— exactly what a reader sees, for scoring OCR; leave empty if there is no text</span><textarea id="label-reference" rows="4"></textarea></label>
+              <p id="label-reference-note" class="muted"></p>
+              <fieldset class="label-source"><legend>Source</legend>
+                <label>Name <input id="label-source-dataset" type="text" placeholder="e.g. my_screenshots"></label>
+                <label>License <input id="label-source-license" type="text" placeholder="e.g. CC-BY-4.0"></label>
+                <label class="wide">Provenance <input id="label-source-provenance" type="text" placeholder="How the image was made or where it was found"></label>
+                <label class="wide">Repository <input id="label-source-repository" type="url" placeholder="URL, optional"></label>
+              </fieldset>
+              <fieldset class="label-contexts"><legend>Caller context cases <span class="muted">— optional: the verdict expected when an application describes itself this way</span></legend>
+                <div id="label-cases"></div>
+                <button id="label-add-case" class="small" type="button">+ Context case</button>
+              </fieldset>
+              <div class="label-text-actions"><button id="label-save-texts" class="small" type="submit">Save text and source</button><span id="label-texts-status" class="mono muted" role="status"></span></div>
+            </form>
           </section>
           <section class="label-fields" aria-label="Labels">
             <div id="label-field-groups"></div>

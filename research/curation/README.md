@@ -42,6 +42,13 @@ points, and how many images the smaller side is missing (or how many the
 larger side would have to lose). The `balance` key holds the same numbers in
 JSON.
 
+## Your own images and submissions
+
+`add` copies your images into `images/` and adds unreviewed entries;
+`changes` lists your changes since the download; `upload` opens a dataset pull
+request with only those changes, applied to the current `main`. The workflow
+is in the [research guide](../README.md#add-images).
+
 ## Generated images
 
 ```bash
@@ -149,6 +156,18 @@ Start the workbench (`uv run python -m research.workbench serve`) and open the
   several. Fields that do not apply to the chosen label are disabled.
 - Every click is validated and saved immediately; rejected changes show the
   reason and leave the file unchanged.
+- **Payload**, **OCR reference**, **Source** and **Caller context cases** are
+  edited in the form below the image and saved with **Save text and source**.
+  A reference typed here covers the main visible text (scope
+  `primary_visible_payload`, quality `reviewed_payload`). A reference with
+  word regions keeps its text; change text and regions together in
+  `catalog.json`. Cases without context repeat the label and are kept.
+- **Only my changes** lists the entries you added, changed or dropped since
+  the download (it compares with the downloaded revision on Hugging Face and
+  needs the network once).
+- **Balance per content type** shows the benign and attack shares and how many
+  images each content type is missing (the same numbers as
+  `summary --table`).
 - **Mark reviewed** (key `R`) records that an entry is checked; **Drop…** asks
   for a reason (`duplicate of <id>` also fills `duplicate_of`); **Keep**
   restores a dropped entry. Arrow keys move between images.
