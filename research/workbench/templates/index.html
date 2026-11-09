@@ -19,7 +19,7 @@
     <nav class="workbench-tabs" role="tablist" aria-label="Workbench pages">
       <button id="tab-scan" class="workbench-tab" type="button" role="tab" aria-selected="true" aria-controls="scan-page">Scan an image</button>
       <button id="tab-evaluation" class="workbench-tab" type="button" role="tab" aria-selected="false" aria-controls="evaluation-page">Evaluate</button>
-      <button id="tab-label" class="workbench-tab" type="button" role="tab" aria-selected="false" aria-controls="label-page">Label</button>
+      <button id="tab-dataset" class="workbench-tab" type="button" role="tab" aria-selected="false" aria-controls="dataset-page">Dataset</button>
     </nav>
     <p id="error" class="error" role="alert" hidden></p>
 
@@ -115,13 +115,62 @@
       </section>
     </section>
 
-    <section id="label-page" class="workbench-page label-page" role="tabpanel" aria-labelledby="tab-label" hidden>
+    <section id="dataset-page" class="workbench-page label-page" role="tabpanel" aria-labelledby="tab-dataset" hidden>
       <div id="label-unavailable" class="card" hidden>
         <h2>No dataset yet.</h2>
         <p class="muted">Download it into <code>research/dataset/</code>, then reload this page:</p>
         <pre class="mono">uv run python -m research.download</pre>
       </div>
       <div id="label-workspace" hidden>
+        <header class="page-head">
+          <h1>Dataset</h1>
+          <p class="muted">The images every evaluation uses. To contribute, add images, label them and submit your changes as a pull request on Hugging Face. Correcting an existing entry is a contribution too.</p>
+        </header>
+        <ol class="dataset-steps">
+          <li><button id="add-open" class="dataset-step" type="button" aria-expanded="false" aria-controls="add-panel"><span class="mono">1</span><strong>Add images</strong><span class="muted">Your own screenshots or photos</span></button></li>
+          <li><div class="dataset-step"><span class="mono">2</span><strong>Label</strong><span class="muted">Fill in each entry below and mark it reviewed</span></div></li>
+          <li><button id="submit-open" class="dataset-step" type="button" aria-expanded="false" aria-controls="submit-panel"><span class="mono">3</span><strong>Submit changes</strong><span class="muted">Opens a pull request with only your changes</span></button></li>
+        </ol>
+
+        <form id="add-panel" class="card dataset-panel" hidden>
+          <h2 class="card-title">Add images</h2>
+          <label id="add-dropzone" class="dropzone" tabindex="0">
+            <input id="add-files" type="file" accept="image/png,image/jpeg,image/webp" multiple>
+            <span id="add-files-label"><strong>Choose images</strong> or drop them here</span>
+            <span class="mono muted">PNG · JPEG · WEBP · all get the values below</span>
+          </label>
+          <div class="add-fields">
+            <label class="field">Label <select id="add-label" required><option value="">Choose…</option></select></label>
+            <label class="field">Content type <select id="add-content" required><option value="">Choose…</option></select></label>
+            <label class="field">Source name <input id="add-dataset" type="text" required placeholder="e.g. my_screenshots"></label>
+            <label class="field">License <input id="add-license" type="text" required placeholder="e.g. CC-BY-4.0"></label>
+            <label class="field wide">Provenance <input id="add-provenance" type="text" required placeholder="How the images were made or where they were found"></label>
+            <label class="field wide">Repository <input id="add-repository" type="url" placeholder="URL of the source, optional"></label>
+          </div>
+          <p class="muted">Only add images you may publish under this license. Images already in the dataset are skipped.</p>
+          <div class="actions-row">
+            <button id="add-submit" class="primary" type="submit" disabled>Add images</button>
+            <button id="add-cancel" class="small" type="button">Cancel</button>
+            <p id="add-status" class="muted" role="status" aria-live="polite"></p>
+          </div>
+        </form>
+
+        <section id="submit-panel" class="card dataset-panel" hidden aria-labelledby="submit-title">
+          <h2 id="submit-title" class="card-title">Submit changes</h2>
+          <p id="submit-status" class="muted" role="status" aria-live="polite"></p>
+          <ul id="submit-counts" class="changes" hidden></ul>
+          <ul id="submit-conflicts" class="error-list" hidden></ul>
+          <div id="submit-form" hidden>
+            <label class="field">Describe your change <input id="submit-message" type="text" value="Add evaluation images"></label>
+            <label class="confirm"><input id="submit-confirm" type="checkbox"> I want to open a public pull request on Hugging Face with these changes.</label>
+            <div class="actions-row">
+              <button id="submit-send" class="primary" type="button" disabled>Open pull request</button>
+              <button id="submit-cancel" class="small" type="button">Cancel</button>
+            </div>
+          </div>
+          <p id="submit-done" class="baseline-status" data-state="fresh" hidden></p>
+        </section>
+
         <div class="label-toolbar">
           <label>Status <select id="label-status"><option value="unreviewed">Unreviewed</option><option value="all">All</option><option value="reviewed">Reviewed</option><option value="dropped">Dropped</option></select></label>
           <label>Field <select id="label-field"><option value="">Any</option></select></label>
@@ -178,6 +227,6 @@
       </div>
     </section>
   </main>
-  <footer><span>VIPI</span><span class="mono">SCAN · EVALUATE · LABEL</span></footer>
+  <footer><span>VIPI</span><span class="mono">SCAN · EVALUATE · DATASET</span></footer>
 </body>
 </html>

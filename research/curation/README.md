@@ -71,7 +71,7 @@ is in the [research guide](../README.md#add-images).
    uv run python -m research.curation generate my_spec.json --preview /tmp/vipi-preview
    ```
 
-4. Add them to the dataset, then review them on the Label page and submit
+4. Add them to the dataset, then label them on the workbench Dataset page and submit
    them as described in [Add images](../README.md#add-images):
 
    ```bash
@@ -184,7 +184,9 @@ The running workbench reloads the dataset when the file changes.
 ## Label in the workbench
 
 Start the workbench (`uv run python -m research.workbench serve`) and open the
-**Label** tab. It edits `research/dataset/catalog.json`.
+**Dataset** tab. It edits `research/dataset/catalog.json`. The steps above the
+list add images (as `add` does) and submit your changes (as `upload` does,
+after a preview and a confirmation); see [Add images](../README.md#add-images).
 
 - Filter by status (unreviewed first), any field value, source or text.
 - **Group similar** (on by default) lists entries with nearly the same image

@@ -51,6 +51,13 @@ def remote_files(revision, repo_id=None):
     return files[0], files[1]
 
 
+def signed_in():
+    """Whether a Hugging Face token is stored (``hf auth login``)."""
+    from huggingface_hub import get_token
+
+    return get_token() is not None
+
+
 # Adding images ----------------------------------------------------------------
 
 

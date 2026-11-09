@@ -14,7 +14,7 @@ An entry's OCR reference (`ocr_reference` in the catalog) holds the exact
 transcript, its scope (`source_declared_text` or `primary_visible_payload`),
 quality, whether the reading order is known and word regions where the source
 supplies them. Preserve exact source transcripts, provenance and reference
-annotations; change them through the [Label page](../workbench/README.md#label)
+annotations; change them through the [Dataset page](../workbench/README.md#dataset)
 and the [dataset contribution flow](../README.md#add-images).
 
 The current improvement goals are a 90% OCR quality line and a separately

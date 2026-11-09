@@ -1,6 +1,6 @@
 """Group catalog entries whose images or texts look nearly the same.
 
-Grouping only orders the Label tab for review; it never changes the catalog.
+Grouping only orders the Dataset page list for review; it never changes the catalog.
 Two entries are similar when their word sets overlap by at least
 ``TEXT_OVERLAP`` (Jaccard), or when their 256-bit difference hashes differ in at
 most ``IMAGE_DISTANCE`` bits and their texts do not contradict that: one has no

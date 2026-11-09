@@ -97,8 +97,8 @@ initializers and model metadata imports do not load inference frameworks.
 - `research/catalog.py`: the one reader of the evaluation dataset in
   `research/dataset/` (ignored by Git, fetched by `research.download`).
 - `research/workbench/`: local Flask UI. `scans` runs one product scan,
-  `evaluations` runs `research.evaluate` in the background, `curation_routes`
-  serves the Label page; the browser code is `static/app.js` and
+  `evaluations` runs `research.evaluate` in the background, `curation_routes` and
+  `contribute_routes` serve the Dataset page; the browser code is `static/app.js` and
   `static/curation.js`.
 - `research/evaluate/`: frozen split, evaluation runs of product scan
   configurations and the saved baseline.

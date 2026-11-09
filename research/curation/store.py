@@ -20,7 +20,7 @@ VOCABULARY_NAME = "vocabulary.json"
 CURATION_KEYS = ("reviewed", "decision", "reason", "duplicate_of")
 SOURCE_KEYS = ("dataset", "repository", "sample_id", "license", "provenance")
 TEXT_KEYS = ("payload", "ocr_reference", "source", "cases")
-# A reference typed on the Label page transcribes the main visible text.
+# A reference typed on the Dataset page transcribes the main visible text.
 NEW_REFERENCE = {
     "scope": "primary_visible_payload",
     "quality": "reviewed_payload",

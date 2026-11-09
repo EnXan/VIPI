@@ -1,5 +1,5 @@
 'use strict';
-// Label page: browse the combined catalog draft and edit labels with autosave.
+// Dataset page: add images, label them (autosave) and submit your changes.
 (() => {
   const node = id => document.getElementById(id);
   const state = {loaded: false, vocabulary: null, fields: [], items: [], index: -1, entry: null};
@@ -43,6 +43,10 @@
       if (!status.available) return;
       state.vocabulary = status.vocabulary; state.fields = status.fields; state.loaded = true;
       options(node('label-field'), state.fields.map(field => [field, field]));
+      for (const field of ['label', 'content']) {
+        options(node(`add-${field}`), spec(field).values.map(item =>
+          [item.value, item.description ? `${item.value.replaceAll('_', ' ')} — ${item.description}` : item.value.replaceAll('_', ' ')]));
+      }
       await refreshList();
     } catch (failure) { setSaved(failure.message, true); }
   }
@@ -378,6 +382,120 @@
     }
   };
 
+  // Step 1 and 3: add images, submit changes
+
+  function togglePanel(name, show) {
+    for (const other of ['add', 'submit']) {
+      const open = other === name && show;
+      node(`${other}-panel`).hidden = !open;
+      node(`${other}-open`).setAttribute('aria-expanded', String(open));
+    }
+  }
+
+  const addFields = ['label', 'content', 'dataset', 'license', 'provenance', 'repository'];
+  let addFiles = [];
+  function updateAddForm() {
+    const count = addFiles.length;
+    node('add-files-label').textContent = count
+      ? `${count} image${count === 1 ? '' : 's'}: ${addFiles.map(file => file.name).join(', ')}`
+      : 'Choose images or drop them here';
+    const missing = addFields.filter(key => key !== 'repository' && !node(`add-${key}`).value.trim());
+    node('add-submit').disabled = !count || missing.length > 0;
+    node('add-submit').textContent = count ? `Add ${count} image${count === 1 ? '' : 's'}` : 'Add images';
+    node('add-status').textContent = !count ? 'Choose at least one image.'
+      : missing.length ? `Still needed: ${missing.join(', ').replace('dataset', 'source name')}.` : '';
+  }
+  node('add-open').onclick = () => { togglePanel('add', node('add-panel').hidden); updateAddForm(); };
+  node('add-cancel').onclick = () => togglePanel('add', false);
+  node('add-files').onchange = () => { addFiles = [...node('add-files').files]; updateAddForm(); };
+  for (const key of addFields) node(`add-${key}`).oninput = updateAddForm;
+  const dropzone = node('add-dropzone');
+  dropzone.ondragover = event => { event.preventDefault(); dropzone.classList.add('dragover'); };
+  dropzone.ondragleave = () => dropzone.classList.remove('dragover');
+  dropzone.ondrop = event => {
+    event.preventDefault(); dropzone.classList.remove('dragover');
+    addFiles = [...event.dataTransfer.files]; updateAddForm();
+  };
+  dropzone.onkeydown = event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); node('add-files').click(); } };
+
+  node('add-panel').onsubmit = async event => {
+    event.preventDefault();
+    const form = new FormData();
+    for (const file of addFiles) form.append('images', file);
+    for (const key of addFields) form.append(key, node(`add-${key}`).value);
+    node('add-submit').disabled = true;
+    node('add-status').textContent = 'Adding…';
+    try {
+      const result = await request('/api/curation/images', {method: 'POST', body: form});
+      const skipped = result.skipped.map(item => `${item.file} (already ${item.id})`);
+      addFiles = []; node('add-files').value = '';
+      updateAddForm();
+      node('add-status').textContent = `Added ${result.added.length}.` +
+        (skipped.length ? ` Skipped: ${skipped.join(', ')}.` : '') +
+        (result.added.length ? ' Now label them below.' : '');
+      if (!result.added.length) return;
+      node('label-status').value = 'unreviewed';
+      node('label-changed').checked = true;
+      for (const key of ['label-field', 'label-source']) node(key).value = '';
+      node('label-value').value = ''; node('label-value').disabled = true;
+      node('label-query').value = '';
+      await refreshList(result.added[0]);
+    } catch (failure) {
+      node('add-status').textContent = failure.message;
+      updateAddForm();
+    }
+  };
+
+  let submitPlan = null;
+  function updateSubmitForm() {
+    node('submit-send').disabled = !submitPlan || !node('submit-confirm').checked;
+  }
+  node('submit-confirm').onchange = updateSubmitForm;
+  node('submit-cancel').onclick = () => togglePanel('submit', false);
+  node('submit-open').onclick = async () => {
+    if (!node('submit-panel').hidden) { togglePanel('submit', false); return; }
+    togglePanel('submit', true);
+    submitPlan = null;
+    node('submit-counts').hidden = true; node('submit-conflicts').hidden = true;
+    node('submit-form').hidden = true; node('submit-done').hidden = true;
+    node('submit-confirm').checked = false; updateSubmitForm();
+    node('submit-status').textContent = 'Comparing your dataset with Hugging Face…';
+    try {
+      const plan = await request('/api/curation/submission');
+      const labels = {added: 'added', changed: 'changed', removed: 'removed (dropped)'};
+      node('submit-counts').replaceChildren(...Object.entries(plan.counts).map(([key, count]) =>
+        element('li', `${count} ${labels[key]}`)));
+      node('submit-counts').hidden = false;
+      if (plan.conflicts.length) {
+        node('submit-conflicts').replaceChildren(...plan.conflicts.map(line => element('li', line)));
+        node('submit-conflicts').hidden = false;
+        node('submit-status').textContent = 'These entries were changed on Hugging Face since your download, so nothing can be submitted. Download the new revision and redo these entries.';
+        return;
+      }
+      submitPlan = plan;
+      node('submit-status').textContent = `Your changes, applied to the current dataset (main ${plan.main_revision.slice(0, 8)})` +
+        (plan.vocabulary_changed ? ', including your vocabulary changes.' : '.');
+      node('submit-form').hidden = false;
+      updateSubmitForm();
+    } catch (failure) { node('submit-status').textContent = failure.message; }
+  };
+  node('submit-send').onclick = async () => {
+    node('submit-send').disabled = true;
+    node('submit-status').textContent = 'Opening the pull request…';
+    try {
+      const result = await post('/api/curation/submission', {confirm: true, message: node('submit-message').value});
+      node('submit-form').hidden = true;
+      node('submit-status').textContent = '';
+      const link = element('a', result.pull_request);
+      link.href = result.pull_request; link.target = '_blank'; link.rel = 'noopener';
+      node('submit-done').replaceChildren('Pull request opened: ', link, '. A maintainer reviews and merges it.');
+      node('submit-done').hidden = false;
+    } catch (failure) {
+      node('submit-status').textContent = failure.message;
+      updateSubmitForm();
+    }
+  };
+
   window.vipiCuration = {open};
-  if (!node('label-page').hidden) open();
+  if (!node('dataset-page').hidden) open();
 })();

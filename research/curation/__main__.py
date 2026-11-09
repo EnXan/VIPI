@@ -97,7 +97,7 @@ def build_parser():
         help="Add your own images as unreviewed entries.",
         description="Copy images into research/dataset/images/ and add one "
         "unreviewed entry each. Label, transcribe and review them on the "
-        "workbench Label page afterwards.",
+        "workbench Dataset page afterwards.",
     )
     add.add_argument("images", nargs="+", type=Path, help="PNG, JPEG or WEBP files")
     add.add_argument("--label", required=True, help="benign, injection or jailbreak")
@@ -149,7 +149,7 @@ def add_images(args):
     )
     for path, identifier in skipped:
         print(f"skipped {path}: already in the dataset as {identifier}")
-    print(f"added {len(added)} entries; label them on the workbench Label page")
+    print(f"added {len(added)} entries; label them on the workbench Dataset page")
     return 0
 
 

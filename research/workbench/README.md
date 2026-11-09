@@ -1,7 +1,7 @@
 # Research workbench
 
 A local Flask app with three pages: scan one image, evaluate a scan
-configuration against the saved baseline, and label the dataset. It imports
+configuration against the saved baseline, and contribute to the dataset. It imports
 `vipi`; it is not included in the product wheel.
 
 ## Start
@@ -62,10 +62,20 @@ The page runs the same steps as `python -m research.evaluate`; the
 evaluation runs at a time. Keep the server and computer running for long runs;
 after a restart, open the run and resume it.
 
-## Label
+## Dataset
 
-The **Label** tab edits `research/dataset/`. See the
-[curation guide](../curation/README.md#label-in-the-workbench).
+The **Dataset** tab edits `research/dataset/` in three steps:
+
+1. **Add images**: choose or drop images and give label, content type, source
+   name, license and provenance. Each new image gets an unreviewed entry;
+   images already in the dataset are skipped.
+2. **Label**: the list then shows only your changes; fill in each entry and
+   mark it reviewed ([curation guide](../curation/README.md#label-in-the-workbench)).
+3. **Submit changes**: shows what would be sent and any conflict, then opens a
+   pull request on Hugging Face after you confirm. It needs a one-time
+   `uv run hf auth login` in a terminal.
+
+The [contribution guide](../README.md#add-images) describes the whole flow.
 
 ## Saved artifacts
 

@@ -34,6 +34,13 @@ chose to submit only the changes.
   that `main`. An entry changed on `main` since the download, or the same id
   added there with other content, is a conflict and nothing is uploaded.
   `--dry-run` shows the plan.
+- **Workbench.** The Label tab is renamed **Dataset** and leads through the
+  contribution in three steps: **Add images** (multipart upload into the same
+  `add_images`, then the list switches to *Only my changes*), **Label**, and
+  **Submit changes** (the `upload --dry-run` result first, then the upload
+  after an explicit confirmation). The page never takes a Hugging Face token;
+  the server uses the token stored by `hf auth login` and explains how to sign
+  in when none is stored. Generating images stays on the command line.
 - **Generators.** Fonts are looked up per family on macOS first (so existing
   generated images reproduce byte for byte), then Windows (same faces), then
   Linux replacements (Liberation, DejaVu), with the repository's Geist font as
@@ -48,6 +55,12 @@ chose to submit only the changes.
 
 - *Refuse an upload when `main` moved since the download.* Simpler, but every
   contributor would have to redo their work by hand after each merge.
+- *Drop labeling and make the tab only about creating images (asked
+  2026-11-09).* Added images have no payload, reference or classification
+  yet and existing entries need corrections, so labeling stays; the tab is
+  named after its subject instead.
+- *A spec editor for the generators in the browser.* A large separate concept
+  without a current request; the spec files and `templates` stay.
 - *One catalog file per entry.* Removes conflicts at the file level, but
   changes the published layout of ADR 0053 for every reader.
 
@@ -62,8 +75,12 @@ the dataset PR that introduces the one-catalog layout is merged, `main` has no
 Offline tests cover adding (duplicates, invalid values, missing source),
 change detection, merging with and without conflicts, vocabulary merging, the
 upload operations against a simulated Hugging Face API, text and source
-editing, the new routes, font lookup order, the Geist fallback, the template
+editing, the new routes (including image upload, submission preview,
+confirmation, missing login and an unreadable dataset), font lookup order, the Geist fallback, the template
 description and preview mode. `changes` was run against the real pinned
 revision; re-rendering the two text specs on macOS reproduced all 81 images
-byte for byte; the starter spec rendered in preview. No real upload has been
+byte for byte; the starter spec rendered in preview. In the browser, adding an image on the
+Dataset page listed it under *Only my changes* (the dataset was restored
+afterwards); the submission preview showed the missing-catalog message,
+because `main` has no `catalog.json` yet. No real upload has been
 made; Linux and Windows rendering is untested.

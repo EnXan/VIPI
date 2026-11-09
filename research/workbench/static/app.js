@@ -1,5 +1,5 @@
 'use strict';
-// Workbench shell: page tabs, "Scan an image" and "Evaluate". Label lives in curation.js.
+// Workbench shell: page tabs, "Scan an image" and "Evaluate". Dataset lives in curation.js.
 
 const $ = id => document.getElementById(id);
 const state = {configurations: [], defaultConfiguration: null, threshold: 80, image: null, runId: null};
@@ -33,17 +33,17 @@ const configuration = id => state.configurations.find(item => item.id === id);
 // Pages
 
 function selectPage(page) {
-  for (const name of ['scan', 'evaluation', 'label']) {
+  for (const name of ['scan', 'evaluation', 'dataset']) {
     $(`${name}-page`).hidden = page !== name;
     $(`tab-${name}`).setAttribute('aria-selected', String(page === name));
   }
   document.querySelector('main').dataset.page = page;
   showError('');
-  if (page === 'label' && window.vipiCuration) window.vipiCuration.open();
+  if (page === 'dataset' && window.vipiCuration) window.vipiCuration.open();
   if (page === 'evaluation') { refreshEvaluationSetup(); refreshRuns(); }
   try { sessionStorage.setItem('vipi-workbench-page', page); } catch { /* storage unavailable */ }
 }
-for (const name of ['scan', 'evaluation', 'label']) $(`tab-${name}`).onclick = () => selectPage(name);
+for (const name of ['scan', 'evaluation', 'dataset']) $(`tab-${name}`).onclick = () => selectPage(name);
 
 // Settings: where the scan runs and which text recognition it uses
 
@@ -389,6 +389,6 @@ async function refreshRuns() {
     updateScanSummary();
     let page = 'scan';
     try { page = sessionStorage.getItem('vipi-workbench-page') || 'scan'; } catch { /* storage unavailable */ }
-    selectPage(['scan', 'evaluation', 'label'].includes(page) ? page : 'scan');
+    selectPage(['scan', 'evaluation', 'dataset'].includes(page) ? page : 'scan');
   } catch (error) { showError(error.message); }
 })();

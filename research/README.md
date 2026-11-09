@@ -9,7 +9,7 @@ The research workspace has these areas:
 | [`curation/`](curation/README.md) | Dataset validation, vocabulary, labeling store and image generators |
 | [`evaluate/`](evaluate/README.md) | Frozen development/test split, evaluation runs of scan configurations and the saved baseline |
 | [`ocr_eval/`](ocr_eval/README.md) | OCR metrics, the dataset benchmark, retained experiments and historical reports |
-| [`workbench/`](workbench/README.md) | Local interface: scan an image, evaluate against the baseline, label the dataset |
+| [`workbench/`](workbench/README.md) | Local interface: scan an image, evaluate against the baseline, add, label and submit dataset images |
 
 Start the workbench from the repository root:
 
@@ -50,7 +50,13 @@ also describes that workflow.
 
 From this source checkout, after downloading the dataset:
 
-1. **Add your images.** For images you made or collected:
+Everything below works on the workbench **Dataset** page
+(`uv run python -m research.workbench serve`) in three steps: **Add images**,
+**Label**, **Submit changes**. The commands do the same from a terminal.
+
+1. **Add your images.** On the Dataset page, press **Add images**, choose or
+   drop the files and fill in label, content type, source name, license and
+   provenance. From a terminal:
 
    ```bash
    uv run python -m research.curation add shots/*.png --label benign --content web_page --source my_screenshots --license CC-BY-4.0 --provenance "Screenshots of my demo shop"
@@ -60,15 +66,19 @@ From this source checkout, after downloading the dataset:
    dataset are skipped. To render new images instead, use the
    [image generators](curation/README.md#generated-images).
 
-2. **Label them** on the workbench **Label** page
-   (`uv run python -m research.workbench serve`): tick **Only my changes**,
+2. **Label them** on the Dataset page: after adding, **Only my changes** is
+   ticked and the new entries are listed;
    set the labels following the [labeling guide](curation/LABELING_GUIDE.md),
    type the payload and the OCR reference (exactly the text a reader sees),
    check source and license, and mark each entry reviewed. **Balance per
    content type** shows where benign or attack images are missing; keep each
    content type at 50 % benign.
 
-3. **Check and submit:**
+3. **Check and submit.** Sign in to Hugging Face once in a terminal
+   (`uv run hf auth login`; the page never asks for the token). On the Dataset
+   page, **Submit changes** shows how many entries you added, changed and
+   dropped and any conflict, and opens the pull request after you confirm.
+   From a terminal:
 
    ```bash
    uv run python -m research.curation validate

@@ -247,3 +247,104 @@ def test_changes_filter_explains_a_missing_download(draft_dir):
     response = app.test_client().get("/api/curation/entries?changed=1")
     assert response.status_code == 503
     assert "network connection" in response.json["error"]
+
+
+def page_client(directory):
+    app = Flask(__name__)
+    curation_routes.register_routes(app, CurationStore(directory))
+    return app.test_client()
+
+
+def image_form(tmp_path, color, **fields):
+    data = {
+        "label": "benign",
+        "content": "web_page",
+        "dataset": "my_screenshots",
+        "license": "CC-BY-4.0",
+        "provenance": "Screenshots of my test web app",
+        **fields,
+    }
+    path = png(tmp_path / f"{color}.png", color)
+    data["images"] = [(path.open("rb"), "login page.png")]
+    return data
+
+
+def test_dataset_page_adds_uploaded_images(draft_dir, tmp_path):
+    client = page_client(draft_dir)
+    response = client.post("/api/curation/images", data=image_form(tmp_path, "coral"))
+    assert response.status_code == 200
+    (identifier,) = response.json["added"]
+    entry = client.get(f"/api/curation/entries/{identifier}").json
+    assert entry["source"]["sample_id"] == "my_screenshots:login_page"
+    assert entry["curation"]["reviewed"] is False
+    again = client.post("/api/curation/images", data=image_form(tmp_path, "coral"))
+    assert again.json == {
+        "added": [],
+        "skipped": [{"file": "login_page.png", "id": identifier}],
+    }
+
+
+def test_dataset_page_rejects_missing_images_and_source(draft_dir, tmp_path):
+    client = page_client(draft_dir)
+    before = catalog(draft_dir)
+    assert client.post("/api/curation/images", data={}).status_code == 400
+    response = client.post(
+        "/api/curation/images", data=image_form(tmp_path, "khaki", license="")
+    )
+    assert response.status_code == 400 and "license" in response.json["error"]
+    assert catalog(draft_dir) == before
+
+
+def submission_data(**extra):
+    return {
+        "changes": {"added": ["a"], "changed": [], "removed": []},
+        "conflicts": [],
+        "catalog": [],
+        "vocabulary": {},
+        "vocabulary_changed": False,
+        "main_revision": "main-sha",
+        **extra,
+    }
+
+
+def test_submission_is_previewed_then_confirmed(draft_dir, monkeypatch):
+    calls = []
+
+    def upload(directory, message, *, dry_run=False):
+        calls.append((message, dry_run))
+        return submission_data(
+            **({} if dry_run else {"pull_request": "https://hf.co/pr/3"})
+        )
+
+    monkeypatch.setattr(contribute, "upload", upload)
+    monkeypatch.setattr(contribute, "signed_in", lambda: True)
+    client = page_client(draft_dir)
+    preview = client.get("/api/curation/submission").json
+    assert preview["counts"] == {"added": 1, "changed": 0, "removed": 0}
+    assert "catalog" not in preview and calls == [("", True)]
+    assert client.post("/api/curation/submission", json={}).status_code == 400
+    done = client.post(
+        "/api/curation/submission",
+        json={"confirm": True, "message": "Add a login page"},
+    ).json
+    assert done["pull_request"] == "https://hf.co/pr/3"
+    assert calls[-1] == ("Add a login page", False)
+
+
+def test_submission_explains_login_and_unreachable_dataset(draft_dir, monkeypatch):
+    class EntryNotFoundError(OSError):
+        pass
+
+    def offline(directory, message, *, dry_run=False):
+        raise EntryNotFoundError("404 catalog.json")
+
+    monkeypatch.setattr(contribute, "upload", offline)
+    monkeypatch.setattr(contribute, "signed_in", lambda: False)
+    client = page_client(draft_dir)
+    response = client.get("/api/curation/submission")
+    assert (
+        response.status_code == 503
+        and "no catalog.json on main" in response.json["error"]
+    )
+    response = client.post("/api/curation/submission", json={"confirm": True})
+    assert response.status_code == 401 and "hf auth login" in response.json["error"]

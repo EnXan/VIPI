@@ -1,4 +1,4 @@
-"""The local workbench: scan an image, evaluate a configuration, label the dataset."""
+"""The local workbench: scan an image, evaluate a configuration, contribute to the dataset."""
 
 from pathlib import Path
 import threading

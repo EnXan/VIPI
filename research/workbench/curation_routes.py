@@ -1,4 +1,4 @@
-"""HTTP routes for labeling the dataset in the workbench."""
+"""HTTP routes for the Dataset page: browse and label entries."""
 
 from io import BytesIO
 
@@ -8,6 +8,8 @@ from PIL import Image, ImageOps
 from research.curation import contribute, schema
 from research.curation.store import DraftMissing
 from research.curation.vocabulary import FIELDS
+
+from . import contribute_routes
 
 
 def thumbnail_bytes(path):
@@ -28,6 +30,7 @@ def thumbnail_bytes(path):
 def register_routes(app, store, pinned_catalog=None):
     """``pinned_catalog`` returns the downloaded revision's catalog; by default
     it is read from the Hugging Face cache (network on first use)."""
+    contribute_routes.register(app, store)
     pinned = {}
 
     def downloaded():
