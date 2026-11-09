@@ -81,4 +81,7 @@ byte for byte; the starter spec rendered in preview. In the browser, adding an i
 Dataset page listed it under *Only my changes* (the dataset was restored
 afterwards); before Hugging Face PR #2 was merged the submission preview
 showed the missing-catalog message, and after the merge a dry run against
-`main` reported nothing to submit. No real upload has been made; Linux and Windows rendering is untested.
+`main` reported nothing to submit. A real submission from the Dataset page
+(one added test image) opened dataset PR #3 with exactly that image and
+entry on top of `main`; it was closed unmerged and the local dataset
+restored. Linux and Windows rendering is untested.
