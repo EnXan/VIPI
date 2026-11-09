@@ -42,7 +42,7 @@ separate draft location and a second image layout no longer serve a purpose.
   by label × content: 450 development and 104 test entries.
 - `research.download` fetches `catalog.json`, `vocabulary.json` and
   `images/` into `research/dataset/`. Until Hugging Face PR #2 is merged,
-  `research/dataset.json` pins that PR's commit (24347161); after the merge it
+  `research/dataset.json` pins that PR's latest commit (acdb5344); after the merge it
   must pin the merge commit on `main`.
 
 ## Alternatives

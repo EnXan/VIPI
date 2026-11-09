@@ -2,9 +2,9 @@
   "version": 1,
   "dataset": {
     "repo_id": "EnXan/VIPI-evaluation",
-    "revision": "24347161325cc605a8b06a1d6057b90e85a3eb7a"
+    "revision": "acdb5344277272226319605c5fca85e98c461195"
   },
-  "catalog_sha256": "1f78232e739246f1bb5dbbd3f8bb9664ce8de929edda4431a504f54c3bb252b2",
+  "catalog_sha256": "dd75a2ba3f1211e8891bd76e77ac8cbcab072be15fbd5cc2b12f0c8de5d5dd0f",
   "policy": {
     "algorithm": "grouped_stratified_sha256_rank_v3",
     "seed": "vipi-contribution-evaluation-v1",
