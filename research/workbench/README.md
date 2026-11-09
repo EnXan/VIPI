@@ -49,6 +49,12 @@ worker state. Opening saved results restores their data without starting model
 calls. Text-only OCR backends can be unscored for spatial references; timing,
 text and usage remain available.
 
+## Label
+
+The **Label** tab edits the combined catalog draft created by
+`uv run python -m research.curation migrate`. See the
+[curation guide](../curation/README.md#label-in-the-workbench).
+
 ## Dataset batches
 
 Browse `ocr_evaluation` and/or `detection_evaluation`, filter by category or text,

@@ -35,6 +35,8 @@ Temporary planning and review queues belong in `.llm-plans/`.
 | [0048](0048-separate-ocr-completeness-and-repair.md) | Separate OCR completeness from repair selection |
 | [0049](0049-provider-specific-confidence-validation.md) | Validate provider confidence against OCR reference outcomes |
 | [0050](0050-contribution-evaluation-pipeline.md) | Matched contribution evaluation on a grouped development/test split |
+| [0051](0051-combined-evaluation-catalog.md) | One combined evaluation catalog with an editable vocabulary (draft tooling) |
+| [0052](0052-reproducible-enterprise-attack-images.md) | Reproducible product-view attack screenshots and screenshot-backed Anamorpher scaling |
 
 When revising an agreed decision, write its replacement with a summary of the
 old ADR (identifier, decision, rationale and reason for revision), then delete

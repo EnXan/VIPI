@@ -61,9 +61,7 @@ def test_reference_word_regions_follow_exif_orientation(dataset_repository):
                     "text": "hello",
                     "category": "textocr",
                     "reading_order_known": False,
-                    "regions": [
-                        {"text": "hello", "bbox_xywh": [10, 20, 30, 10]}
-                    ],
+                    "regions": [{"text": "hello", "bbox_xywh": [10, 20, 30, 10]}],
                 }
             ]
         )

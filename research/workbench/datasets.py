@@ -18,6 +18,21 @@ CATEGORY_LABELS = {
 }
 
 
+def thumbnail_bytes(path):
+    """Render a 320×180 JPEG preview on white, honoring EXIF orientation."""
+    with Image.open(path) as source:
+        image = ImageOps.exif_transpose(source)
+        image.thumbnail((320, 180))
+        rgba = image.convert("RGBA")
+        image = Image.alpha_composite(
+            Image.new("RGBA", image.size, "white"), rgba
+        ).convert("RGB")
+    buffer = BytesIO()
+    image.save(buffer, format="JPEG", quality=85)
+    buffer.seek(0)
+    return buffer
+
+
 class DatasetBrowser:
     def __init__(self, catalog, dataset="ocr_evaluation"):
         self.catalog = catalog
@@ -53,14 +68,4 @@ class DatasetBrowser:
         }
 
     def thumbnail(self, identifier):
-        with Image.open(self.catalog.path(identifier)) as source:
-            image = ImageOps.exif_transpose(source)
-            image.thumbnail((320, 180))
-            rgba = image.convert("RGBA")
-            image = Image.alpha_composite(
-                Image.new("RGBA", image.size, "white"), rgba
-            ).convert("RGB")
-        buffer = BytesIO()
-        image.save(buffer, format="JPEG", quality=85)
-        buffer.seek(0)
-        return buffer
+        return thumbnail_bytes(self.catalog.path(identifier))

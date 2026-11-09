@@ -10,6 +10,7 @@
   <script src="{{ url_for('static', filename='reports.js') }}" defer></script>
   <script src="/static/app.js" defer></script>
   <script src="/static/detection.js" defer></script>
+  <script src="/static/curation.js" defer></script>
 </head>
 <body>
   <header class="topbar">
@@ -23,6 +24,7 @@
     <nav class="workbench-tabs" role="tablist" aria-label="Workbench pages">
       <button id="tab-scan" class="workbench-tab" type="button" role="tab" aria-selected="true" aria-controls="scan-page">Scan</button>
       <button id="tab-evaluation" class="workbench-tab" type="button" role="tab" aria-selected="false" aria-controls="evaluation-page">Evaluation</button>
+      <button id="tab-label" class="workbench-tab" type="button" role="tab" aria-selected="false" aria-controls="label-page">Label</button>
     </nav>
     <p id="error" class="error" role="alert" hidden></p>
     <div class="run-actions">
@@ -240,6 +242,59 @@
         <div id="alternative-list"></div>
       </details>
     </dialog>
+    <section id="label-page" class="workbench-page label-page" role="tabpanel" aria-labelledby="tab-label" tabindex="0" hidden>
+      <div id="label-unavailable" class="evaluation-empty" hidden>
+        <h2>No catalog draft yet.</h2>
+        <p class="muted">Create it from the pinned catalogs, then reload this page:</p>
+        <pre class="mono">uv run python -m research.curation migrate</pre>
+      </div>
+      <div id="label-workspace" hidden>
+        <div class="label-toolbar">
+          <label>Status <select id="label-status"><option value="unreviewed">Unreviewed</option><option value="proposed">Proposed</option><option value="all">All</option><option value="reviewed">Reviewed</option><option value="dropped">Dropped</option></select></label>
+          <label>Field <select id="label-field"><option value="">Any</option></select></label>
+          <label>Value <select id="label-value" disabled><option value="">Any</option></select></label>
+          <label>Source <select id="label-source"><option value="">Any</option></select></label>
+          <label class="label-group"><input id="label-group" type="checkbox" checked> Group similar</label>
+          <label class="label-search">Search <input id="label-query" type="search" placeholder="Text, id or file"></label>
+          <span id="label-progress" class="mono muted" role="status"></span>
+        </div>
+        <div class="label-grid">
+          <ol id="label-list" class="label-list" aria-label="Catalog entries"></ol>
+          <section class="label-detail" aria-live="polite">
+            <div class="label-nav">
+              <button id="label-prev" class="small" type="button" title="Previous (←)">← Previous</button>
+              <span id="label-position" class="mono muted"></span>
+              <button id="label-next" class="small" type="button" title="Next (→)">Next →</button>
+            </div>
+            <a id="label-image-link" class="label-image" target="_blank" rel="noopener"><img id="label-image" alt="Selected catalog image"></a>
+            <dl id="label-meta" class="label-meta"></dl>
+            <h3 class="eyebrow">PAYLOAD</h3><pre id="label-payload" class="label-text"></pre>
+            <details><summary>OCR reference</summary><pre id="label-reference" class="label-text"></pre></details>
+            <details><summary id="label-cases-summary">Cases</summary><ul id="label-cases" class="label-cases"></ul></details>
+          </section>
+          <section class="label-fields" aria-label="Labels">
+            <div id="label-proposal" class="label-proposal" hidden>
+              <p class="eyebrow">MODEL PROPOSAL <span id="label-proposal-meta" class="muted"></span></p>
+              <p id="label-proposal-rationale"></p>
+              <ul id="label-proposal-changes" class="label-proposal-changes"></ul>
+              <p id="label-proposal-problems" class="label-failed" hidden></p>
+              <div class="label-actions">
+                <button id="label-approve" class="small" type="button" title="Approve and continue (A)">Approve</button>
+                <button id="label-deny" class="small" type="button" title="Deny and continue (D)">Deny</button>
+              </div>
+            </div>
+            <div id="label-field-groups"></div>
+            <div class="label-actions">
+              <button id="label-reviewed" class="small" type="button" aria-pressed="false" title="Toggle reviewed (R)">Mark reviewed</button>
+              <button id="label-drop" class="small" type="button">Drop…</button>
+              <button id="label-keep" class="small" type="button" hidden>Keep</button>
+            </div>
+            <p id="label-save" class="mono muted" role="status"></p>
+            <details class="label-vocabulary"><summary>Manage vocabulary</summary><div id="label-vocabulary"></div></details>
+          </section>
+        </div>
+      </div>
+    </section>
   </main>
   <footer><span>VIPI</span><span class="mono">LOCAL OCR & DETECTION</span></footer>
 </body>

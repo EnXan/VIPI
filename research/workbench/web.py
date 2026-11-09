@@ -41,6 +41,7 @@ def create_app(
     repository_root=None,
     detector_models_dir="models/detector/prompt-guard-2-86m",
     detector_provider_factory=None,
+    curation_dir=None,
 ):
     app = Flask(__name__)
     app.config["MAX_CONTENT_LENGTH"] = 128 * 1024 * 1024
@@ -57,6 +58,20 @@ def create_app(
 
     detection = DetectionService(root, detector_models_dir, detector_provider_factory)
     register_routes(app, detection)
+    from research.curation.store import CurationStore
+    from research.workbench.curation_routes import (
+        register_routes as register_curation_routes,
+    )
+
+    register_curation_routes(
+        app,
+        CurationStore(
+            Path(curation_dir)
+            if curation_dir
+            else repository / ".local-assets/dataset-submission",
+            repository / "research",
+        ),
+    )
 
     def get_catalog(dataset="ocr_evaluation"):
         types = {"ocr_evaluation": Catalog, "detection_evaluation": DetectionCatalog}

@@ -126,8 +126,12 @@ function updateEvaluationEmpty() {
 function selectWorkbenchPage(page) {
   $('scan-page').hidden = page !== 'scan';
   $('evaluation-page').hidden = page !== 'evaluation';
+  $('label-page').hidden = page !== 'label';
+  document.querySelector('main').dataset.page = page;
   $('tab-scan').setAttribute('aria-selected', String(page === 'scan'));
   $('tab-evaluation').setAttribute('aria-selected', String(page === 'evaluation'));
+  $('tab-label').setAttribute('aria-selected', String(page === 'label'));
+  if (page === 'label' && window.vipiCuration) window.vipiCuration.open();
   try { sessionStorage.setItem('vipi-workbench-page', page); } catch {}
 }
 
@@ -578,7 +582,7 @@ async function initialize() {
     try { page = sessionStorage.getItem('vipi-workbench-page'); } catch {}
     if (params.get('batch')) page = 'evaluation';
     else if (params.get('run')) page = 'scan';
-    else if (!['scan','evaluation'].includes(page)) page = 'scan';
+    else if (!['scan','evaluation','label'].includes(page)) page = 'scan';
     selectWorkbenchPage(page);
     if (params.get('batch')) await observeBatch(params.get('batch'), params.get('run'), params.get('check'));
     else if (params.get('run')) await restore(params.get('run'));
@@ -676,6 +680,7 @@ $('workers').onchange = () => updateWizard();
 for (const id of ['image-check','context-check']) $(id).addEventListener('change',updateWizard);
 $('tab-scan').onclick = () => selectWorkbenchPage('scan');
 $('tab-evaluation').onclick = () => { updateEvaluationEmpty(); selectWorkbenchPage('evaluation'); };
+$('tab-label').onclick = () => selectWorkbenchPage('label');
 $('open-scan-setup').onclick = () => { selectWorkbenchPage('scan'); setSetupStep(1); };
 
 function clearRun() {

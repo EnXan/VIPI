@@ -238,16 +238,19 @@ def test_dotenv_keys_enable_web_and_cli_without_exposing_secrets(
         return {"status": "completed", "probability": 0.1}
 
     monkeypatch.setattr("vipi.detection.providers.jev.Jev.check", check)
-    assert main(
-        [
-            "detect",
-            directory.name,
-            "--runs-dir",
-            str(directory.parent),
-            "--text-classifier",
-            "jev",
-        ]
-    ) == 0
+    assert (
+        main(
+            [
+                "detect",
+                directory.name,
+                "--runs-dir",
+                str(directory.parent),
+                "--text-classifier",
+                "jev",
+            ]
+        )
+        == 0
+    )
     base = f"/api/runs/{directory.name}/detections"
     response = client.post(base, json={"text_classifier": "jev", "reuse": False})
     assert response.status_code == 202
