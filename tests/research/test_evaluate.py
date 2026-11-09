@@ -1,12 +1,12 @@
-"""Keep contribution splits grouped/disjoint and baseline freshness explicit."""
+"""Keep evaluation splits grouped/disjoint and baseline freshness explicit."""
 
 import json
 import subprocess
 
 import pytest
 
-from research.contrib_eval import runs, splits, suite
-from research.contrib_eval.__main__ import main
+from research.evaluate import runs, splits, suite
+from research.evaluate.__main__ import main
 
 
 def entry(key, stratum, *tokens):
@@ -134,20 +134,20 @@ def manifest_root(tmp_path, monkeypatch):
         "research/dataset.json",
         "research/dataset/catalog.json",
         "research/splits.json",
-        *suite.PATHS["ocr/cloud-default"]["metric_sources"],
+        *suite.METRIC_SOURCES,
         *suite.MODEL_REGISTRIES,
     ):
         path = tmp_path / source
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text("{}" if source.endswith(".json") else "# fixture\n")
     rows = [
-        {"key": "ocr_eval:a", "image_sha256": "1", "reference_sha256": "r1"},
-        {"key": "ocr_eval:b", "image_sha256": "2", "reference_sha256": "r2"},
+        {"key": "a", "image_sha256": "1", "reference_sha256": "r1"},
+        {"key": "b", "image_sha256": "2", "reference_sha256": None},
     ]
     document = {
         "entries": {
-            "ocr_eval:a": {"split": "development", "group": "g1", "image_sha256": "1"},
-            "ocr_eval:b": {"split": "test", "group": "g2", "image_sha256": "2"},
+            "a": {"split": "development", "group": "g1", "image_sha256": "1"},
+            "b": {"split": "test", "group": "g2", "image_sha256": "2"},
         }
     }
     monkeypatch.setattr(
@@ -158,13 +158,12 @@ def manifest_root(tmp_path, monkeypatch):
 
 
 def write_baseline(root, name, manifest, completed_at):
-    directory = root / suite.PATHS["ocr/cloud-default"]["reports"]
+    directory = root / suite.BASELINES
     directory.mkdir(parents=True, exist_ok=True)
-    (directory / name).write_text(
+    (directory / f"{name}.json").write_text(
         json.dumps(
             {
                 "kind": suite.SUMMARY_KIND,
-                "role": "baseline",
                 "run_id": name,
                 "completed_at": completed_at,
                 "manifest": manifest,
@@ -173,28 +172,47 @@ def write_baseline(root, name, manifest, completed_at):
     )
 
 
+def test_configurations_are_the_product_scan_options():
+    assert list(suite.CONFIGURATIONS) == [
+        "local-speed",
+        "local-balanced",
+        "local-quality",
+        "cloud-google",
+        "cloud-openai",
+        "cloud-mistral",
+    ]
+    assert suite.CONFIGURATIONS["cloud-mistral"] == {
+        "ocr_execution_mode": "cloud",
+        "ocr_provider": "mistral",
+    }
+
+
 def test_manifest_selects_only_the_requested_split(manifest_root):
     root, _rows, _document = manifest_root
-    development = suite.manifest("ocr/cloud-default", "development", root)
-    test = suite.manifest("ocr/cloud-default", "test", root)
+    development = suite.manifest("local-speed", "development", root)
+    test = suite.manifest("local-speed", "test", root)
     assert development["suite"]["entries"] == test["suite"]["entries"] == 1
     assert development["suite"]["selection_sha256"] != test["suite"]["selection_sha256"]
+    assert development["configuration"]["scan_options"] == {
+        "ocr_execution_mode": "local",
+        "ocr_mode": "speed",
+    }
 
 
 def test_status_reports_none_fresh_and_stale_with_changed_fields(manifest_root):
     root, rows, _document = manifest_root
-    assert suite.status("ocr/cloud-default", root=root)["state"] == "none"
+    assert suite.status("local-speed", root=root)["state"] == "none"
 
-    current = suite.manifest("ocr/cloud-default", root=root)
-    write_baseline(root, "old.json", {**current, "suite": {}}, "2026-11-01T00:00:00")
-    write_baseline(root, "new.json", current, "2026-11-07T00:00:00")
-    fresh = suite.status("ocr/cloud-default", root=root)
+    current = suite.manifest("local-speed", root=root)
+    write_baseline(root, "old", {**current, "suite": {}}, "2026-11-01T00:00:00")
+    write_baseline(root, "new", current, "2026-11-07T00:00:00")
+    fresh = suite.status("local-speed", root=root)
     assert fresh["state"] == "fresh"
-    assert fresh["baseline"]["run_id"] == "new.json"
+    assert fresh["baseline"]["run_id"] == "new"
 
     rows[0]["reference_sha256"] = "changed"
     (root / "research/ocr_eval/evaluation/metrics.py").write_text("# changed\n")
-    stale = suite.status("ocr/cloud-default", root=root)
+    stale = suite.status("local-speed", root=root)
     assert stale["state"] == "stale"
     assert stale["differences"] == [
         "suite.metric_sha256.research/ocr_eval/evaluation/metrics.py",
@@ -202,53 +220,44 @@ def test_status_reports_none_fresh_and_stale_with_changed_fields(manifest_root):
     ]
 
 
-def test_baselines_of_other_splits_and_candidates_are_ignored(manifest_root):
+def test_baselines_of_other_splits_and_configurations_are_ignored(manifest_root):
     root, _rows, _document = manifest_root
-    test = suite.manifest("ocr/cloud-default", "test", root)
-    write_baseline(root, "test.json", test, "2026-11-07T00:00:00")
-    directory = root / suite.PATHS["ocr/cloud-default"]["reports"]
-    candidate = suite.manifest("ocr/cloud-default", root=root)
-    (directory / "candidate.json").write_text(
-        json.dumps(
-            {
-                "kind": suite.SUMMARY_KIND,
-                "role": "candidate",
-                "run_id": "candidate",
-                "completed_at": "2026-11-07T00:00:00",
-                "manifest": candidate,
-            }
-        )
+    write_baseline(
+        root, "test", suite.manifest("local-speed", "test", root), "2026-11-07"
     )
-    assert suite.status("ocr/cloud-default", root=root)["state"] == "none"
+    write_baseline(
+        root, "cloud", suite.manifest("cloud-google", root=root), "2026-11-07"
+    )
+    assert suite.status("local-speed", root=root)["state"] == "none"
 
 
 def test_changed_image_or_missing_assignment_requires_a_new_split(manifest_root):
     root, rows, document = manifest_root
     rows[0]["image_sha256"] = "other"
     with pytest.raises(ValueError, match="Image changed"):
-        suite.manifest("ocr/cloud-default", root=root)
+        suite.manifest("local-speed", root=root)
     rows[0]["image_sha256"] = "1"
-    del document["entries"]["ocr_eval:b"]
+    del document["entries"]["b"]
     with pytest.raises(ValueError, match="no split assignment"):
-        suite.manifest("ocr/cloud-default", root=root)
+        suite.manifest("local-speed", root=root)
 
 
-def test_unknown_path_and_split_are_rejected(manifest_root):
+def test_unknown_configuration_and_split_are_rejected(manifest_root):
     root, _rows, _document = manifest_root
-    with pytest.raises(ValueError, match="Unknown evaluation path"):
-        suite.manifest("detector/jev", root=root)
+    with pytest.raises(ValueError, match="Unknown configuration"):
+        suite.manifest("ocr/cloud-default", root=root)
     with pytest.raises(ValueError, match="Choose split"):
-        suite.manifest("ocr/cloud-default", "holdout", root=root)
+        suite.manifest("local-speed", "holdout", root=root)
 
 
 def test_status_command_exits_nonzero_unless_fresh(monkeypatch, capsys):
     monkeypatch.setattr(
         suite,
         "status",
-        lambda path, split: {"state": "none", "path": path, "split": split},
+        lambda name, split: {"state": "none", "configuration": name, "split": split},
     )
-    assert main(["status", "ocr/cloud-default"]) == 1
-    assert "no committed baseline" in capsys.readouterr().out
+    assert main(["status", "local-speed"]) == 1
+    assert "no saved baseline" in capsys.readouterr().out
 
 
 class FakeMonitor:
@@ -282,17 +291,17 @@ def run_root(manifest_root, monkeypatch):
             "inference_complete": state["complete"],
             "scored_at": "2026-11-07T12:00:00+00:00",
             "configuration_sources": {
-                "cloud-default": {
-                    "provenance": {"platform": "fixture", "python": "3.12"}
-                }
+                "local-speed": {"provenance": {"platform": "fixture", "python": "3.12"}}
             },
             "configurations": {
-                "cloud-default": {
+                "local-speed": {
                     "summary": {
                         "completed": 1,
                         "failed": 0,
                         "time": {"image_seconds_total": 1.0, "invocations": [{}]},
-                    }
+                    },
+                    "groups": [],
+                    "rows": [],
                 }
             },
         }
@@ -300,6 +309,7 @@ def run_root(manifest_root, monkeypatch):
     monkeypatch.setattr(runs, "ResourceMonitor", FakeMonitor)
     monkeypatch.setattr(runs.benchmark, "main", fake_main)
     monkeypatch.setattr(runs.benchmark_report, "report", fake_report)
+    monkeypatch.setattr(runs.benchmark_report, "markdown", lambda data: "# fixture\n")
     monkeypatch.setattr(
         runs,
         "implementation",
@@ -308,104 +318,82 @@ def run_root(manifest_root, monkeypatch):
     return root, rows, calls, state
 
 
-def test_baseline_run_freezes_split_keys_and_writes_committable_summary(run_root):
+def test_run_freezes_split_keys_and_writes_a_local_summary(run_root):
     root, _rows, calls, _state = run_root
-    result = runs.run("ocr/cloud-default", "baseline", root=root, run_id="base")
+    result = runs.run("local-speed", root=root, run_id="base")
     assert result["state"] == "complete"
-    directory = root / "runs/contrib/base"
+    assert result["baseline"] is None and "comparison" not in result
+    directory = root / "runs/evaluations/base"
     selection = json.loads((directory / "selection.json").read_text())
-    assert selection["keys"] == ["ocr_eval:a"]
+    assert selection["keys"] == ["a"]
     assert calls == [
         [
             str(directory / "benchmark"),
             "--configuration",
-            "cloud-default",
+            "local-speed",
             "--selection-file",
             str(directory / "selection.json"),
         ]
     ]
-    summary = json.loads((root / result["summary"]).read_text())
-    assert summary["role"] == "baseline"
-    assert summary["comparison"] is None
+    summary = json.loads((directory / "summary.json").read_text())
     assert summary["metrics"]["time"] == {"image_seconds_total": 1.0}
     assert summary["operations"]["wall_seconds"] == 2.0
-    assert summary["operations"]["gpu"]["available"] is False
-    assert summary["local_artifacts"] == "runs/contrib/base"
-    assert suite.status("ocr/cloud-default", root=root)["state"] == "fresh"
+    assert summary["local_artifacts"] == "runs/evaluations/base"
+    assert (directory / "report.md").is_file()
+    assert suite.status("local-speed", root=root)["state"] == "none"
 
 
-def test_incomplete_run_writes_no_summary_and_resume_accumulates_operations(
+def test_saved_baseline_is_fresh_and_later_runs_compare_with_it(run_root):
+    root, rows, _calls, _state = run_root
+    runs.run("local-speed", root=root, run_id="base")
+    target = runs.save_baseline("base", root=root)
+    assert target == root / "research/baselines/base.json"
+    assert suite.status("local-speed", root=root)["state"] == "fresh"
+
+    matched = runs.run("local-speed", root=root, run_id="next")
+    assert matched["baseline"] == "base"
+    assert matched["comparison"]["matched"] is True
+    comparison = root / "runs/evaluations/next/comparison.md"
+    assert "Same inputs: yes" in comparison.read_text()
+
+    rows[0]["reference_sha256"] = "changed"
+    changed = runs.run("local-speed", root=root, run_id="changed")
+    assert changed["comparison"]["matched"] is False
+    assert changed["comparison"]["differences"] == ["suite.selection_sha256"]
+
+
+def test_incomplete_run_cannot_be_saved_and_resume_accumulates_operations(
     run_root,
 ):
     root, _rows, calls, state = run_root
     state["complete"] = False
-    assert (
-        runs.run("ocr/cloud-default", "baseline", root=root, run_id="r")["state"]
-        == "incomplete"
-    )
-    assert suite.status("ocr/cloud-default", root=root)["state"] == "none"
+    assert runs.run("local-speed", root=root, run_id="r")["state"] == "incomplete"
+    with pytest.raises(ValueError, match="not complete"):
+        runs.save_baseline("r", root=root)
     state["complete"] = True
-    result = runs.run("ocr/cloud-default", "baseline", root=root, run_id="r")
-    summary = json.loads((root / result["summary"]).read_text())
+    runs.run("local-speed", root=root, run_id="r")
+    summary = json.loads((root / "runs/evaluations/r/summary.json").read_text())
     assert len(calls) == 2
     assert len(summary["operations"]["invocations"]) == 2
     assert summary["operations"]["wall_seconds"] == 4.0
 
 
-def test_candidate_must_match_baseline_unless_mismatch_is_recorded(run_root):
-    root, rows, _calls, _state = run_root
-    runs.run("ocr/cloud-default", "baseline", root=root, run_id="base")
-    matched = runs.run(
-        "ocr/cloud-default", "candidate", root=root, run_id="cand", against="base"
-    )
-    summary = json.loads((root / matched["summary"]).read_text())
-    assert summary["comparison"]["matched"] is True
-    assert suite.status("ocr/cloud-default", root=root)["baseline"]["run_id"] == (
-        "base"
-    )
-
-    rows[0]["reference_sha256"] = "changed"
-    with pytest.raises(ValueError, match="suite.selection_sha256"):
-        runs.run("ocr/cloud-default", "candidate", root=root, against="base")
-    recorded = runs.run(
-        "ocr/cloud-default",
-        "candidate",
-        root=root,
-        run_id="cand2",
-        against="base",
-        mismatch_reason="reference fix",
-    )
-    comparison = json.loads((root / recorded["summary"]).read_text())["comparison"]
-    assert comparison["matched"] is False
-    assert comparison["differences"] == ["suite.selection_sha256"]
-    assert comparison["mismatch_reason"] == "reference fix"
-
-
 def test_resume_refuses_a_different_request_in_the_same_directory(run_root):
     root, rows, _calls, _state = run_root
-    runs.run("ocr/cloud-default", "baseline", root=root, run_id="r")
+    runs.run("local-speed", root=root, run_id="r")
     rows[0]["reference_sha256"] = "changed"
     with pytest.raises(ValueError, match="different run request"):
-        runs.run("ocr/cloud-default", "baseline", root=root, run_id="r")
+        runs.run("local-speed", root=root, run_id="r")
 
 
 def test_run_request_validation_and_dry_run_start_nothing(run_root):
     root, _rows, calls, _state = run_root
     with pytest.raises(ValueError, match="confirm-test-split"):
-        runs.run("ocr/cloud-default", "baseline", "test", root=root)
-    with pytest.raises(ValueError, match="requires --against"):
-        runs.run("ocr/cloud-default", "candidate", root=root)
-    with pytest.raises(ValueError, match="only to candidate"):
-        runs.run("ocr/cloud-default", "baseline", root=root, against="x")
-    with pytest.raises(ValueError, match="not found"):
-        runs.run("ocr/cloud-default", "candidate", root=root, against="missing")
+        runs.run("local-speed", "test", root=root)
+    with pytest.raises(ValueError, match="Invalid run ID"):
+        runs.run("local-speed", root=root, run_id="../escape")
     planned = runs.run(
-        "ocr/cloud-default",
-        "baseline",
-        "test",
-        root=root,
-        confirm_test=True,
-        dry_run=True,
+        "local-speed", "test", root=root, confirm_test=True, dry_run=True
     )
     assert planned["state"] == "planned"
     assert planned["entries"] == 1
@@ -415,18 +403,9 @@ def test_run_request_validation_and_dry_run_start_nothing(run_root):
 
 def test_test_split_summary_is_marked_as_confirmation(run_root):
     root, _rows, _calls, _state = run_root
-    result = runs.run(
-        "ocr/cloud-default",
-        "baseline",
-        "test",
-        root=root,
-        run_id="t",
-        confirm_test=True,
-    )
-    assert (
-        json.loads((root / result["summary"]).read_text())["test_split_confirmation"]
-        is True
-    )
+    runs.run("local-speed", "test", root=root, run_id="t", confirm_test=True)
+    summary = json.loads((root / "runs/evaluations/t/summary.json").read_text())
+    assert summary["test_split_confirmation"] is True
 
 
 def test_resource_monitor_measures_this_process():

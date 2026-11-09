@@ -43,31 +43,28 @@ See [Development](docs/development.md) for available commands and setup details.
 
 ## Evaluating improvements
 
-A change that claims to improve OCR, image-text detection, injection detection
-or the end-to-end scan needs a matched comparison, not just a higher primary
-score. Currently supported paths are `ocr/cloud-default` and
-`ocr/local-speed`; see the [contribution evaluation guide](research/contrib_eval/README.md)
-for details.
+A change that claims to improve OCR, injection detection or the end-to-end
+scan needs a comparison with a baseline, not just a higher primary score. See
+the [evaluation guide](research/evaluate/README.md) for configurations, metrics
+and outputs.
 
-1. **Name the affected path** before editing: the capability and its
-   configuration (mode, provider/model, profile). Include only paths your
-   change can affect.
-2. **Check the baseline before changing code.** Run
-   `uv run python -m research.contrib_eval status <path>`. `fresh` means the
-   latest committed baseline matches the current suite and configuration.
+1. **Name the affected configuration** (for example `local-speed` or
+   `cloud-google`) before editing. Include only configurations your change
+   can affect.
+2. **Check the baseline before changing code:**
+   `uv run python -m research.evaluate status <configuration>`. `fresh` means
+   the saved baseline matches the current dataset, split and configuration.
 3. **Refresh a stale or missing baseline** on unmodified code:
-   `uv run python -m research.contrib_eval run <path> --role baseline`, then
-   commit its summary. Run only the affected path. A baseline produced after
-   implementation started does not count.
-4. **Run the candidate on the identical cases:**
-   `uv run python -m research.contrib_eval run <path> --role candidate --against <baseline-run-id>`.
-   A candidate whose inputs differ from the baseline is refused unless you
-   record the reason with `--allow-mismatch`; such a run is not a direct
-   comparison.
-5. **Compare and report:**
-   `uv run python -m research.contrib_eval compare <baseline-run-id> <candidate-run-id>`.
-   Link the generated Markdown report in the pull request. Keep OCR, detection
-   and end-to-end outcomes separate, and include failures, time, resources and
+   `uv run python -m research.evaluate run <configuration>`, then
+   `uv run python -m research.evaluate save-baseline <run-id>` and commit the
+   file in `research/baselines/`. A baseline produced after implementation
+   started does not count.
+4. **Run your change:** `uv run python -m research.evaluate run <configuration>`.
+   The run compares itself with the saved baseline and writes
+   `comparison.md` into its run directory. If it says "not the same inputs",
+   it is not a direct comparison.
+5. **Report.** Attach or link `comparison.md` in the pull request. Keep OCR
+   and detection outcomes separate, and include failures, time, resources and
    cost.
 6. **Review value against complexity.** Describe the modules, branches,
    dependencies and operational requirements you added, and whether the
@@ -75,9 +72,9 @@ for details.
    a large expansion.
 
 Use the `development` split for all of this. The `test` split is reserved for
-one confirmation run before a default, profile or threshold changes
-(`--confirm-test-split`); never iterate or tune on it. Live runs call providers
-and may incur charges; check a request with `--dry-run` first.
+one confirmation run before a default changes (`--confirm-test-split`); never
+iterate or tune on it. Cloud runs call providers and incur charges; check a
+request with `--dry-run` first.
 
 ## Pull requests
 

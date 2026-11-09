@@ -93,24 +93,41 @@ The standalone detector returns 0 when checks finish and 2 on operational
 failure or missing required text evidence; it is report-only. See
 [detection semantics and JSON formats](../research/workbench/DETECTION.md).
 
-## Product OCR benchmark
+## Evaluation and baseline
 
 ```bash
-uv run python -m research.ocr_eval.benchmark runs/benchmarks/ocr-1113
-uv run python -m research.ocr_eval.benchmark_report runs/benchmarks/ocr-1113 --output runs/benchmarks/ocr-1113/report.json
+uv run python -m research.evaluate status local-speed
+uv run python -m research.evaluate run local-speed --dry-run
+uv run python -m research.evaluate run local-speed
+uv run python -m research.evaluate save-baseline <run-id>
+uv run python -m research.evaluate split --check
 ```
 
-`benchmark` requires a run directory and accepts `--configuration local-speed
-cloud-default` (both, sequentially, by default); either name can be used alone.
+Configurations: `local-speed`, `local-balanced`, `local-quality`,
+`cloud-google`, `cloud-openai`, `cloud-mistral` (product scan options).
+`run` accepts `--split development|test` (test requires
+`--confirm-test-split`), `--run-id` to resume, `--runs-dir` (default
+`runs/evaluations`) and `--dry-run`; it exits 0 for a planned or complete run
+and 1 for an incomplete one. `status` exits 0 only when the saved baseline is
+fresh. Errors exit 2. See the [evaluation guide](../research/evaluate/README.md).
+
+The underlying benchmark can also be run directly:
+
+```bash
+uv run python -m research.ocr_eval.benchmark runs/benchmarks/full --configuration local-speed
+uv run python -m research.ocr_eval.benchmark_report runs/benchmarks/full --output runs/benchmarks/full/report.json
+```
+
+`benchmark` requires a run directory and one or more `--configuration` names
+(run sequentially); `--selection-file` freezes an ordered subset of entry ids.
 The same command resumes a matching frozen run, retaining failed attempts.
-`benchmark_report` requires the run directory and `--output FILE`; optional
-`--cloud-directory DIR` uses a separate cloud trial with matching inputs/evaluation
-rules and retains each configuration's source provenance. It writes JSON and a
-Markdown sibling without inference. Both accept `-h` / `--help`. A successful
-runner exit means attempts were recorded, not that all OCR outputs passed;
-inspect report failure/unscored counts. Invalid inputs or unrecoverable worker
-startup errors exit nonzero. See the [benchmark protocol](ocr-benchmark.md) for
-metrics, timing, fees, artifacts and claim boundaries.
+`benchmark_report` requires the run directory and `--output FILE` and writes
+JSON and a Markdown sibling without inference. Both accept `-h` / `--help`. A
+successful runner exit means attempts were recorded, not that all scans
+passed; inspect report failure/unscored counts. Invalid inputs or
+unrecoverable worker startup errors exit nonzero. See the
+[benchmark protocol](ocr-benchmark.md) for metrics, timing, fees, artifacts and
+claim boundaries.
 
 ## Separate model environments
 

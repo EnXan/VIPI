@@ -42,29 +42,55 @@ def test_worker_uses_selected_product_configuration_and_keeps_failures(
         def __exit__(self, *args):
             pass
 
-        def extract(self, path, on_event):
-            if path.name == "0.png":
-                raise ValueError("fixture failure")
-            artifacts = tmp_path / "artifacts"
-            artifacts.mkdir()
-            (artifacts / "result.json").write_text("{}")
-            on_event({"run_id": "fixture"})
-            return SimpleNamespace(
-                artifacts=artifacts, elapsed_seconds=0.25, cost={"estimated_usd": 0}
-            )
+    def scan(path, *, options, session, provider, on_event):
+        if path.name == "0.png":
+            raise ValueError("fixture failure")
+        artifacts = tmp_path / "artifacts"
+        artifacts.mkdir()
+        (artifacts / "result.json").write_text("{}")
+        on_event({"run_id": "fixture"})
+        ocr = SimpleNamespace(
+            artifacts=artifacts, elapsed_seconds=0.25, cost={"estimated_usd": 0}
+        )
+        return SimpleNamespace(ocr=ocr, options=options, provider=provider)
+
+    def record(result):
+        return {
+            "verdict": "flagged",
+            "signals": {"openai": {"max_score": 0.9}},
+            "errors": [],
+            "detection_seconds": 0.5,
+            "detection_cost": {"estimated_usd": 0.001},
+        }
 
     monkeypatch.setattr(benchmark, "ROOT", tmp_path)
     monkeypatch.setattr(benchmark, "OcrSession", Session)
+    monkeypatch.setattr(benchmark, "scan_image", scan)
+    monkeypatch.setattr(benchmark, "file_record", record)
+    monkeypatch.setattr(benchmark, "prepare_provider", lambda name, path: name)
     output = tmp_path / "benchmark"
-    benchmark.worker(output, "cloud-default", rows)
+    benchmark.worker(output, "cloud-google", rows)
     saved = [
         json.loads(path.read_text())
         for path in sorted((output / "rows").glob("*.json"))
     ]
-    assert calls == [{"execution_mode": "cloud"}]
+    assert calls == [
+        {
+            "mode": "quality",
+            "model": "google-cloud-vision",
+            "decision_provider": "openai",
+        }
+    ]
     assert [row["status"] for row in saved] == ["failed", "completed"]
     assert saved[0]["error"] == "fixture failure"
     assert saved[1]["pipeline_seconds"] == 0.25
+    assert saved[1]["detection"] == {
+        "verdict": "flagged",
+        "max_score": 0.9,
+        "errors": [],
+        "seconds": 0.5,
+        "cost": {"estimated_usd": 0.001},
+    }
     assert saved[1]["result_sha256"] == benchmark.digest(
         tmp_path / "artifacts/result.json"
     )
@@ -83,17 +109,20 @@ def test_selection_retains_reference_scope_labels_and_unique_keys(evaluation_dat
     assert "text" not in rows[0]
 
 
-def test_selection_skips_entries_without_reference_text(evaluation_dataset):
+def test_selection_keeps_entries_without_reference_text_for_detection(
+    evaluation_dataset,
+):
     path = evaluation_dataset / "research/dataset/catalog.json"
     entries = json.loads(path.read_text())
     entries[1]["ocr_reference"] = None
     path.write_text(json.dumps(entries))
-    assert [row["key"] for row in benchmark.selection(evaluation_dataset)] == ["0", "2"]
+    rows = benchmark.selection(evaluation_dataset)
+    assert [row["key"] for row in rows] == ["0", "1", "2"]
+    assert rows[1]["reference_sha256"] is None
+    assert (rows[1]["reference_words"], rows[1]["scope"]) == (0, None)
 
 
-def test_selection_file_freezes_order_and_image_hash_splits(
-    tmp_path, evaluation_dataset
-):
+def test_selection_file_freezes_order(tmp_path, evaluation_dataset):
     dataset_repository = evaluation_dataset
     Image.new("RGB", (16, 12), "black").save(
         dataset_repository / "research/dataset/images/1.png"
@@ -103,20 +132,13 @@ def test_selection_file_freezes_order_and_image_hash_splits(
         rows[0],
         next(row for row in rows[1:] if row["image_sha256"] != rows[0]["image_sha256"]),
     ]
-    specification = {
-        "keys": [row["key"] for row in selected],
-        "confidence_split": {
-            selected[0]["image_sha256"]: "calibration",
-            selected[1]["image_sha256"]: "evaluation",
-        },
-    }
+    specification = {"keys": [row["key"] for row in selected]}
     path = tmp_path / "selection.json"
     path.write_text(json.dumps(specification))
 
     actual, record = benchmark.selection_from_file(path, dataset_repository)
 
     assert actual == selected
-    assert record["confidence_split"] == specification["confidence_split"]
     assert len(record["keys_sha256"]) == 64
 
     specification["keys"] = list(reversed(specification["keys"]))
@@ -140,11 +162,11 @@ def test_main_manifest_contains_only_requested_configurations(tmp_path, monkeypa
     )
 
     output = tmp_path / "cloud-only"
-    benchmark.main([str(output), "--configuration", "cloud-default"])
+    benchmark.main([str(output), "--configuration", "cloud-google"])
 
     manifest = json.loads((output / "manifest.json").read_text())
-    assert list(manifest["configurations"]) == ["cloud-default"]
-    assert runs == [(output / "cloud-default", "cloud-default", selected)]
+    assert list(manifest["configurations"]) == ["cloud-google"]
+    assert runs == [(output / "cloud-google", "cloud-google", selected)]
 
 
 def test_provenance_tolerates_unavailable_macos_sysctl_fields(tmp_path, monkeypatch):
@@ -185,11 +207,16 @@ def test_provenance_tolerates_unavailable_macos_sysctl_fields(tmp_path, monkeypa
     assert result["hardware_unavailable"] == list(result["hardware"])
 
 
+REFERENCED = {"label": "benign", "reference_sha256": "r"}
+
+
 def scored_row(matched, total, exact=None, *, conflict=False):
     coverage = matched / total
     exact = matched if exact is None else exact
     return {
         "status": "completed",
+        "label": "benign",
+        "reference_sha256": "r",
         "reference_words": total,
         "elapsed_seconds": 2.0,
         "cost_estimated_usd": 0.01,
@@ -210,13 +237,26 @@ def test_summary_uses_all_planned_images_and_separates_word_and_image_averages()
     rows = [
         scored_row(4, 5, 3),
         scored_row(1, 1, conflict=True),
-        {"status": "failed", "reference_words": 10, "elapsed_seconds": 4},
-        {"status": "completed", "reference_words": 2, "elapsed_seconds": 1},
-        {"status": "unattempted", "reference_words": 3},
+        {**REFERENCED, "status": "failed", "reference_words": 10, "elapsed_seconds": 4},
+        {
+            **REFERENCED,
+            "status": "completed",
+            "reference_words": 2,
+            "elapsed_seconds": 1,
+        },
+        {**REFERENCED, "status": "unattempted", "reference_words": 3},
+        {
+            "status": "completed",
+            "label": "benign",
+            "reference_sha256": None,
+            "reference_words": 0,
+            "elapsed_seconds": 0,
+        },
     ]
     summary = summarize(rows)
-    assert summary["images"] == 5
-    assert summary["attempted"] == 4
+    assert summary["images"] == 6
+    assert summary["referenced"] == 5
+    assert summary["attempted"] == 5
     assert summary["scored"] == 2
     assert summary["failed"] == 1
     assert summary["unscored_completed"] == 1
@@ -231,7 +271,7 @@ def test_summary_uses_all_planned_images_and_separates_word_and_image_averages()
     assert summary["time"]["image_seconds_total"] == 9
     assert summary["cost"]["estimated_usd"] is None
     assert summary["cost"]["recorded_estimate_subtotal"] == 0.02
-    assert summary["cost"]["unknown_images"] == 2
+    assert summary["cost"]["unknown_images"] == 3
 
 
 def test_success_threshold_does_not_round_coverage_up_to_80():
@@ -298,49 +338,68 @@ def test_spatial_score_preserves_group_conflict_despite_complete_word_coverage()
     assert score["valid"] is False
 
 
-def test_report_verifies_output_hash_and_excludes_private_artifact_paths(
+def test_report_scores_ocr_and_detection_and_excludes_private_artifact_paths(
     tmp_path, monkeypatch
 ):
     selected = {
         "key": "fixture",
         "id": "fixture",
-        "label": "benign",
+        "label": "injection",
         "content": "web_page",
         "scope": "source_declared_text",
+        "reference_sha256": "r",
         "reference_words": 1,
         "techniques": [],
         "obfuscation": [],
     }
+    unreferenced = {
+        **selected,
+        "key": "plain",
+        "id": "plain",
+        "label": "benign",
+        "scope": None,
+        "reference_sha256": None,
+        "reference_words": 0,
+    }
+    keys = [selected["key"], unreferenced["key"]]
     manifest = {
-        "selection": [selected],
+        "selection": [selected, unreferenced],
         "selection_filter": {
-            "description": "One selected difficult image",
+            "description": "Two fixture entries",
             "keys_sha256": hashlib.sha256(
-                json.dumps([selected["key"]], separators=(",", ":")).encode()
+                json.dumps(keys, separators=(",", ":")).encode()
             ).hexdigest(),
-            "confidence_split": None,
         },
-        "configurations": {"cloud-default": {}},
+        "configurations": {"cloud-google": {}},
         "provenance": {"source_hashes": {}},
         "evaluation_policy": {"version": 4},
         "protocol": "fixture",
     }
     benchmark.write_json(tmp_path / "manifest.json", manifest)
-    artifact = tmp_path / "private-artifacts/fixture"
-    result_path = artifact / "result.json"
-    benchmark.write_json(result_path, {"text": "Alpha", "regions": [], "variants": []})
-    benchmark.write_json(
-        tmp_path / "cloud-default/rows/fixture.json",
-        {
-            "status": "completed",
-            "artifacts": str(artifact),
-            "result_sha256": benchmark.digest(result_path),
-            "elapsed_seconds": 1,
-            "cost": {"estimated_usd": 0.01},
-        },
-    )
+    for key, verdict in (("fixture", "flagged"), ("plain", "flagged")):
+        artifact = tmp_path / "private-artifacts" / key
+        result_path = artifact / "result.json"
+        benchmark.write_json(
+            result_path, {"text": "Alpha", "regions": [], "variants": []}
+        )
+        benchmark.write_json(
+            tmp_path / f"cloud-google/rows/{key}.json",
+            {
+                "status": "completed",
+                "artifacts": str(artifact),
+                "result_sha256": benchmark.digest(result_path),
+                "elapsed_seconds": 1,
+                "cost": {"estimated_usd": 0.01},
+                "detection": {
+                    "verdict": verdict,
+                    "cost": {"estimated_usd": 0.001},
+                },
+            },
+        )
     excluded = {**selected, "key": "excluded", "id": "excluded"}
-    monkeypatch.setattr(benchmark_report, "selection", lambda: [selected, excluded])
+    monkeypatch.setattr(
+        benchmark_report, "selection", lambda: [selected, excluded, unreferenced]
+    )
     monkeypatch.setattr(
         benchmark_report,
         "catalog",
@@ -353,35 +412,60 @@ def test_report_verifies_output_hash_and_excludes_private_artifact_paths(
         ),
     )
     data = benchmark_report.report(tmp_path)
-    row = data["configurations"]["cloud-default"]["rows"][0]
+    measured = data["configurations"]["cloud-google"]
+    row, plain = measured["rows"]
     assert row["score"]["valid"]
+    assert plain["score"] is None and plain["unscored_reason"] == "No reference text."
     assert row["run_id"] == "fixture"
     assert "artifacts" not in row
+    assert row["cost_estimated_usd"] == pytest.approx(0.001)  # OCR usage + detector
     assert data["inference_complete"] is True
-    assert data["selection_filter"]["description"] == "One selected difficult image"
-    assert "1 selected difficult images" in benchmark_report.markdown(data)
-    assert "100.00%" in benchmark_report.markdown(data)
-    separate = tmp_path / "cloud-trial"
-    benchmark.write_json(
-        separate / "manifest.json", {**manifest, "protocol": "separate cloud trial"}
-    )
-    original_row = tmp_path / "cloud-default/rows/fixture.json"
-    benchmark.write_json(
-        separate / "cloud-default/rows/fixture.json",
-        json.loads(original_row.read_text()),
-    )
-    paired = benchmark_report.report(tmp_path, separate)
-    assert paired["configuration_sources"]["cloud-default"][
-        "manifest_sha256"
-    ] == benchmark.digest(separate / "manifest.json")
-    benchmark.write_json(
-        separate / "manifest.json", {**manifest, "evaluation_policy": {"version": 3}}
-    )
-    with pytest.raises(ValueError, match="disagree on evaluation_policy"):
-        benchmark_report.report(tmp_path, separate)
+    summary = measured["summary"]
+    assert (summary["images"], summary["referenced"]) == (2, 1)
+    assert summary["image_rates"]["reference_pass"] == 1
+    assert summary["detection"]["recall"] == 1
+    assert summary["detection"]["false_positive_rate"] == 1
+    assert summary["detection"]["accuracy"] == 0.5
+    text = benchmark_report.markdown(data)
+    assert "# Evaluation: 2 Two fixture entries" in text
+    assert "| All images | 2 | 1/1 (100.00%) | 1/1 (100.00%) | 50.00% | 0 | 0 |" in text
+    result_path = tmp_path / "private-artifacts/fixture/result.json"
     result_path.write_text("{}")
     with pytest.raises(ValueError, match="Saved output changed"):
         benchmark_report.report(tmp_path)
+
+
+def test_detection_counts_unclear_and_failed_scans_as_neither_flagged_nor_cleared():
+    rows = [
+        {
+            "status": "completed",
+            "label": "injection",
+            "detection": {"verdict": "flagged"},
+        },
+        {
+            "status": "completed",
+            "label": "jailbreak",
+            "detection": {"verdict": "unclear"},
+        },
+        {"status": "failed", "label": "injection"},
+        {
+            "status": "completed",
+            "label": "benign",
+            "detection": {"verdict": "not_flagged"},
+        },
+    ]
+    found = benchmark_report.detection_summary(rows)
+    assert found["attacks"] == {
+        "images": 3,
+        "flagged": 1,
+        "not_flagged": 0,
+        "unclear": 1,
+        "no_result": 1,
+    }
+    assert found["recall"] == 1 / 3
+    assert found["false_positive_rate"] == 0
+    assert found["accuracy"] == 0.5
+    assert (found["unclear"], found["no_result"]) == (1, 1)
 
 
 def test_resume_preserves_timing_checkpoint_and_does_not_rescan_interrupted_image(
@@ -441,7 +525,9 @@ def test_partial_usage_includes_successful_calls_without_pricing_missing_respons
     assert usage["unreported_requests"] == 3
     assert usage["retry_cost_uncertain"] is True
     assert len(usage["partial_usage_hashes"]) == 4
-    summary = summarize([{"status": "failed", "reference_words": 1, **usage}])
+    summary = summarize(
+        [{**REFERENCED, "status": "failed", "reference_words": 1, **usage}]
+    )
     assert summary["cost"]["estimated_usd"] is None
     assert summary["cost"]["recorded_estimate_subtotal"] == 0.0035
     assert summary["counts"]["at_least_80"] == 0

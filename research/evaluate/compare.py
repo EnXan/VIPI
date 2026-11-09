@@ -1,10 +1,11 @@
-"""Compare a candidate run with its baseline: aggregates, content types and cases.
+"""Compare a run with its baseline: aggregates, content types and cases.
 
-Inputs are the committed run summaries plus the local ``report.json`` of both
-runs (needed for per-case changes). The comparison reports values, deltas and
-per-case regressions next to failures, time, cost and resources; it does not
-rank or accept a contribution. Value versus complexity remains a reviewed
-judgment recorded in the Markdown output.
+Inputs are both run summaries plus their local ``report.json`` files. Without
+the baseline's local report (for example a baseline saved on another machine)
+only aggregates are compared. The comparison reports values, deltas and
+per-case changes next to failures, time, cost and resources; it does not
+accept or reject a change. Value versus complexity remains a reviewed judgment
+recorded in the Markdown output.
 """
 
 import json
@@ -14,9 +15,11 @@ import subprocess
 from research.ocr_eval import benchmark
 from vipi.storage.files import write_json
 
+from research.ocr_eval.benchmark_report import expected_verdict, verdict
+
 from . import suite
 
-COMPARISON_KIND = "vipi-contribution-comparison"
+COMPARISON_KIND = "vipi-evaluation-comparison"
 AGGREGATES = (
     ("completed", ("completed",)),
     ("failed", ("failed",)),
@@ -28,6 +31,11 @@ AGGREGATES = (
     ("images 100% covered", ("image_rates", "coverage_100")),
     ("full reference pass", ("image_rates", "reference_pass")),
     ("exact 100% images", ("image_rates", "exact_100")),
+    ("attacks flagged (recall)", ("detection", "recall")),
+    ("benign flagged (false-positive rate)", ("detection", "false_positive_rate")),
+    ("detection accuracy", ("detection", "accuracy")),
+    ("unclear verdicts", ("detection", "unclear")),
+    ("scans without result", ("detection", "no_result")),
     ("mean seconds per image", ("time", "mean_image_seconds")),
     ("median seconds per image", ("time", "median_image_seconds")),
     ("p95 seconds per image", ("time", "p95_image_seconds")),
@@ -40,32 +48,35 @@ OPERATIONS = (
     ("CPU seconds (lower bound)", "cpu_seconds_lower_bound"),
     ("peak RSS bytes", "peak_rss_bytes"),
 )
-RATE_FIELDS = ("coverage", "covered", "pass", "exact 100%")
-
-
-def find_summary(run_id, root):
-    matches = sorted(Path(root).glob(f"research/*/reports/contrib/{run_id}.json"))
-    if len(matches) != 1:
-        raise ValueError(f"Run {run_id!r} not found in committed reports.")
-    summary = json.loads(matches[0].read_text(encoding="utf-8"))
-    if summary.get("kind") != suite.SUMMARY_KIND:
-        raise ValueError(f"{matches[0]} is not a run summary.")
-    return matches[0], summary
+CASE_GROUPS = (
+    "newly_failed",
+    "recovered",
+    "regressed",
+    "improved",
+    "detection_regressed",
+    "detection_improved",
+    "detection_changed",
+)
+RATE_FIELDS = (
+    "coverage",
+    "covered",
+    "pass",
+    "exact 100%",
+    "rate",
+    "accuracy",
+    "recall",
+)
 
 
 def local_report(summary, root):
+    """The configuration's scored rows, or None when the report is not local."""
     path = Path(root) / summary["local_artifacts"] / "report.json"
     if not path.is_file():
-        raise ValueError(
-            f"Per-case report for {summary['run_id']} is not available locally: {path}"
-        )
+        return None
     if benchmark.digest(path) != summary["report_sha256"]:
-        raise ValueError(f"{path} differs from the committed summary.")
+        raise ValueError(f"{path} differs from its run summary.")
     report = json.loads(path.read_text(encoding="utf-8"))
-    configuration = next(
-        iter(summary["manifest"]["configuration"]["benchmark_configuration"])
-    )
-    return report["configurations"][configuration]
+    return report["configurations"][summary["manifest"]["configuration_name"]]
 
 
 def lookup(values, fields):
@@ -120,6 +131,10 @@ def content_rows(baseline_groups, candidate_groups):
             lookup(group, ("failed",))
             for group in (first.get(label), second.get(label))
         ]
+        accuracy = [
+            lookup(group, ("detection", "accuracy"))
+            for group in (first.get(label), second.get(label))
+        ]
         rows.append(
             {
                 "content": label,
@@ -129,13 +144,35 @@ def content_rows(baseline_groups, candidate_groups):
                 "delta": delta(*values),
                 "baseline_failed": failures[0],
                 "candidate_failed": failures[1],
+                "baseline_accuracy": accuracy[0],
+                "candidate_accuracy": accuracy[1],
+                "accuracy_delta": delta(*accuracy),
             }
         )
     return rows
 
 
+def detection_change(key, before, after):
+    """Classify a changed detection outcome; return None when it is unchanged."""
+    expected = expected_verdict(before)
+    first, second = verdict(before), verdict(after)
+    if first == second:
+        return None
+    record = {
+        "key": key,
+        "expected": expected,
+        "baseline_verdict": first,
+        "candidate_verdict": second,
+    }
+    if first == expected:
+        return "detection_regressed", record
+    if second == expected:
+        return "detection_improved", record
+    return "detection_changed", record
+
+
 def case_change(key, before, after):
-    """Classify one case; return None when nothing changed."""
+    """Classify one OCR case; return None when nothing changed."""
     record = {
         "key": key,
         "baseline_status": before["status"],
@@ -162,13 +199,13 @@ def case_change(key, before, after):
 def case_changes(baseline_rows, candidate_rows):
     before = {row["key"]: row for row in baseline_rows}
     after = {row["key"]: row for row in candidate_rows}
-    if set(before) != set(after):
-        raise ValueError("Baseline and candidate cover different cases.")
-    changes = {"newly_failed": [], "recovered": [], "regressed": [], "improved": []}
-    for key in sorted(before):
-        classified = case_change(key, before[key], after[key])
-        if classified:
-            changes[classified[0]].append(classified[1])
+    changes = {name: [] for name in CASE_GROUPS}
+    # Unmatched runs may cover different entries; only shared entries compare.
+    for key in sorted(set(before) & set(after)):
+        for classify in (case_change, detection_change):
+            classified = classify(key, before[key], after[key])
+            if classified:
+                changes[classified[0]].append(classified[1])
     for name in ("regressed", "improved"):
         changes[name].sort(key=lambda item: (abs(item["delta"]) * -1, item["key"]))
     return changes
@@ -212,40 +249,29 @@ def code_surface(baseline, candidate, root):
     }
 
 
-def compare(baseline_id, candidate_id, root=benchmark.ROOT):
+def compare(baseline, candidate, root=benchmark.ROOT):
+    """Compare two run summaries of the same configuration and split."""
     root = Path(root)
-    baseline_path, baseline = find_summary(baseline_id, root)
-    candidate_path, candidate = find_summary(candidate_id, root)
-    if baseline["role"] != "baseline" or candidate["role"] != "candidate":
-        raise ValueError("Compare a baseline run with a candidate run.")
-    if candidate["comparison"]["baseline_run_id"] != baseline_id:
-        raise ValueError(
-            f"Candidate {candidate_id} was run against "
-            f"{candidate['comparison']['baseline_run_id']}, not {baseline_id}."
-        )
     differences = suite.differences(baseline["manifest"], candidate["manifest"])
     first, second = local_report(baseline, root), local_report(candidate, root)
-    changes = case_changes(first["rows"], second["rows"])
+    changes = case_changes(first["rows"], second["rows"]) if first and second else None
     return {
         "kind": COMPARISON_KIND,
-        "schema_version": 1,
-        "path": baseline["manifest"]["path"],
-        "split": baseline["manifest"]["split"],
-        "baseline": {
-            "run_id": baseline_id,
-            "summary": baseline_path.relative_to(root).as_posix(),
-        },
-        "candidate": {
-            "run_id": candidate_id,
-            "summary": candidate_path.relative_to(root).as_posix(),
-        },
+        "schema_version": 2,
+        "configuration": candidate["manifest"]["configuration_name"],
+        "split": candidate["manifest"]["split"],
+        "baseline": {"run_id": baseline["run_id"]},
+        "candidate": {"run_id": candidate["run_id"]},
         "matched": not differences,
         "differences": differences,
-        "mismatch_reason": candidate["comparison"].get("mismatch_reason"),
         "host_differs": baseline["host"] != candidate["host"],
         "aggregates": aggregate_rows(baseline, candidate),
-        "contents": content_rows(first["groups"], second["groups"]),
-        "case_counts": {name: len(items) for name, items in changes.items()},
+        "contents": content_rows(first["groups"], second["groups"])
+        if first and second
+        else [],
+        "case_counts": {name: len(items) for name, items in changes.items()}
+        if changes
+        else None,
         "cases": changes,
         "code_surface": code_surface(baseline, candidate, root),
     }
@@ -269,8 +295,8 @@ def signed(value, label=""):
     return f"{value:+.4g}" if isinstance(value, float) else f"{value:+,}"
 
 
-def case_table(items, limit_note):
-    lines = ["| Case | Baseline | Candidate | Change |", "| --- | --- | --- | --- |"]
+def case_table(items):
+    lines = ["| Entry | Baseline | This run | Change |", "| --- | --- | --- | --- |"]
     for item in items:
         before = (
             number(item["baseline_coverage"], "coverage")
@@ -285,22 +311,47 @@ def case_table(items, limit_note):
         change = signed(item.get("delta"), "coverage") if "delta" in item else "—"
         lines.append(f"| `{item['key']}` | {before} | {after} | {change} |")
     if not items:
-        lines.append(f"| none | | | {limit_note} |")
+        lines.append("| none | | | |")
     return lines
+
+
+def verdict_table(items):
+    lines = [
+        "| Entry | Expected | Baseline | This run |",
+        "| --- | --- | --- | --- |",
+    ]
+    lines += [
+        f"| `{item['key']}` | {item['expected']} | {item['baseline_verdict']} | "
+        f"{item['candidate_verdict']} |"
+        for item in items
+    ]
+    if not items:
+        lines.append("| none | | | |")
+    return lines
+
+
+CASE_SECTIONS = (
+    ("newly_failed", "Scan newly failed", case_table),
+    ("regressed", "OCR regressed", case_table),
+    ("recovered", "Scan recovered", case_table),
+    ("improved", "OCR improved", case_table),
+    ("detection_regressed", "Detection now wrong", verdict_table),
+    ("detection_improved", "Detection now right", verdict_table),
+    ("detection_changed", "Detection changed, still wrong", verdict_table),
+)
 
 
 def markdown(data):
     lines = [
-        f"# Contribution comparison: {data['path']} ({data['split']})",
+        f"# Comparison with the baseline: {data['configuration']} ({data['split']})",
         "",
         f"- Baseline: `{data['baseline']['run_id']}`",
-        f"- Candidate: `{data['candidate']['run_id']}`",
-        f"- Matched inputs: {'yes' if data['matched'] else 'NO'}",
+        f"- This run: `{data['candidate']['run_id']}`",
+        f"- Same inputs: {'yes' if data['matched'] else 'NO'}",
     ]
     if not data["matched"]:
         lines.append(f"- Differences: {', '.join(data['differences'])}")
-        lines.append(f"- Recorded reason: {data['mismatch_reason'] or '—'}")
-        lines.append("- Not a direct performance comparison.")
+        lines.append("- Not a direct comparison; save a new baseline first.")
     if data["host_differs"]:
         lines.append(
             "- Host or package versions differ; time and resources are not directly comparable."
@@ -309,7 +360,7 @@ def markdown(data):
         "",
         "## Aggregates",
         "",
-        "| Metric | Baseline | Candidate | Delta |",
+        "| Metric | Baseline | This run | Delta |",
         "| --- | --- | --- | --- |",
     ]
     for row in data["aggregates"]:
@@ -318,36 +369,42 @@ def markdown(data):
             f"| {label} | {number(row['baseline'], label)} | "
             f"{number(row['candidate'], label)} | {signed(row['delta'], label)} |"
         )
-    lines += [
-        "",
-        "## Categories (tolerant word coverage)",
-        "",
-        "| Content | Images | Baseline | Candidate | Delta | Failed (b → c) |",
-        "| --- | --- | --- | --- | --- | --- |",
-    ]
-    for row in data["contents"]:
-        lines.append(
-            f"| {row['content']} | {number(row['images'])} | "
-            f"{number(row['baseline_coverage'], 'coverage')} | "
-            f"{number(row['candidate_coverage'], 'coverage')} | "
-            f"{signed(row['delta'], 'coverage')} | "
-            f"{number(row['baseline_failed'])} → {number(row['candidate_failed'])} |"
-        )
-    counts = data["case_counts"]
-    lines += [
-        "",
-        "## Cases",
-        "",
-        f"Newly failed {counts['newly_failed']}, recovered {counts['recovered']}, "
-        f"regressed {counts['regressed']}, improved {counts['improved']}.",
-    ]
-    for name, title in (
-        ("newly_failed", "Newly failed"),
-        ("regressed", "Regressed"),
-        ("recovered", "Recovered"),
-        ("improved", "Improved"),
-    ):
-        lines += ["", f"### {title}", "", *case_table(data["cases"][name], "")]
+    if data["cases"] is None:
+        lines += [
+            "",
+            "The baseline's per-entry report is not on this machine; content rows "
+            "and per-entry changes are unavailable. Run and save a baseline here.",
+        ]
+    else:
+        lines += [
+            "",
+            "## Content types",
+            "",
+            "| Content | Images | OCR coverage (baseline → this run) | Delta | "
+            "Detection accuracy (baseline → this run) | Delta | Failed scans |",
+            "| --- | --- | --- | --- | --- | --- | --- |",
+        ]
+        for row in data["contents"]:
+            lines.append(
+                f"| {row['content']} | {number(row['images'])} | "
+                f"{number(row['baseline_coverage'], 'coverage')} → "
+                f"{number(row['candidate_coverage'], 'coverage')} | "
+                f"{signed(row['delta'], 'coverage')} | "
+                f"{number(row['baseline_accuracy'], 'accuracy')} → "
+                f"{number(row['candidate_accuracy'], 'accuracy')} | "
+                f"{signed(row['accuracy_delta'], 'accuracy')} | "
+                f"{number(row['baseline_failed'])} → {number(row['candidate_failed'])} |"
+            )
+        counts = data["case_counts"]
+        lines += [
+            "",
+            "## Entries",
+            "",
+            ", ".join(f"{title} {counts[name]}" for name, title, _ in CASE_SECTIONS)
+            + ".",
+        ]
+        for name, title, table in CASE_SECTIONS:
+            lines += ["", f"### {title}", "", *table(data["cases"][name])]
     surface = data["code_surface"]
     lines += ["", "## Value versus complexity", ""]
     if surface["available"]:
@@ -369,11 +426,11 @@ def markdown(data):
     return "\n".join(lines)
 
 
-def write(data, root=benchmark.ROOT):
-    directory = Path(root) / suite.path_definition(data["path"])["reports"]
-    stem = f"{data['candidate']['run_id']}__vs__{data['baseline']['run_id']}"
-    json_path = directory / f"{stem}.json"
+def write(data, directory):
+    """Write ``comparison.json`` and ``comparison.md`` into a run directory."""
+    directory = Path(directory)
+    json_path = directory / "comparison.json"
     write_json(json_path, data)
-    markdown_path = directory / f"{stem}.md"
+    markdown_path = directory / "comparison.md"
     markdown_path.write_text(markdown(data), encoding="utf-8")
     return json_path, markdown_path

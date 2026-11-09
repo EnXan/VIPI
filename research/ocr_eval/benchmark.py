@@ -1,4 +1,5 @@
-"""Run the product OCR session over the evaluation dataset, retaining every attempt."""
+"""Run the product scan (OCR and detection) over the evaluation dataset, retaining
+every attempt."""
 
 import argparse
 from datetime import datetime, timezone
@@ -13,8 +14,11 @@ import socket
 import subprocess
 import time
 
-from vipi.config import cache_directory
+from vipi.config import ScanOptions, cache_directory
+from vipi.detection.providers import prepare_provider
 from vipi.ocr.session import OcrSession
+from vipi.reporting import file_record
+from vipi.scanner import scan_image
 from vipi.storage.files import write_json
 
 from research.catalog import CATALOG_NAME, Catalog
@@ -22,10 +26,21 @@ from .evaluation.metrics import evaluation_policy
 from .evaluation.words import words
 
 ROOT = Path(__file__).resolve().parents[2]
+# Product scan options (``vipi scan``); detector and threshold stay at their defaults.
 CONFIGURATIONS = {
-    "local-speed": {"mode": "speed", "execution_mode": "local"},
-    "cloud-default": {"execution_mode": "cloud"},
+    **{
+        f"local-{mode}": {"ocr_execution_mode": "local", "ocr_mode": mode}
+        for mode in ("speed", "balanced", "quality")
+    },
+    **{
+        f"cloud-{provider}": {"ocr_execution_mode": "cloud", "ocr_provider": provider}
+        for provider in ("google", "openai", "mistral")
+    },
 }
+
+
+def is_local(configuration):
+    return CONFIGURATIONS[configuration]["ocr_execution_mode"] == "local"
 
 
 def utc_now():
@@ -46,25 +61,29 @@ def catalog(root=ROOT):
 
 
 def selection(root=ROOT):
-    """Freeze order, image/reference hashes and labels of every entry that has
-    reference text; entries without one cannot be scored for OCR."""
+    """Freeze order, image/reference hashes and labels of every entry. Entries
+    without reference text are scanned for detection but not scored for OCR."""
     rows = []
     dataset = catalog(root)
     for identifier, item in dataset.items.items():
         reference = dataset.reference(identifier)
-        if reference is None:
-            continue
-        reference_json = json.dumps(reference, sort_keys=True, ensure_ascii=False)
+        reference_json = (
+            json.dumps(reference, sort_keys=True, ensure_ascii=False)
+            if reference
+            else None
+        )
         rows.append(
             {
                 "key": identifier,
                 "id": identifier,
                 "image": item["image"],
                 "image_sha256": digest(dataset.path(identifier)),
-                "reference_sha256": hashlib.sha256(reference_json.encode()).hexdigest(),
-                "reference_words": len(words(reference["text"])),
-                "scope": reference["scope"],
-                "quality": reference["quality"],
+                "reference_sha256": hashlib.sha256(reference_json.encode()).hexdigest()
+                if reference_json
+                else None,
+                "reference_words": len(words(reference["text"])) if reference else 0,
+                "scope": reference["scope"] if reference else None,
+                "quality": reference["quality"] if reference else None,
                 "label": item["label"],
                 "content": item["content"],
                 "techniques": item["techniques"],
@@ -101,25 +120,12 @@ def selection_from_file(path, root=ROOT):
     if [row["key"] for row in selected] != keys:
         raise ValueError("Selection keys must use the active catalog order.")
 
-    split = specification.get("confidence_split")
-    if split is not None:
-        if not isinstance(split, dict):
-            raise ValueError("Confidence split must map image hashes to split names.")
-        hashes = {row["image_sha256"] for row in selected}
-        if (
-            set(split) != hashes
-            or not set(split.values()) <= {"calibration", "evaluation"}
-            or set(split.values()) != {"calibration", "evaluation"}
-        ):
-            raise ValueError("Confidence split must label every selected image hash.")
-
     filter_record = {
         "description": specification.get("description", "Selected catalog subset"),
         "source_report_sha256": specification.get("source_report_sha256"),
         "keys_sha256": hashlib.sha256(
             json.dumps(keys, separators=(",", ":")).encode()
         ).hexdigest(),
-        "confidence_split": split,
         "split_method": specification.get("split_method"),
     }
     return selected, filter_record
@@ -201,13 +207,21 @@ def block_network(*args, **kwargs):
 
 def worker(directory, configuration, rows):
     """Scan without references; write each result before starting the next image."""
-    if configuration == "local-speed":
+    if is_local(configuration):
         os.environ["HF_HUB_OFFLINE"] = "1"
         os.environ["TRANSFORMERS_OFFLINE"] = "1"
         socket.create_connection = block_network
         socket.socket.connect = block_network
     directory = Path(directory)
-    with OcrSession(**CONFIGURATIONS[configuration]) as session:
+    options = ScanOptions(**CONFIGURATIONS[configuration])
+    provider = prepare_provider(
+        options.resolved_detector, cache_directory() / "prompt-guard"
+    )
+    with OcrSession(
+        mode=options.ocr_mode,
+        model=options.resolved_ocr_model,
+        decision_provider=options.resolved_decision_provider,
+    ) as session:
         write_json(directory / "session.json", session.metadata)
         for row in rows:
             path = dataset_directory() / row["image"]
@@ -225,13 +239,29 @@ def worker(directory, configuration, rows):
 
             write_json(directory / "current.json", record)
             try:
-                result = session.extract(path, on_event=event)
+                result = scan_image(
+                    path,
+                    options=options,
+                    session=session,
+                    provider=provider,
+                    on_event=event,
+                )
+                scanned = file_record(result)
                 record.update(
                     status="completed",
-                    artifacts=str(result.artifacts),
-                    result_sha256=digest(result.artifacts / "result.json"),
-                    pipeline_seconds=result.elapsed_seconds,
-                    cost=result.cost,
+                    artifacts=str(result.ocr.artifacts),
+                    result_sha256=digest(result.ocr.artifacts / "result.json"),
+                    pipeline_seconds=result.ocr.elapsed_seconds,
+                    cost=result.ocr.cost,
+                    detection={
+                        "verdict": scanned["verdict"],
+                        "max_score": scanned["signals"]
+                        .get(options.resolved_detector, {})
+                        .get("max_score"),
+                        "errors": scanned["errors"],
+                        "seconds": scanned["detection_seconds"],
+                        "cost": scanned["detection_cost"],
+                    },
                 )
             except Exception as error:
                 record.update(
@@ -296,7 +326,7 @@ def run_configuration(directory, configuration, rows):
     started = time.perf_counter()
     context = multiprocessing.get_context("spawn")
     while remaining:
-        chunk = remaining[:4] if configuration == "local-speed" else remaining
+        chunk = remaining[:4] if is_local(configuration) else remaining
         process = context.Process(
             target=worker, args=(str(directory), configuration, chunk)
         )
@@ -360,8 +390,8 @@ def build_parser():
         "--configuration",
         choices=CONFIGURATIONS,
         nargs="+",
-        default=list(CONFIGURATIONS),
-        help="Run sequentially; default: local-speed then cloud-default",
+        required=True,
+        help="Product scan configurations to run, one after another",
     )
     parser.add_argument(
         "--selection-file",

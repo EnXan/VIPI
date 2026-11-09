@@ -6,7 +6,7 @@ The research workspace now has five areas:
 | Directory | Purpose |
 | --- | --- |
 | [`curation/`](curation/README.md) | Draft of the combined catalog: migration, vocabulary, validation |
-| [`contrib_eval/`](contrib_eval/README.md) | Frozen development/holdout split and baseline freshness checks for contributions |
+| [`evaluate/`](evaluate/README.md) | Frozen development/test split, evaluation runs of scan configurations and the saved baseline |
 | [`detection_eval/`](detection_eval/README.md) | Reviewed image-based prompt-injection evaluation suite |
 | [`ocr_eval/`](ocr_eval/README.md) | OCR evaluation with one `catalog.json` and local `images/` |
 | [`workbench/`](workbench/README.md) | Local OCR and detection interface, CLI, saved runs and dataset browsing |

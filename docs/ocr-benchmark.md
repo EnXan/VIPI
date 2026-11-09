@@ -66,12 +66,16 @@ From the repository root:
 ```bash
 uv run python -m research.download
 uv run vipi setup --modus local --ocr-mode speed
-uv run python -m research.ocr_eval.benchmark runs/benchmarks/ocr-1113
-uv run python -m research.ocr_eval.benchmark_report runs/benchmarks/ocr-1113 --output runs/benchmarks/ocr-1113/report.json
+uv run python -m research.ocr_eval.benchmark runs/benchmarks/full --configuration local-speed cloud-google
+uv run python -m research.ocr_eval.benchmark_report runs/benchmarks/full --output runs/benchmarks/full/report.json
 ```
 
-The runner accepts `--configuration local-speed`, `--configuration cloud-default`
-or both names in execution order. The default runs local speed first, then cloud.
+For baseline comparisons use the [evaluation runs](../research/evaluate/README.md),
+which call this benchmark on one split. The runner requires one or more
+`--configuration` names (product scan options: `local-speed`,
+`local-balanced`, `local-quality`, `cloud-google`, `cloud-openai`,
+`cloud-mistral`) and runs them in the given order. Each entry is scanned with
+`vipi.scanner.scan_image`, so a run records OCR text and the detection verdict.
 Repeating the same command resumes entries without a terminal record; completed
 and failed attempts are retained. Use a new directory for a fresh trial. A worker
 crash counts the image that was running as failed; unstarted images continue in
@@ -82,7 +86,7 @@ are preserved; an unfinished image is marked failed with unknown duration.
 An interrupted invocation's recorded wall time is a checkpoint lower bound,
 excluding unmeasured work after its final checkpoint and time between invocations.
 
-Image order follows the OCR catalog, then the scanner catalog. Inference is
+Image order follows the dataset catalog. Inference is
 sequential, with one OCR worker. Local processes recycle after four images,
 following the MPS memory growth observed in the previous 113-image run. This is
 a process-lifetime workaround, not a dataset limit. Model loading is lazy, so
@@ -97,10 +101,8 @@ referenced artifacts together; they are local evidence and ignored by Git.
 The report command runs no inference. It verifies the selected images/references,
 evaluation sources and completed-output hashes before scoring. Its JSON contains
 per-image counts and aggregates; the Markdown sibling renders those aggregates.
-Use `--cloud-directory DIR` when a separately frozen cloud trial supplies the
-cloud results. Inputs and evaluation rules must match; each configuration keeps
-its own source provenance. A previous failed cloud trial must remain separate,
-rather than replacing only failed images with new outputs.
+OCR rates use the entries with reference text; detection uses every entry
+(benign must not be flagged, injection and jailbreak must be).
 
 ### Scoped cloud confidence trial
 
@@ -112,13 +114,10 @@ of the previous evaluation. It contains 81 TextOCR and 19 other entries, with
 held-out evaluation entries. This is a first cloud-only experiment; it does not
 rerun local inference or represent every difficult entry.
 
-From the repository root, run only the cloud configuration and then score the
-retained OCR outputs:
-
-```bash
-uv run python -m research.ocr_eval.benchmark runs/benchmarks/decision-confidence-hard-100 --configuration cloud-default --selection-file research/ocr_eval/experiments/DECISION_CONFIDENCE_HARD_100.json
-uv run python -m research.ocr_eval.benchmark_report runs/benchmarks/decision-confidence-hard-100 --output runs/benchmarks/decision-confidence-hard-100/benchmark-report.json
-```
+The selection uses keys of the former two-catalog dataset and a confidence
+split that the benchmark no longer reads. It is kept as evidence of the trial;
+reproduce it from the Git history before 2026-11-09 with the older dataset
+revision.
 
 The confidence-validation script (`research/ocr_eval/experiments/decision_confidence.py`)
 was removed on 2026-11-09 after the trial; it remains in the Git history.

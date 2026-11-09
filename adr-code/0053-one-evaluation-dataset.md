@@ -1,7 +1,7 @@
 # 0053 — One evaluation dataset
 
 Status: accepted for review, 2026-11-09. The layout is staged in Hugging Face
-PR #2; the OCR benchmark, contribution evaluation and download already read
+PR #2; the OCR benchmark, evaluation runs and download already read
 it; the workbench scan follows.
 
 ## Context and sources
@@ -30,11 +30,12 @@ separate draft location and a second image layout no longer serve a purpose.
 - Locally the dataset lives in `research/dataset/` (ignored by Git) with the
   same layout. The curation CLI, the generator (`images/<id>.png`) and the
   Label tab use it by default.
-- `research/catalog.py` is the one reader. The OCR benchmark selects every
-  entry with reference text (536); report groups are content (a partition),
-  label, scope, technique and obfuscation; benchmark keys are entry ids.
-- The split (ADR 0050) is rebuilt on the dataset (algorithm v3). ADR 0050
-  grouped OCR entries by content group and detection entries by payload,
+- `research/catalog.py` is the one reader. The benchmark selects every entry
+  (OCR is scored where reference text exists, 536; see [ADR 0054](0054-evaluation-runs-and-baseline.md));
+  report groups are content (a partition), label, scope, technique and
+  obfuscation; benchmark keys are entry ids.
+- The split (introduced by ADR 0050, now summarized in ADR 0054) is rebuilt on
+  the dataset (algorithm v3). ADR 0050 grouped OCR entries by content group and detection entries by payload,
   filename family and control pairs, stratified by catalog category. It now
   groups by identical image, content group, identical visible text, similar
   text, the former detection filename family and control pairs, stratified

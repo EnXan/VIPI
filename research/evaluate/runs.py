@@ -1,9 +1,10 @@
-"""Run scoped baseline and candidate evaluations on one frozen split.
+"""Run one configuration on one frozen split and save a run as the baseline.
 
-A run wraps the existing OCR benchmark: it freezes the split's keys as a
-selection file, runs only the path's benchmark configuration, scores the
-retained outputs with the benchmark report and writes a small summary for the
-repository. Full per-case artifacts stay in the local run directory.
+A run wraps the benchmark: it freezes the split's keys as a selection file,
+scans them with the configuration's product options, scores the retained
+outputs and writes a small summary. When a baseline of the same configuration
+and split is saved, the run is compared with it. Everything stays in the local
+run directory until ``save_baseline`` copies the summary into the repository.
 """
 
 from datetime import datetime, timezone
@@ -17,10 +18,9 @@ import time
 from research.ocr_eval import benchmark, benchmark_report
 from vipi.storage.files import write_json
 
-from . import splits, suite
+from . import compare, splits, suite
 
-DEFAULT_RUNS_DIRECTORY = Path("runs/contrib")
-ROLES = ("baseline", "candidate")
+DEFAULT_RUNS_DIRECTORY = Path("runs/evaluations")
 SAMPLE_SECONDS = 0.5
 
 
@@ -28,8 +28,8 @@ def utc_stamp():
     return datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
 
 
-def default_run_id(path, role, split):
-    return f"{utc_stamp()}-{role}-{path.replace('/', '-')}-{split}"
+def default_run_id(configuration, split):
+    return f"{utc_stamp()}-{configuration}-{split}"
 
 
 def git(root, *arguments):
@@ -126,67 +126,14 @@ class ResourceMonitor:
         return False
 
 
-def load_baseline(reference, root):
-    """Load a committed baseline summary from its path or run ID."""
-    path = Path(reference)
-    if not path.suffix:
-        matches = sorted(
-            Path(root).glob(f"research/*/reports/contrib/{reference}.json")
-        )
-        if len(matches) != 1:
-            raise ValueError(
-                f"Baseline run {reference!r} not found in committed reports."
-            )
-        path = matches[0]
-    elif not path.is_absolute():
-        path = Path(root) / path
-    summary = json.loads(path.read_text(encoding="utf-8"))
-    if summary.get("kind") != suite.SUMMARY_KIND or summary.get("role") != "baseline":
-        raise ValueError(f"{path} is not a baseline summary.")
-    return path, summary
-
-
-def compare_to_baseline(manifest, against, mismatch_reason, root):
-    path, baseline = load_baseline(against, root)
-    changed = suite.differences(baseline["manifest"], manifest)
-    if changed and not mismatch_reason:
-        raise ValueError(
-            "Candidate inputs differ from the baseline: "
-            + ", ".join(changed)
-            + ". Refresh the baseline, or pass --allow-mismatch with a reason to "
-            "record a non-matched run."
-        )
-    return {
-        "baseline_run_id": baseline["run_id"],
-        "baseline_summary": path.relative_to(root).as_posix(),
-        "matched": not changed,
-        "differences": changed,
-        "mismatch_reason": mismatch_reason if changed else None,
-    }
-
-
-def prepare(
-    path, role, split, root, *, against=None, mismatch_reason=None, confirm_test=False
-):
-    """Validate a run request and return its manifest, rows and comparison."""
-    if role not in ROLES:
-        raise ValueError(f"Choose role {' or '.join(ROLES)}.")
+def prepare(configuration, split, root, *, confirm_test=False):
+    """Validate a run request and return its manifest and rows."""
     if split == "test" and not confirm_test:
         raise ValueError(
             "The test split is reserved for one confirmation run before a default "
-            "changes; pass --confirm-test-split to use it."
+            "changes; pass --confirm-test-split (or confirm it in the workbench)."
         )
-    if role == "candidate" and not against:
-        raise ValueError("A candidate run requires --against <baseline run ID>.")
-    if role == "baseline" and against:
-        raise ValueError("--against applies only to candidate runs.")
-    manifest = suite.manifest(path, split, root)
-    comparison = (
-        compare_to_baseline(manifest, against, mismatch_reason, root)
-        if role == "candidate"
-        else None
-    )
-    return manifest, suite.selected_rows(root, split), comparison
+    return suite.manifest(configuration, split, root), suite.selected_rows(root, split)
 
 
 def write_or_match(target, value):
@@ -197,9 +144,8 @@ def write_or_match(target, value):
     write_json(target, value)
 
 
-def summary_document(request, report, operations, root):
-    configuration = request["manifest"]["configuration"]["benchmark_configuration"]
-    name = next(iter(configuration))
+def summary_document(request, report, operations):
+    name = request["manifest"]["configuration_name"]
     measured = report["configurations"][name]
     metrics = {**measured["summary"]}
     metrics["time"] = {
@@ -208,12 +154,10 @@ def summary_document(request, report, operations, root):
     host = report["configuration_sources"][name]["provenance"]
     return {
         "kind": suite.SUMMARY_KIND,
-        "schema_version": 1,
-        "role": request["role"],
+        "schema_version": 2,
         "run_id": request["run_id"],
         "completed_at": report["scored_at"],
         "manifest": request["manifest"],
-        "comparison": request["comparison"],
         "test_split_confirmation": request["manifest"]["split"] == "test",
         "implementation": request["implementation"],
         "host": {
@@ -233,40 +177,35 @@ def summary_document(request, report, operations, root):
     }
 
 
+def run_directory(run_id, root=benchmark.ROOT, runs_directory=DEFAULT_RUNS_DIRECTORY):
+    if not run_id or "/" in run_id or run_id.startswith("."):
+        raise ValueError("Invalid run ID.")
+    return (Path(root) / runs_directory / run_id).resolve()
+
+
 def run(
-    path,
-    role,
+    configuration,
     split="development",
     root=benchmark.ROOT,
     *,
     runs_directory=DEFAULT_RUNS_DIRECTORY,
     run_id=None,
-    against=None,
-    mismatch_reason=None,
     confirm_test=False,
     dry_run=False,
 ):
-    """Run (or resume) one scoped evaluation and write its committed summary."""
+    """Run (or resume) one evaluation and compare it with the saved baseline."""
     root = Path(root)
-    manifest, rows, comparison = prepare(
-        path,
-        role,
-        split,
-        root,
-        against=against,
-        mismatch_reason=mismatch_reason,
-        confirm_test=confirm_test,
-    )
-    run_id = run_id or default_run_id(path, role, split)
-    directory = (root / runs_directory / run_id).resolve()
+    manifest, rows = prepare(configuration, split, root, confirm_test=confirm_test)
+    run_id = run_id or default_run_id(configuration, split)
+    directory = run_directory(run_id, root, runs_directory)
+    baseline = suite.latest_baseline(configuration, split, root)
     plan = {
         "run_id": run_id,
-        "path": path,
+        "configuration": configuration,
         "split": split,
-        "role": role,
         "entries": len(rows),
         "directory": directory.relative_to(root).as_posix(),
-        "comparison": comparison,
+        "baseline": baseline[1]["run_id"] if baseline else None,
     }
     if dry_run:
         return {"state": "planned", **plan}
@@ -275,7 +214,7 @@ def run(
     write_or_match(
         selection_path,
         {
-            "description": f"{path} on the {split} split",
+            "description": f"{configuration} on the {split} split",
             "keys": [row["key"] for row in rows],
             "split_method": f"{splits.SPLITS_PATH.as_posix()} sha256 "
             f"{manifest['suite']['splits_sha256']}",
@@ -284,26 +223,23 @@ def run(
     request_path = directory / "request.json"
     if request_path.exists():
         request = json.loads(request_path.read_text(encoding="utf-8"))
-        if request["manifest"] != manifest or request["comparison"] != comparison:
+        if request["manifest"] != manifest:
             raise ValueError(f"{directory} belongs to a different run request.")
     else:
         request = {
-            "role": role,
             "run_id": run_id,
             "directory": plan["directory"],
             "manifest": manifest,
-            "comparison": comparison,
             "implementation": implementation(root),
         }
         write_json(request_path, request)
 
-    configuration = manifest["configuration"]["benchmark_configuration"]
     with ResourceMonitor() as monitor:
         benchmark.main(
             [
                 str(directory / "benchmark"),
                 "--configuration",
-                next(iter(configuration)),
+                configuration,
                 "--selection-file",
                 str(selection_path),
             ]
@@ -321,11 +257,36 @@ def run(
         json.dumps(report, separators=(",", ":"), allow_nan=False) + "\n",
         encoding="utf-8",
     )
+    (directory / "report.md").write_text(
+        benchmark_report.markdown(report), encoding="utf-8"
+    )
     if not report["inference_complete"]:
         return {"state": "incomplete", **plan}
-    summary = summary_document(request, report, operations, root)
+    summary = summary_document(request, report, operations)
     summary["report_sha256"] = benchmark.digest(directory / "report.json")
-    target = root / suite.path_definition(path)["reports"] / f"{run_id}.json"
+    write_json(directory / "summary.json", summary)
+    result = {"state": "complete", **plan}
+    if baseline:
+        data = compare.compare(baseline[1], summary, root)
+        compare.write(data, directory)
+        result["comparison"] = {
+            "matched": data["matched"],
+            "differences": data["differences"],
+            "case_counts": data["case_counts"],
+        }
+    return result
+
+
+def save_baseline(
+    run_id, root=benchmark.ROOT, *, runs_directory=DEFAULT_RUNS_DIRECTORY
+):
+    """Copy a complete run's summary into the repository as the baseline."""
+    root = Path(root)
+    source = run_directory(run_id, root, runs_directory) / "summary.json"
+    if not source.is_file():
+        raise ValueError(f"Run {run_id} is not complete; finish it first.")
+    summary = json.loads(source.read_text(encoding="utf-8"))
+    target = root / suite.BASELINES / f"{run_id}.json"
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
-    return {"state": "complete", "summary": target.relative_to(root).as_posix(), **plan}
+    return target

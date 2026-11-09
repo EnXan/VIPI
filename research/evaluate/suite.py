@@ -1,10 +1,10 @@
-"""Identify an evaluation path's frozen suite and check baseline freshness.
+"""Identify what an evaluation measures and find its saved baseline.
 
 A manifest has two parts. ``suite`` covers what is evaluated: dataset revision,
-catalog, split file, the selected cases with their image/reference hashes, and
-the metric sources. ``configuration`` covers how the path runs: the benchmark
-configuration and the declared model identity. Implementation provenance is
-deliberately excluded: a candidate differs from its baseline by design.
+catalog, split file, the selected entries with their image/reference hashes,
+and the metric sources. ``configuration`` covers how the scan runs: the product
+scan options and the declared model identity. Implementation provenance is
+deliberately excluded: a change differs from its baseline by design.
 """
 
 import hashlib
@@ -17,29 +17,16 @@ from vipi import config
 
 from . import splits
 
-PATHS = {
-    "ocr/cloud-default": {
-        "benchmark_configuration": "cloud-default",
-        "metric_sources": (
-            "research/ocr_eval/evaluation/metrics.py",
-            "research/ocr_eval/evaluation/words.py",
-            "research/ocr_eval/benchmark_report.py",
-        ),
-        "reports": "research/ocr_eval/reports/contrib",
-    },
-    "ocr/local-speed": {
-        "benchmark_configuration": "local-speed",
-        "metric_sources": (
-            "research/ocr_eval/evaluation/metrics.py",
-            "research/ocr_eval/evaluation/words.py",
-            "research/ocr_eval/benchmark_report.py",
-        ),
-        "reports": "research/ocr_eval/reports/contrib",
-    },
-}
+CONFIGURATIONS = benchmark.CONFIGURATIONS
+METRIC_SOURCES = (
+    "research/ocr_eval/evaluation/metrics.py",
+    "research/ocr_eval/evaluation/words.py",
+    "research/ocr_eval/benchmark_report.py",
+)
+BASELINES = Path("research/baselines")
 MODEL_REGISTRIES = ("src/vipi/ocr/model_files.json", "src/vipi/decision_models.json")
 SPLIT_NAMES = ("development", "test")
-SUMMARY_KIND = "vipi-contribution-run"
+SUMMARY_KIND = "vipi-evaluation-run"
 
 
 def json_sha256(value):
@@ -48,10 +35,12 @@ def json_sha256(value):
     ).hexdigest()
 
 
-def path_definition(name):
-    if name not in PATHS:
-        raise ValueError(f"Unknown evaluation path {name!r}; choose {sorted(PATHS)}.")
-    return PATHS[name]
+def check_configuration(name):
+    if name not in CONFIGURATIONS:
+        raise ValueError(
+            f"Unknown configuration {name!r}; choose {', '.join(CONFIGURATIONS)}."
+        )
+    return name
 
 
 def selected_rows(root, split):
@@ -85,16 +74,15 @@ def model_identity(root):
 
 
 def manifest(name, split="development", root=benchmark.ROOT):
-    """Return the identity of path ``name`` on ``split`` for the current checkout."""
+    """Return the identity of configuration ``name`` on ``split`` for this checkout."""
     root = Path(root)
-    definition = path_definition(name)
+    check_configuration(name)
     rows = selected_rows(root, split)
     selection = [
         [row["key"], row["image_sha256"], row["reference_sha256"]] for row in rows
     ]
-    configuration_name = definition["benchmark_configuration"]
     return {
-        "path": name,
+        "configuration_name": name,
         "split": split,
         "suite": {
             "dataset": json.loads((root / "research/dataset.json").read_text()),
@@ -105,14 +93,11 @@ def manifest(name, split="development", root=benchmark.ROOT):
             "entries": len(selection),
             "selection_sha256": json_sha256(selection),
             "metric_sha256": {
-                source: benchmark.digest(root / source)
-                for source in definition["metric_sources"]
+                source: benchmark.digest(root / source) for source in METRIC_SOURCES
             },
         },
         "configuration": {
-            "benchmark_configuration": {
-                configuration_name: benchmark.CONFIGURATIONS[configuration_name]
-            },
+            "scan_options": CONFIGURATIONS[name],
             "model_identity": model_identity(root),
         },
     }
@@ -130,35 +115,32 @@ def differences(expected, actual, prefix=""):
     return [] if expected == actual else [prefix.rstrip(".")]
 
 
-def baseline_summaries(name, split, root):
-    """Yield committed baseline summaries for ``name``/``split``."""
-    directory = Path(root) / path_definition(name)["reports"]
-    for path in sorted(directory.glob("*.json")):
+def latest_baseline(name, split, root=benchmark.ROOT):
+    """Return ``(path, summary)`` of the newest saved baseline, or None."""
+    found = []
+    for path in sorted((Path(root) / BASELINES).glob("*.json")):
         summary = json.loads(path.read_text(encoding="utf-8"))
         if (
             summary.get("kind") == SUMMARY_KIND
-            and summary.get("role") == "baseline"
-            and summary["manifest"]["path"] == name
+            and summary["manifest"]["configuration_name"] == name
             and summary["manifest"]["split"] == split
         ):
-            yield path, summary
+            found.append((path, summary))
+    return max(found, key=lambda item: item[1]["completed_at"], default=None)
 
 
 def status(name, split="development", root=benchmark.ROOT):
-    """Compare the latest committed baseline with the current manifest."""
+    """Compare the latest saved baseline with the current manifest."""
     root = Path(root)
     current = manifest(name, split, root)
-    found = sorted(
-        baseline_summaries(name, split, root),
-        key=lambda item: item[1]["completed_at"],
-    )
+    found = latest_baseline(name, split, root)
     if not found:
-        return {"state": "none", "path": name, "split": split, "current": current}
-    path, latest = found[-1]
+        return {"state": "none", "configuration": name, "split": split}
+    path, latest = found
     changed = differences(latest["manifest"], current)
     return {
         "state": "stale" if changed else "fresh",
-        "path": name,
+        "configuration": name,
         "split": split,
         "baseline": {
             "summary": path.relative_to(root).as_posix(),
@@ -166,5 +148,4 @@ def status(name, split="development", root=benchmark.ROOT):
             "completed_at": latest["completed_at"],
         },
         "differences": changed,
-        "current": current,
     }
