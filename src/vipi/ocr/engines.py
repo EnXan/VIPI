@@ -93,6 +93,22 @@ class TesseractEngine:
         }
 
 
+def load_rapid_models(ocr) -> dict[str, list[str]]:
+    """Load RapidOCR's detector and recognizer and return their ONNX providers.
+
+    RapidOCR 3.10 creates ``text_det`` and ``text_rec`` lazily on first use.
+    Loading them here keeps the provider check and the pipeline patches in
+    ``RapidEngine`` ahead of the first scan.
+    """
+    return {
+        name: component.session.session.get_providers()
+        for name, component in [
+            ("detector", ocr._load_det_model()),
+            ("recognizer", ocr._load_rec_model()),
+        ]
+    }
+
+
 class RapidEngine:
     def __init__(
         self,
@@ -177,13 +193,7 @@ class RapidEngine:
         self.runtime = {
             "backend": backend,
             "threads_per_worker": threads,
-            "providers": {
-                name: component.session.session.get_providers()
-                for name, component in [
-                    ("detector", self.ocr.text_det),
-                    ("recognizer", self.ocr.text_rec),
-                ]
-            },
+            "providers": load_rapid_models(self.ocr),
         }
         validate_session_providers(backend, self.runtime["providers"])
         detector = self.ocr.text_det

@@ -6,7 +6,7 @@ import numpy as np
 import pytest
 from PIL import Image
 
-from vipi.ocr.engines import RapidEngine, TesseractEngine
+from vipi.ocr.engines import RapidEngine, TesseractEngine, load_rapid_models
 from vipi.ocr.cloud import MistralEngine
 
 
@@ -41,6 +41,31 @@ def test_native_failure_is_an_error_even_without_stderr(tmp_path, monkeypatch):
     )
     with pytest.raises(RuntimeError, match="code -6"):
         TesseractEngine(tmp_path).recognize(Image.new("RGB", (1, 1)))
+
+
+def test_rapid_models_are_loaded_before_provider_check():
+    def component(providers):
+        session = SimpleNamespace(get_providers=lambda: providers)
+        return SimpleNamespace(session=SimpleNamespace(session=session))
+
+    class LazyOCR:
+        # RapidOCR 3.10 leaves both models unset until first use.
+        text_det = text_rec = None
+
+        def _load_det_model(self):
+            self.text_det = component(["CPUExecutionProvider"])
+            return self.text_det
+
+        def _load_rec_model(self):
+            self.text_rec = component(["CoreMLExecutionProvider"])
+            return self.text_rec
+
+    ocr = LazyOCR()
+    assert load_rapid_models(ocr) == {
+        "detector": ["CPUExecutionProvider"],
+        "recognizer": ["CoreMLExecutionProvider"],
+    }
+    assert ocr.text_det is not None and ocr.text_rec is not None
 
 
 def test_partial_word_boxes_do_not_drop_recognized_line_text():
