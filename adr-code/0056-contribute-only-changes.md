@@ -66,9 +66,7 @@ chose to submit only the changes.
 
 Consequences: finding changes needs the downloaded revision's catalog from
 Hugging Face once (then cached). Generated images on Linux or Windows look
-different from macOS ones (other font files), so their hashes differ. Until
-the dataset PR that introduces the one-catalog layout is merged, `main` has no
-`catalog.json` and uploads cannot work.
+different from macOS ones (other font files), so their hashes differ.
 
 ## Validation boundary
 
@@ -81,6 +79,6 @@ description and preview mode. `changes` was run against the real pinned
 revision; re-rendering the two text specs on macOS reproduced all 81 images
 byte for byte; the starter spec rendered in preview. In the browser, adding an image on the
 Dataset page listed it under *Only my changes* (the dataset was restored
-afterwards); the submission preview showed the missing-catalog message,
-because `main` has no `catalog.json` yet. No real upload has been
-made; Linux and Windows rendering is untested.
+afterwards); before Hugging Face PR #2 was merged the submission preview
+showed the missing-catalog message, and after the merge a dry run against
+`main` reported nothing to submit. No real upload has been made; Linux and Windows rendering is untested.

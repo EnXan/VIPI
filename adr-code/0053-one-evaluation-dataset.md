@@ -1,8 +1,7 @@
 # 0053 — One evaluation dataset
 
-Status: accepted for review, 2026-11-09. The layout is staged in Hugging Face
-PR #2; the OCR benchmark, evaluation runs and download already read
-it; the workbench scan follows.
+Status: accepted, 2026-11-09. The layout was introduced by Hugging Face
+PR #2, merged into `main` on 2026-11-10 (merge commit 91eeb7d6).
 
 ## Context and sources
 
@@ -41,9 +40,8 @@ separate draft location and a second image layout no longer serve a purpose.
   text, the former detection filename family and control pairs, stratified
   by label × content: 450 development and 104 test entries.
 - `research.download` fetches `catalog.json`, `vocabulary.json` and
-  `images/` into `research/dataset/`. Until Hugging Face PR #2 is merged,
-  `research/dataset.json` pins that PR's latest commit (acdb5344); after the merge it
-  must pin the merge commit on `main`.
+  `images/` into `research/dataset/` at the commit pinned in
+  `research/dataset.json` (the merge commit 91eeb7d6 on `main`).
 
 ## Alternatives
 
