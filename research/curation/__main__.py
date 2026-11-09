@@ -204,6 +204,12 @@ def upload_changes(args):
 
 def main(argv=None):
     args = build_parser().parse_args(argv)
+    if args.command == "templates":  # describes the generators, needs no dataset
+        try:
+            return show_templates(args)
+        except ValueError as error:
+            print(f"error: {error}", file=sys.stderr)
+            return 2
     try:
         catalog, vocabulary = load(args.dir)
     except (ValueError, OSError) as error:
@@ -217,8 +223,6 @@ def main(argv=None):
             return show_changes(args, catalog)
         if args.command == "upload":
             return upload_changes(args)
-        if args.command == "templates":
-            return show_templates(args)
     except (ValueError, OSError) as error:
         print(f"error: {error}", file=sys.stderr)
         return 2

@@ -171,14 +171,15 @@ def test_main_manifest_contains_only_requested_configurations(tmp_path, monkeypa
 
 def test_provenance_tolerates_unavailable_macos_sysctl_fields(tmp_path, monkeypatch):
     for path in (
-        "research/detection_eval/evaluation/catalog.py",
-        "research/ocr_eval/catalog.json",
-        "research/detection_eval/cases.json",
+        "research/catalog.py",
+        "research/ocr_eval/benchmark.py",
+        "uv.lock",
+        "research/dataset.json",
+        "research/dataset/catalog.json",
     ):
         file = tmp_path / path
         file.parent.mkdir(parents=True, exist_ok=True)
         file.write_text("{}")
-    monkeypatch.setattr(benchmark, "ROOT", tmp_path)
     monkeypatch.setattr(benchmark.platform, "system", lambda: "Darwin")
     monkeypatch.setattr(benchmark.platform, "platform", lambda: "fixture-platform")
     monkeypatch.setattr(benchmark, "version", lambda name: "fixture")
@@ -193,7 +194,7 @@ def test_provenance_tolerates_unavailable_macos_sysctl_fields(tmp_path, monkeypa
         benchmark.subprocess, "check_output", lambda *args, **kwargs: "fixture-commit"
     )
 
-    result = benchmark.provenance()
+    result = benchmark.provenance(tmp_path)
 
     assert result["hardware"] == {
         key: None
