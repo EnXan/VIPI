@@ -50,22 +50,6 @@ def test_metadata_and_help_do_not_load_inference_or_research_modules():
     assert "setup" in result.stdout and "scan" in result.stdout
 
 
-def test_detector_cli_does_not_load_ocr_or_flask():
-    result = subprocess.run(
-        [
-            sys.executable,
-            "-c",
-            "import sys; import research.workbench.detector_cli; "
-            "assert not any(name == 'flask' or name.startswith('vipi.ocr') "
-            "for name in sys.modules)",
-        ],
-        cwd=ROOT,
-        capture_output=True,
-        text=True,
-    )
-    assert result.returncode == 0, result.stderr
-
-
 @pytest.mark.parametrize("threshold", [-1, 101, float("nan"), float("inf"), True, "80"])
 def test_python_api_validates_threshold_without_cli(threshold):
     with pytest.raises(ValueError, match="Threshold"):

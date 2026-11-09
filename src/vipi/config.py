@@ -45,9 +45,6 @@ OCR_API_KEY_NAMES = {
     LUNA_OCR_MODEL: ("OPENAI_API_KEY",),
     MISTRAL_OCR_MODEL: ("MISTRAL_API_KEY",),
 }
-PADDLEOCR_VL_MODEL = "paddleocr-vl-1.6"
-GRANITE_DOCLING_MODEL = "granite-docling-258m"
-WORKBENCH_OCR_MODELS = (PADDLEOCR_VL_MODEL, GRANITE_DOCLING_MODEL)
 OCR_MODEL_IDS = (
     *dict.fromkeys(OCR_MODES.values()),
     "ppocr-v6-medium",

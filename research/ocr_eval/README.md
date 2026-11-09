@@ -1,37 +1,21 @@
 # OCR evaluation
 
-This directory contains the OCR reference catalog and the evaluation code used
-by the local workbench. The 1,000 selected images live in `images/`, alongside
-the single `catalog.json` index. Both are downloaded from the pinned
-[Hugging Face dataset](https://huggingface.co/datasets/EnXan/VIPI-evaluation)
-and ignored by Git. From the repository root:
+OCR metrics and the benchmark that scans the evaluation dataset
+(`research/dataset/`, read through [`research/catalog.py`](../catalog.py)).
+`evaluation/` holds the word metrics (`metrics.py`, `words.py`),
+`benchmark.py` runs the product scan over the dataset and
+`benchmark_report.py` scores the retained outputs. Comparisons with a baseline
+run through [`research.evaluate`](../evaluate/README.md). Retained trials live
+under `experiments/` and [historical reports](reports/README.md) keep measured
+results; see [product recovery](../../docs/ocr-recovery.md) for the selected
+workflow and [the full product benchmark](../../docs/ocr-benchmark.md).
 
-```bash
-uv run python -m research.download
-```
-
-`evaluation/` owns catalog loading, metrics and the workbench adapter.
-The shared scanner recovery lives in `vipi.ocr.recovery`; retained trials live
-under `experiments/`. See [product recovery](../../docs/ocr-recovery.md) for the
-selected workflow, [the baseline protocol](BASELINE.md) for active comparison
-models, [the full product benchmark](../../docs/ocr-benchmark.md) for reproducible
-local/cloud runs, and [historical reports](reports/README.md) for measured trial results.
-
-The catalog preserves exact transcripts, source references, rights, reference
-scope and word regions. Catalog image paths are relative to this directory.
-Downloading on another machine retrieves the same selected images and labels.
-
-Each record contains `id`, `image`, `text`, `category`, `scope`, `quality`,
-`reading_order_known`, `regions` and `source`. `source` preserves the upstream
-sample identifier, SHA-256 image hash, repository, provenance and usage rights.
-`regions` can be null when the source supplies no word positions. Keep the
-distinction between a reference covering only target text (`target_text_only`)
-and one covering source-declared text (`source_declared_text`).
-
-The workbench reads references without modifying them. Preserve exact source
-transcripts, provenance and reference annotations. Submit changes to images and
-labels together as a dataset PR following the
-[image contribution instructions](../README.md#add-images).
+An entry's OCR reference (`ocr_reference` in the catalog) holds the exact
+transcript, its scope (`source_declared_text` or `primary_visible_payload`),
+quality, whether the reading order is known and word regions where the source
+supplies them. Preserve exact source transcripts, provenance and reference
+annotations; change them through the [Label page](../workbench/README.md#label)
+and the [dataset contribution flow](../README.md#add-images).
 
 The current improvement goals are a 90% OCR quality line and a separately
 measured 90% scanner recall line. These are targets, not achieved quality claims.

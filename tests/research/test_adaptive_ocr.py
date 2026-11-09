@@ -590,30 +590,6 @@ def test_adaptive_cost_includes_each_staged_preview_request():
     assert cost["estimated_usd"] == 0.03
 
 
-def test_research_profile_evaluates_selected_attempt_without_inventing_original(
-    tmp_path,
-):
-    from research.ocr_eval.evaluation.runner import extract
-
-    source = tmp_path / "input.png"
-    Image.new("RGB", (400, 300), "white").save(source)
-    decider = Decider()
-    result = extract(
-        source,
-        "ppocr-v6-tiny",
-        ocr_profile="adaptive-jev",
-        engine=Engine(),
-        decider=decider,
-        reference={"text": "candidate1", "reading_order_known": True, "regions": []},
-        runs_dir=tmp_path / "runs",
-    )
-    assert result["evaluation"]["valid"] is True
-    assert result["evaluation"]["original"]["valid"] is True
-    assert result["evaluation"]["first_attempt"]["valid"] is True
-    assert result["evaluation"]["effects"] == []
-    assert result["cost"]["estimated_usd"] is None
-
-
 def test_decision_failure_keeps_saved_ocr_without_completed_result(tmp_path):
     source = tmp_path / "input.png"
     Image.new("RGB", (400, 300), "white").save(source)

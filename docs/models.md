@@ -48,15 +48,6 @@ and the Prompt Guard revision in [`config.py`](../src/vipi/config.py). Clef
 requires substantially more memory than d1. These defaults are configuration
 choices, not a measured quality ranking across profiles.
 
-## Research OCR backends
-
-Research additionally compares Tesseract 5 English (`tessdata_best`),
-PaddleOCR-VL 1.6 (`paddleocr-vl-1.6`), IBM Granite-Docling 258M
-(`granite-docling-258m`) and LightOnOCR-3 0.8B/1B/4B
-(`lightonocr-3-0.8b`, `lightonocr-3-1b`, `lightonocr-3-4b`). These are OCR
-comparison backends, not public scan defaults. See the
-[complete comparison inventory](../research/ocr_eval/BASELINE.md).
-
 ## Hardware
 
 **Most figures below are planning estimates, not tested minimum requirements.**

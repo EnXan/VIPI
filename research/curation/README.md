@@ -7,8 +7,8 @@ reference. The design is recorded in
 [ADR 0051](../../adr-code/0051-combined-evaluation-catalog.md); the agreed
 taxonomy is in `vocabulary.py`.
 
-The combined catalog is the evaluation dataset (ADR 0053). VIPI's benchmark
-and scan still read the two pinned catalogs until their loaders are switched.
+The combined catalog is the evaluation dataset (ADR 0053); the benchmark,
+the evaluation runs and the workbench read it through `research/catalog.py`.
 
 ## The dataset folder
 

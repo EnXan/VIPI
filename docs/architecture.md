@@ -94,18 +94,22 @@ limits, [CLI usage](cli.md) for execution modes and model selection, and
 `research/` imports `vipi`; `vipi` must not import `research` or Flask. Package
 initializers and model metadata imports do not load inference frameworks.
 
-- `research/workbench/`: local Flask UI and job orchestration in `web`;
-  catalog/run transport adapters in `dataset_routes` and `run_routes`; batch
-  scheduling in `batch`; report conversion in `reporting`. Browser report
-  rendering lives in `static/reports.js`, scan controls in `static/app.js`.
-- `research/ocr_eval/`: active OCR reference catalog, evaluation metrics and
-  the adapter used by the workbench. Retained trial operators live in
-  `experiments/`, with historical findings under `reports/`.
-- `research/detection_eval/`: reviewed image prompt-injection cases, labels and
-  ignored local image files.
+- `research/catalog.py`: the one reader of the evaluation dataset in
+  `research/dataset/` (ignored by Git, fetched by `research.download`).
+- `research/workbench/`: local Flask UI. `scans` runs one product scan,
+  `evaluations` runs `research.evaluate` in the background, `curation_routes`
+  serves the Label page; the browser code is `static/app.js` and
+  `static/curation.js`.
+- `research/evaluate/`: frozen split, evaluation runs of product scan
+  configurations and the saved baseline.
+- `research/ocr_eval/`: OCR metrics, the dataset benchmark and its report.
+  Retained trial operators live in `experiments/`, with historical findings
+  under `reports/`.
+- `research/curation/`: dataset validation, labeling store and image
+  generators.
 
 OCR and detector stores keep their distinct states. Shared atomic writes, hashes
-and event iteration are consolidated; SSE encoding is a workbench adapter.
+and event iteration are consolidated.
 Persisted JSON schemas and run directory layouts are shared across the product
 and research tools. OCR paths, source transcripts and local image data live
 under `research/ocr_eval/images/`, indexed by `research/ocr_eval/catalog.json`.

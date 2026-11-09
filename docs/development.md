@@ -20,12 +20,11 @@ document the complete command sets. Common development commands:
 uv run vipi setup --ocr-mode balanced
 uv run vipi scan image.png --ocr-mode balanced
 uv run python -m research.download
-uv run python -m research.workbench prepare-models --model ppocr-v6-tiny
 uv run python -m research.workbench serve
 ```
 
-The public CLI uses its platform user cache. Research defaults to repository
-`models/ocr`, `models/detector` and `runs`; prepare its weights separately.
+The CLI and the workbench use the platform user cache for models and scan
+runs; evaluation runs go to the repository's ignored `runs/evaluations/`.
 Dataset downloads and contributions are described in the
 [research guide](../research/README.md). Preserve exact transcripts and provenance.
 
