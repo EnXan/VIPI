@@ -13,8 +13,10 @@ detection catalogs to two disjoint splits, 80% `development` and 20%
 `test`. Entries sharing content stay together: OCR entries with the same
 source `content_group_id`, detection images with the same payload or the same
 filename family (stem without trailing obfuscation tokens such as
-`_low-contrast` or `_none`), and byte-identical images, including the images
-present in both catalogs. Groups are ranked by seeded SHA-256 per stratum (OCR
+`_low-contrast` or `_none`), listed matched benign controls with their attacks
+(`CONTROL_GROUPS` in `splits.py`), byte-identical images, and texts sharing at
+least 80% of their words (template variants that differ in a slot word). The
+last two apply across catalogs. Groups are ranked by seeded SHA-256 per stratum (OCR
 category, detection label category) and the test split is filled up to 20% of
 each stratum.
 
@@ -52,7 +54,7 @@ summary under `research/ocr_eval/reports/contrib/` and reports `fresh`,
 ## Baseline and candidate runs
 
 `run` performs live inference for one path on one split and may incur provider
-charges (a development-split `ocr/cloud-default` run covers 892 entries). Check
+charges (a development-split `ocr/cloud-default` run covers 903 entries). Check
 the request with `--dry-run` first.
 
 ```bash

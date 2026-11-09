@@ -28,8 +28,13 @@ it; product code is unchanged.
 - **Split.** One deterministic splitter writes `research/splits.json`. Entries
   are grouped by OCR source `content_group_id`, by identical detection payload,
   by detection filename family (stem without trailing obfuscation tokens) and
-  by byte-identical images, including the seven images present in both
-  catalogs. Groups are ranked per stratum (OCR category, detection label
+  by listed matched-control pairs (benign controls stay with their attacks), by
+  byte-identical images, and by texts whose word sets overlap by at least 80%
+  (Jaccard, texts of five or more words). The last two apply across catalogs.
+  The text rule was added in the joint split review: 999 near-identical text
+  pairs, mostly vpi_bench template variants differing in one slot word, and
+  five detection images whose source sample is also in the OCR catalog had
+  landed in different splits. Observed slot variants score 0.88-0.94. Groups are ranked per stratum (OCR category, detection label
   category) by seeded SHA-256 and the lowest-ranked groups fill 20% of each
   stratum. `development` serves every comparison; `test` is used once to
   confirm a candidate before a default, profile or threshold changes and
@@ -68,12 +73,18 @@ it; product code is unchanged.
 - *Standard-library resource measurement only.* Avoids a dependency, but child
   worker processes are harder to attribute. The user selected `psutil`.
 
-Consequences: a split regeneration after catalog changes can move entries
+Consequences: large vpi_bench template families reduce its test share to
+16 of 125 entries. Only the anamorpher control is documented in the detection
+README; the other six control pairs were identified from scenario filenames and
+confirmed by the user. New pairs must be added to `CONTROL_GROUPS` by hand. The detection test split
+has 23 images and contains no jailbreak, step-by-step, flowchart, phantom or
+figstep cases, so detection confirmation runs are not yet meaningful; the user
+chose to accept this and revisit it after the catalog grows. A split regeneration after catalog changes can move entries
 between splits and must be reviewed before committing; a stable extension mode
 is open (see the roadmap's split-composition review). Detection grouping relies
 on filename conventions. Per-case comparison needs both local run directories.
 CPU time is a sampling lower bound, and GPU/MPS memory, allocated in worker
-processes, is reported as unavailable. A development-split cloud run covers 892
+processes, is reported as unavailable. A development-split cloud run covers 903
 entries and incurs provider charges. Detector-only and end-to-end paths are not
 implemented yet.
 
@@ -83,8 +94,8 @@ Offline tests cover grouping, determinism, stratification, split checks,
 manifest/freshness states, run requests, resume, mismatch handling, test-split
 protection, implementation identity, resource sampling and comparison
 classification and formatting, using fixture catalogs and simulated benchmark
-runs. The real catalogs produce 892 development and 221 test entries with no
-group across both splits, and the benchmark accepts the generated 892-key
-selection. No live baseline or candidate run has been executed, so the
+runs. The real catalogs produce 903 development and 210 test entries; no group,
+control pair or similar-text pair spans both splits. The benchmark accepts the
+generated 903-key development selection. No live baseline or candidate run has been executed, so the
 end-to-end workflow and its cost and resource figures are not yet observed. The
-split composition itself awaits a joint review.
+split composition was reviewed jointly on 2026-11-07.

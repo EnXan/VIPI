@@ -1,9 +1,11 @@
 """Assign both pinned catalogs to disjoint, grouped development/test splits.
 
 Entries that share content are grouped so variants never straddle the splits:
-OCR entries by source ``content_group_id``, detection images by exact payload
-and by filename family (the stem without its trailing obfuscation suffix), and
-any entries whose image bytes are identical, including across catalogs. Groups
+OCR entries by source ``content_group_id``, detection images by exact payload,
+by filename family (the stem without its trailing obfuscation suffix) and by
+listed matched-control pairs, entries whose image bytes are identical, and
+entries whose texts share at least 80% of their words, including across
+catalogs (template variants that differ in one slot word). Groups
 are ranked per stratum by a seeded SHA-256 and the lowest-ranked groups fill
 the test split up to the configured fraction of that stratum's entries.
 """
@@ -12,13 +14,48 @@ from collections import defaultdict
 import hashlib
 import json
 from pathlib import Path
+import re
 
 from research.ocr_eval.benchmark import ROOT, catalogs, digest
 
-ALGORITHM = "grouped_stratified_sha256_rank_v1"
+ALGORITHM = "grouped_stratified_sha256_rank_v2"
 SEED = "vipi-contribution-evaluation-v1"
 TEST_FRACTION = 0.2
 SPLITS_PATH = Path("research/splits.json")
+# Word-set Jaccard similarity that joins two texts into one group. Observed
+# vpi_bench slot variants score 0.88-0.94; unrelated texts stay far below.
+TEXT_SIMILARITY = 0.8
+# Shorter texts are too generic for a similarity match; exact identity still
+# groups them through payload or image hashes.
+TEXT_MIN_WORDS = 5
+# Benign controls kept with their attacks. Anamorpher is documented in the
+# detection README; the other pairs were identified from scenario filenames and
+# confirmed by the maintainer on 2026-11-07.
+CONTROL_GROUPS = {
+    "anamorpher": (
+        "anamorpher_0000_blue-code_benign_image-scaling",
+        "anamorpher_0001_orange_instruction-override-task-redirection_image-scaling",
+        "anamorpher_1419_orange_instruction-override-task-redirection_image-scaling",
+    ),
+    "architecture-private-report-upload": (
+        "synthetic_architecture_private-report-upload_authenticated-control_none",
+        "synthetic_architecture_private-report-upload_auth-bypass_contextual-camouflage-instruction-override-task-redirection_none",
+    ),
+    "vendor-onboarding-dpa": (
+        "synthetic_vendor-onboarding_dpa-follow-up_benign_none",
+        "synthetic_vendor-onboarding_dpa-missing_suppression_contextual-camouflage-instruction-override-task-redirection_none",
+    ),
+    "sting-readme": ("sting_readme_benign_setup", "sting_readme_setup_note"),
+    "sting-terminal": ("sting_terminal_benign_diagnostic", "sting_terminal_warning"),
+    "sting-vscode": ("sting_vscode_benign_comment", "sting_vscode_review_comment"),
+    "sting-dependency": (
+        "sting_dependency_benign_guidance",
+        "sting_dependency_compliance_note",
+    ),
+}
+CONTROL_BY_STEM = {
+    stem: name for name, stems in CONTROL_GROUPS.items() for stem in stems
+}
 
 
 def sha256_text(value):
@@ -31,6 +68,32 @@ def filename_family(image, obfuscation_tokens):
     while len(parts) > 1 and parts[-1] in obfuscation_tokens:
         parts.pop()
     return "_".join(parts)
+
+
+def text_words(text):
+    return sorted(set(re.findall(r"\w+", text.casefold())))
+
+
+def similar_text_tokens(entries, threshold=TEXT_SIMILARITY, min_words=TEXT_MIN_WORDS):
+    """Return entries with a shared token added for each similar text pair."""
+    sets = [set(entry.get("words", ())) for entry in entries]
+    added = defaultdict(list)
+    for first in range(len(entries)):
+        if len(sets[first]) < min_words:
+            continue
+        for second in range(first + 1, len(entries)):
+            other = sets[second]
+            if len(other) < min_words:
+                continue
+            union = len(sets[first] | other)
+            if len(sets[first] & other) >= threshold * union:
+                token = f"text:{entries[first]['key']}"
+                added[first].append(token)
+                added[second].append(token)
+    return [
+        {**entry, "tokens": [*entry["tokens"], *added[index]]}
+        for index, entry in enumerate(entries)
+    ]
 
 
 def collect_entries(root=ROOT):
@@ -50,10 +113,13 @@ def collect_entries(root=ROOT):
                 "key": f"ocr_eval:{identifier}",
                 "stratum": f"ocr_eval:{item['category']}",
                 "image_sha256": image_sha256,
-                "tokens": [
-                    f"image:{image_sha256}",
-                    f"ocr_content:{item['source']['content_group_id']}",
-                ],
+                "words": text_words(item["text"]),
+                "tokens": [f"image:{image_sha256}"]
+                + (
+                    [f"ocr_content:{item['source']['content_group_id']}"]
+                    if item.get("source", {}).get("content_group_id")
+                    else []
+                ),
             }
         )
     for identifier, item in detection.items.items():
@@ -63,14 +129,20 @@ def collect_entries(root=ROOT):
                 "key": f"detection_eval:{identifier}",
                 "stratum": f"detection_eval:{item['category']}",
                 "image_sha256": image_sha256,
+                "words": text_words(item["text"]),
                 "tokens": [
                     f"image:{image_sha256}",
                     f"payload:{sha256_text(item['text'])}",
                     f"family:{filename_family(item['image'], obfuscation_tokens)}",
-                ],
+                ]
+                + (
+                    [f"control:{CONTROL_BY_STEM[Path(item['image']).stem]}"]
+                    if Path(item["image"]).stem in CONTROL_BY_STEM
+                    else []
+                ),
             }
         )
-    return entries
+    return similar_text_tokens(entries)
 
 
 def group_entries(entries):
@@ -150,6 +222,8 @@ def build(root=ROOT, seed=SEED, test_fraction=TEST_FRACTION):
                 "ocr_source_content_group_id",
                 "detection_identical_payload_sha256",
                 "detection_filename_family_without_obfuscation_suffix",
+                "detection_matched_control_pairs",
+                f"text_word_jaccard_at_least_{TEXT_SIMILARITY}_min_{TEXT_MIN_WORDS}_words",
             ],
             "stratification": "catalog category (OCR) or label category (detection)",
             "usage": "Development for every comparison; test only for a one-time "
