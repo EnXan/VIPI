@@ -22,7 +22,8 @@ public downloads use no token. See
 uv run python -m research.curation validate
 uv run python -m research.curation summary --table
 uv run python -m research.curation add IMAGE... --label LABEL --content CONTENT --source NAME --license LICENSE --provenance TEXT [--repository URL]
-uv run python -m research.curation generate SPEC.json
+uv run python -m research.curation templates [NAME]
+uv run python -m research.curation generate SPEC.json [--preview FOLDER]
 uv run python -m research.curation changes
 uv run python -m research.curation upload [--dry-run] [--message TEXT]
 ```

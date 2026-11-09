@@ -71,26 +71,48 @@ SCALING_FONT_SIZE = 28
 SCALING_MARGIN = 60
 
 SUPPLEMENTAL = Path("/System/Library/Fonts/Supplemental")
+WINDOWS_FONTS = Path("C:/Windows/Fonts")
+LINUX_FONTS = Path("/usr/share/fonts")
+# Each family: (regular, italic) file names on macOS, Windows and Linux. macOS
+# comes first so existing generated images reproduce byte for byte; Windows has
+# the same faces; on Linux the metric-compatible Liberation fonts and DejaVu
+# stand in (``apt install fonts-liberation fonts-dejavu``).
 FAMILIES = {
-    "Arial": ("Arial.ttf", "Arial Italic.ttf"),
-    "Times New Roman": ("Times New Roman.ttf", "Times New Roman Italic.ttf"),
-    "Georgia": ("Georgia.ttf", "Georgia Italic.ttf"),
-    "Courier New": ("Courier New.ttf", "Courier New Italic.ttf"),
-    "Verdana": ("Verdana.ttf", "Verdana Italic.ttf"),
-    "Trebuchet MS": ("Trebuchet MS.ttf", "Trebuchet MS Italic.ttf"),
-    "Tahoma": ("Tahoma.ttf", None),
-    "Comic Sans MS": ("Comic Sans MS.ttf", None),
-}
-FALLBACKS = {
-    False: (
-        "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
-        "C:/Windows/Fonts/arial.ttf",
+    "Arial": (
+        ("Arial.ttf", "Arial Italic.ttf"),
+        ("arial.ttf", "ariali.ttf"),
+        ("LiberationSans-Regular.ttf", "LiberationSans-Italic.ttf"),
     ),
-    True: (
-        "/usr/share/fonts/truetype/liberation/LiberationSans-Italic.ttf",
-        "C:/Windows/Fonts/ariali.ttf",
+    "Times New Roman": (
+        ("Times New Roman.ttf", "Times New Roman Italic.ttf"),
+        ("times.ttf", "timesi.ttf"),
+        ("LiberationSerif-Regular.ttf", "LiberationSerif-Italic.ttf"),
     ),
+    "Georgia": (
+        ("Georgia.ttf", "Georgia Italic.ttf"),
+        ("georgia.ttf", "georgiai.ttf"),
+        ("DejaVuSerif.ttf", "DejaVuSerif-Italic.ttf"),
+    ),
+    "Courier New": (
+        ("Courier New.ttf", "Courier New Italic.ttf"),
+        ("cour.ttf", "couri.ttf"),
+        ("LiberationMono-Regular.ttf", "LiberationMono-Italic.ttf"),
+    ),
+    "Verdana": (
+        ("Verdana.ttf", "Verdana Italic.ttf"),
+        ("verdana.ttf", "verdanai.ttf"),
+        ("DejaVuSans.ttf", "DejaVuSans-Oblique.ttf"),
+    ),
+    "Trebuchet MS": (
+        ("Trebuchet MS.ttf", "Trebuchet MS Italic.ttf"),
+        ("trebuc.ttf", "trebucit.ttf"),
+        ("DejaVuSansCondensed.ttf", "DejaVuSansCondensed-Oblique.ttf"),
+    ),
+    "Tahoma": (("Tahoma.ttf", None), ("tahoma.ttf", None), (None, None)),
+    "Comic Sans MS": (("Comic Sans MS.ttf", None), ("comic.ttf", None), (None, None)),
 }
+# Always available, so rendering works without any system font (SIL OFL).
+BUNDLED = Path(__file__).resolve().parents[1] / "workbench/static/fonts/Geist.ttf"
 CANVASES = ((512, 256), (640, 360), (480, 480), (800, 300), (600, 400))
 COLOURS = (  # background, text; no plain white, the typographic style has it
     ((250, 246, 236), (60, 40, 25)),
@@ -120,15 +142,23 @@ SUPPORTED = {
 STYLES = ("typographic", "varied")
 
 
+def font_paths(family, italic):
+    """Candidate files for one family and style, macOS first."""
+    mac, windows, linux = (names[1 if italic else 0] for names in FAMILIES[family])
+    paths = [SUPPLEMENTAL / mac] if mac else []
+    if windows:
+        paths.append(WINDOWS_FONTS / windows)
+    if linux and LINUX_FONTS.is_dir():
+        paths += sorted(LINUX_FONTS.rglob(linux))
+    return paths
+
+
 def font(family, italic, size):
-    regular, slanted = FAMILIES[family]
-    name = slanted if italic else regular
-    candidates = [SUPPLEMENTAL / name] if name else []
-    if family == "Arial":
-        candidates += [Path(path) for path in FALLBACKS[italic]]
-    for path in candidates:
+    for path in font_paths(family, italic):
         if path.is_file():
             return ImageFont.truetype(str(path), size)
+    if family == "Arial" and not italic:
+        return ImageFont.truetype(str(BUNDLED), size)
     raise OSError(f"Font {family} {'italic' if italic else 'regular'} not found")
 
 

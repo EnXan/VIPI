@@ -1,4 +1,4 @@
-# ADR 0056: Contributors add images locally and submit only their changes
+# ADR 0056: Contributors add or generate images locally and submit only their changes
 
 Status: accepted, 2026-11-09.
 
@@ -34,6 +34,15 @@ chose to submit only the changes.
   that `main`. An entry changed on `main` since the download, or the same id
   added there with other content, is a conflict and nothing is uploaded.
   `--dry-run` shows the plan.
+- **Generators.** Fonts are looked up per family on macOS first (so existing
+  generated images reproduce byte for byte), then Windows (same faces), then
+  Linux replacements (Liberation, DejaVu), with the repository's Geist font as
+  the last resort, so text images render on every platform. `templates [NAME]`
+  lists the screenshot templates with the spec fields each one reads (found in
+  its source) and a working example item. `generate --preview FOLDER` renders
+  without changing the dataset. `examples/starter.json` is a small spec to copy.
+  No fonts are bundled beyond Geist, because no open font files were available
+  without a new download.
 
 ## Alternatives and consequences
 
@@ -43,14 +52,18 @@ chose to submit only the changes.
   changes the published layout of ADR 0053 for every reader.
 
 Consequences: finding changes needs the downloaded revision's catalog from
-Hugging Face once (then cached). Until the dataset PR that introduces the
-one-catalog layout is merged, `main` has no `catalog.json` and uploads cannot
-work. Generators for new images are improved separately.
+Hugging Face once (then cached). Generated images on Linux or Windows look
+different from macOS ones (other font files), so their hashes differ. Until
+the dataset PR that introduces the one-catalog layout is merged, `main` has no
+`catalog.json` and uploads cannot work.
 
 ## Validation boundary
 
 Offline tests cover adding (duplicates, invalid values, missing source),
 change detection, merging with and without conflicts, vocabulary merging, the
 upload operations against a simulated Hugging Face API, text and source
-editing and the new routes. `changes` was run against the real pinned
-revision. No real upload has been made.
+editing, the new routes, font lookup order, the Geist fallback, the template
+description and preview mode. `changes` was run against the real pinned
+revision; re-rendering the two text specs on macOS reproduced all 81 images
+byte for byte; the starter spec rendered in preview. No real upload has been
+made; Linux and Windows rendering is untested.

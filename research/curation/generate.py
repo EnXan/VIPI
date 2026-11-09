@@ -176,16 +176,18 @@ def image(spec, item, number, images_root, originals):
     return render(item["text"], item["obfuscation"], number, style)
 
 
-def build(spec_path, images_root, known_ids=(), catalog=()):
+def build(spec_path, images_root, known_ids=(), catalog=(), output_root=None):
     """Render a spec; write new images and return their catalog entries.
 
-    ``catalog`` provides the entries that ``from`` items derive from."""
+    ``catalog`` provides the entries that ``from`` items derive from.
+    ``images_root`` holds the dataset images that items read; new images go to
+    ``output_root`` (default: the same folder)."""
     originals = {original["id"]: original for original in catalog}
     spec = {
         **json.loads(Path(spec_path).read_text(encoding="utf-8")),
         "path": spec_path,
     }
-    folder = Path(images_root) / IMAGE_FOLDER
+    folder = Path(output_root or images_root) / IMAGE_FOLDER
     folder.mkdir(parents=True, exist_ok=True)
     numbered = list(enumerate(spec["items"], 1))
     # screenshots wait on a browser process each, so render items in parallel

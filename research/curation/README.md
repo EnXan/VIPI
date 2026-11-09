@@ -51,6 +51,44 @@ is in the [research guide](../README.md#add-images).
 
 ## Generated images
 
+### Create new images in four steps
+
+1. Copy the [starter spec](examples/starter.json) and change the texts. It
+   holds two text images and one chat screenshot; the spec sets `label` and
+   `content`, each item sets `kind` (a short note on its purpose), `text` and
+   `obfuscation`.
+2. Pick screenshot templates and see which fields fill them, with a working
+   example item from the existing specs:
+
+   ```bash
+   uv run python -m research.curation templates
+   uv run python -m research.curation templates messenger
+   ```
+
+3. Render into a folder to look at the images; the dataset is not changed:
+
+   ```bash
+   uv run python -m research.curation generate my_spec.json --preview /tmp/vipi-preview
+   ```
+
+4. Add them to the dataset, then review them on the Label page and submit
+   them as described in [Add images](../README.md#add-images):
+
+   ```bash
+   uv run python -m research.curation generate my_spec.json
+   ```
+
+Requirements: text images need only Pillow. Fonts come from the system:
+macOS and Windows have all eight families; on Linux install
+`fonts-liberation fonts-dejavu` (Debian/Ubuntu) for the replacements, otherwise
+only the bundled Geist font is used and the style mix is smaller.
+Screenshots need Chrome or Chromium; `image_scaling` needs the pinned
+Anamorpher checkout (below). Pair attack and benign images with the same
+templates and styles so neither reveals the label (ADR 0051 rule 5), and keep
+each content type at 50 % benign.
+
+### Spec reference
+
 ```bash
 uv run python -m research.curation generate research/curation/generated/benign_text.json
 ```
@@ -58,7 +96,8 @@ uv run python -m research.curation generate research/curation/generated/benign_t
 renders a spec of texts and adds one unreviewed entry per new image to the
 dataset (rendering in `render.py`, spec handling in `generate.py`). Two styles:
 `typographic` reproduces the typographic source (512×256, Arial 19 px, black
-on white; kept for a few examples only); `varied` picks font, size, colours
+on white; kept for a few examples only); `varied` picks font (macOS fonts first, the same faces on Windows, Liberation
+and DejaVu replacements on Linux, the bundled Geist as last resort), size, colours
 (no plain white), background pattern (solid, gradient, stripes, dots, grid,
 checker, noise), canvas and alignment from a fixed palette, seeded by the
 text. `typographic_rerender.json` re-renders typographic attack texts in the

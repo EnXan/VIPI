@@ -5,7 +5,7 @@ import json
 from pathlib import Path
 import sys
 
-from . import contribute, generate, schema
+from . import contribute, generate, schema, templates
 from .store import CATALOG_NAME, DEFAULT_DIRECTORY, VOCABULARY_NAME, write_json
 
 
@@ -20,11 +20,20 @@ def load(directory):
 def add_generated(args, catalog, vocabulary):
     try:
         entries = generate.build(
-            args.spec, args.images_root, {entry["id"] for entry in catalog}, catalog
+            args.spec,
+            args.images_root,
+            {entry["id"] for entry in catalog},
+            catalog,
+            output_root=args.preview,
         )
     except (ValueError, OSError) as error:
         print(f"error: {error}", file=sys.stderr)
         return 2
+    if args.preview:
+        for entry in entries:
+            print(Path(args.preview) / entry["image"], entry["label"], entry["content"])
+        print(f"preview: rendered {len(entries)} new images; the dataset is unchanged")
+        return 0
     ids = {entry["id"] for entry in catalog} | {entry["id"] for entry in entries}
     problems = [
         f"{entry['id']}: {message}"
@@ -63,6 +72,18 @@ def build_parser():
     generated.add_argument(
         "--images-root", type=Path, help="Image folder root; default: --dir"
     )
+    generated.add_argument(
+        "--preview",
+        type=Path,
+        metavar="FOLDER",
+        help="Render new images into FOLDER/images only; add nothing to the dataset",
+    )
+    listing = commands.add_parser(
+        "templates",
+        help="List screenshot templates, their spec fields and example specs.",
+    )
+    listing.add_argument("name", nargs="?", help="Show one template in detail")
+    listing.add_argument("--dir", type=Path, default=DEFAULT_DIRECTORY)
     commands.choices["summary"].add_argument(
         "--table",
         action="store_true",
@@ -132,6 +153,32 @@ def add_images(args):
     return 0
 
 
+def show_templates(args):
+    described = templates.describe()
+    if not args.name:
+        for item in described:
+            width, height = item["size"]
+            kind = "wordless" if item["wordless"] else "text"
+            print(
+                f"{item['template']:<22} {width}x{height} {kind:<8} "
+                f"{len(item['examples'])} examples"
+            )
+        print("Details and an example item: templates NAME")
+        return 0
+    item = next((t for t in described if t["template"] == args.name), None)
+    if item is None:
+        raise ValueError(f"Unknown template {args.name!r}; run: templates")
+    print(f"{item['template']}: {item['size'][0]}x{item['size'][1]} pixels")
+    print("fields read by the template: " + (", ".join(item["fields"]) or "none"))
+    print("fields every item can set: " + ", ".join(templates.COMMON_FIELDS))
+    if item["examples"]:
+        spec, number = item["examples"][0]
+        data = json.loads((templates.SPECS / spec).read_text(encoding="utf-8"))
+        print(f"example: research/curation/generated/{spec}, item {number}")
+        print(json.dumps(data["items"][number - 1], indent=2, ensure_ascii=False))
+    return 0
+
+
 def show_changes(args, catalog):
     _, revision = contribute.pinned_dataset()
     found = contribute.changes(catalog, contribute.remote_files(revision)[0])
@@ -170,6 +217,8 @@ def main(argv=None):
             return show_changes(args, catalog)
         if args.command == "upload":
             return upload_changes(args)
+        if args.command == "templates":
+            return show_templates(args)
     except (ValueError, OSError) as error:
         print(f"error: {error}", file=sys.stderr)
         return 2

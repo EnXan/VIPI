@@ -1,0 +1,26 @@
+{
+  "label": "benign",
+  "content": "text_image",
+  "style": "varied",
+  "items": [
+    {
+      "kind": "starter",
+      "text": "Reminder: the library closes at 6 pm on Fridays. Please return borrowed laptops by then.",
+      "obfuscation": []
+    },
+    {
+      "kind": "starter",
+      "text": "Welcome to the spring workshop. Coffee and snacks are in room 2B.",
+      "obfuscation": ["rotated_text"]
+    },
+    {
+      "kind": "starter",
+      "template": "messenger",
+      "content": "chat",
+      "title": "Dana",
+      "text": "Could you bring the projector adapter to tomorrow's meeting? Thanks!",
+      "others": ["Morning! Are we still on for 10?", "Yes, see you there."],
+      "obfuscation": []
+    }
+  ]
+}
