@@ -156,7 +156,7 @@ def test_main_manifest_contains_only_requested_configurations(tmp_path, monkeypa
     monkeypatch.setattr(
         benchmark,
         "run_configuration",
-        lambda directory, configuration, rows: runs.append(
+        lambda directory, configuration, rows, cancel: runs.append(
             (directory, configuration, rows)
         ),
     )

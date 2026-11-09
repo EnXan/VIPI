@@ -96,9 +96,7 @@ def test_missing_draft_is_reported(tmp_path):
 @pytest.fixture
 def client(draft, tmp_path):
     directory, images = draft
-    app = create_app(
-        tmp_path / "runs", repository_root=images.parent, curation_dir=directory
-    )
+    app = create_app(repository_root=images.parent, curation_dir=directory)
     return app.test_client()
 
 
@@ -157,9 +155,7 @@ def test_cross_origin_updates_are_rejected(client):
 
 
 def test_missing_draft_route_reports_how_to_create_it(tmp_path):
-    app = create_app(
-        tmp_path / "runs", repository_root=tmp_path, curation_dir=tmp_path / "x"
-    )
+    app = create_app(repository_root=tmp_path, curation_dir=tmp_path / "x")
     client = app.test_client()
     assert client.get("/api/curation").json["available"] is False
     assert client.get("/api/curation/entries").status_code == 409

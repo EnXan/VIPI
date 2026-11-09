@@ -1,7 +1,7 @@
 # ADR 0054: Evaluation runs of product scan configurations against a saved baseline
 
-Status: accepted, 2026-11-09. The CLI (`python -m research.evaluate`) is
-implemented; the workbench Evaluate page follows on the same functions.
+Status: accepted, 2026-11-09. Implemented in the CLI (`python -m research.evaluate`)
+and the workbench.
 
 ## Context and sources
 
@@ -51,6 +51,20 @@ current form (algorithm v3, one dataset) is in [ADR 0053](0053-one-evaluation-da
   `save-baseline <run-id>` copies the summary to `research/baselines/`, which is
   committed. `status` reports `fresh`, `stale` or `none` for the latest saved
   baseline.
+- **Workbench.** Three pages: *Scan an image* (upload, drop or paste; one
+  settings line with the product default `local-quality` and threshold 80; a
+  "Change settings" panel for run on local/cloud, text recognition and the
+  threshold; result: verdict, score, recognized text, OCR passes), *Evaluate*
+  (settings, development or test split with an explicit confirmation, the
+  baseline state before starting, progress with stop and resume, headline
+  metrics with deltas against the baseline, changed-image counts, results per
+  content type, "Save as baseline", report and comparison downloads) and
+  *Label*. Scans and evaluations share one lock, so one model workload runs at
+  a time. Stopping terminates the benchmark worker; the image in progress is
+  scanned again on resume. Removed from the workbench: the model comparison,
+  OCR profiles, workers, hardware backends, multiple classifiers, the threshold
+  editor, the dataset collection toggle, mixed selections, selection batches
+  and the two old catalog readers.
 - **Unchanged from ADR 0050:** manifest identity and freshness rules,
   implementation identity (commit, dirty tree), psutil resource sampling,
   resumable runs, the test split behind an explicit confirmation, the
@@ -82,6 +96,10 @@ Cloud configurations incur provider charges for OCR, decisions and detection.
 Offline tests cover the configurations, manifest and freshness states, run,
 resume, automatic comparison, save-baseline, test-split protection, detection
 scoring (unclear and failed scans) and comparison classification and
-formatting, with fixture datasets and simulated scans. A dry run on the real
-dataset plans 450 development entries. No live run has been executed, so
+formatting, the workbench routes (scan, evaluation, stop/resume, baseline) and
+benchmark cancellation, with fixture datasets and simulated scans. A dry run on
+the real dataset plans 450 development entries. In the browser, the pages,
+settings, test-split confirmation, a local run with stop and resume, and the
+Label page were checked; local OCR itself failed on this branch because of the
+rapidocr 3.10 regression fixed separately. No live run has been executed, so
 quality, time, cost and resource figures are not yet observed.

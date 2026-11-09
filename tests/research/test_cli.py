@@ -42,8 +42,8 @@ def test_cli_rejects_invalid_workers(capsys, workers):
     assert "between 1 and 8" in capsys.readouterr().err
 
 
-def test_cli_evaluation_uses_dataset_reference(dataset_repository, monkeypatch):
-    monkeypatch.chdir(dataset_repository)
+def test_cli_evaluation_uses_dataset_reference(evaluation_dataset, monkeypatch):
+    monkeypatch.chdir(evaluation_dataset)
     references = []
 
     def extract(*args, **kwargs):
@@ -51,7 +51,7 @@ def test_cli_evaluation_uses_dataset_reference(dataset_repository, monkeypatch):
         return {"text": "recognized"}
 
     monkeypatch.setattr("research.workbench.__main__.extract", extract)
-    assert main(["extract", "research/ocr_eval/images/0.png", "--evaluate"]) == 0
+    assert main(["extract", "research/dataset/images/0.png", "--evaluate"]) == 0
     assert references[0]["text"] == "Required"
 
 

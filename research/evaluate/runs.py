@@ -192,8 +192,12 @@ def run(
     run_id=None,
     confirm_test=False,
     dry_run=False,
+    cancel=None,
 ):
-    """Run (or resume) one evaluation and compare it with the saved baseline."""
+    """Run (or resume) one evaluation and compare it with the saved baseline.
+
+    ``cancel`` (a threading.Event) stops the scan; the run is then incomplete
+    and resumes with the same run ID."""
     root = Path(root)
     manifest, rows = prepare(configuration, split, root, confirm_test=confirm_test)
     run_id = run_id or default_run_id(configuration, split)
@@ -242,7 +246,8 @@ def run(
                 configuration,
                 "--selection-file",
                 str(selection_path),
-            ]
+            ],
+            cancel=cancel,
         )
     operations_path = directory / "operations.json"
     operations = (

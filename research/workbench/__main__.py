@@ -81,15 +81,10 @@ def build_parser():
     merge.add_argument("--runs-dir", type=Path, default=Path("runs"))
     merge.add_argument("--json", action="store_true")
     merge.add_argument("--output", type=Path)
-    serve = subparsers.add_parser("serve", help="Open the local live OCR interface")
-    serve.add_argument("--port", type=int, default=8000)
-    serve.add_argument("--models-dir", type=Path, default=Path("models/ocr"))
-    serve.add_argument("--runs-dir", type=Path, default=Path("runs"))
-    serve.add_argument(
-        "--detector-models-dir",
-        type=Path,
-        default=Path("models/detector/prompt-guard-2-86m"),
+    serve = subparsers.add_parser(
+        "serve", help="Open the workbench: scan, evaluate and label"
     )
+    serve.add_argument("--port", type=int, default=8000)
     return parser
 
 
@@ -139,11 +134,7 @@ def main(argv=None):
         elif args.command == "serve":
             from .web import create_app
 
-            create_app(
-                args.runs_dir,
-                args.models_dir,
-                detector_models_dir=args.detector_models_dir,
-            ).run(
+            create_app().run(
                 host="127.0.0.1",
                 port=args.port,
                 threaded=True,
@@ -157,9 +148,21 @@ def main(argv=None):
                 validate_model(args.model, args.models_dir)
             reference = None
             if args.command == "extract" and args.evaluate:
-                from research.ocr_eval.evaluation.catalog import Catalog
+                from research.catalog import Catalog
+                from vipi.storage.files import sha256
 
-                reference = Catalog(Path.cwd()).for_path(args.image)
+                dataset = Catalog(Path.cwd() / "research/dataset")
+                digest = sha256(args.image)
+                reference = next(
+                    (
+                        dataset.reference(identifier)
+                        for identifier in dataset.items
+                        if sha256(dataset.path(identifier)) == digest
+                    ),
+                    None,
+                )
+                if reference is None:
+                    raise ValueError("The image has no reference text in the dataset.")
 
             def progress(event):
                 if event["type"] == "step_completed":

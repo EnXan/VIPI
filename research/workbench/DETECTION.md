@@ -1,6 +1,6 @@
 # Research detection
 
-The workbench and diagnostic detector CLI check final OCR text with Jev,
+The research `extract` command and the diagnostic detector CLI check final OCR text with Jev,
 OpenAI Decisions and/or local Prompt Guard 2 86M. Optional OpenAI checks inspect
 the original image or combined image/OCR/caller context. The public scanner's
 local Clef/d1 defaults are documented separately in the

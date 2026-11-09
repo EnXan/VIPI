@@ -46,7 +46,7 @@ See [Development](docs/development.md) for available commands and setup details.
 A change that claims to improve OCR, injection detection or the end-to-end
 scan needs a comparison with a baseline, not just a higher primary score. See
 the [evaluation guide](research/evaluate/README.md) for configurations, metrics
-and outputs.
+and outputs. The workbench **Evaluate** page runs the same steps.
 
 1. **Name the affected configuration** (for example `local-speed` or
    `cloud-google`) before editing. Include only configurations your change

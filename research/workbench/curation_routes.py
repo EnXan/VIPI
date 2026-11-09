@@ -1,11 +1,27 @@
-"""HTTP routes for labeling the combined catalog draft in the workbench."""
+"""HTTP routes for labeling the dataset in the workbench."""
+
+from io import BytesIO
 
 from flask import jsonify, request, send_file
+from PIL import Image, ImageOps
 
 from research.curation.store import DraftMissing
 from research.curation.vocabulary import FIELDS
 
-from .datasets import thumbnail_bytes
+
+def thumbnail_bytes(path):
+    """Render a 320×180 JPEG preview on white, honoring EXIF orientation."""
+    with Image.open(path) as source:
+        image = ImageOps.exif_transpose(source)
+        image.thumbnail((320, 180))
+        rgba = image.convert("RGBA")
+        image = Image.alpha_composite(
+            Image.new("RGBA", image.size, "white"), rgba
+        ).convert("RGB")
+    buffer = BytesIO()
+    image.save(buffer, format="JPEG", quality=85)
+    buffer.seek(0)
+    return buffer
 
 
 def register_routes(app, store):

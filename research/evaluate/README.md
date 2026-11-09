@@ -1,7 +1,8 @@
 # Evaluation
 
 Evaluate one product scan configuration on a frozen split of the dataset and
-compare it with the saved baseline. The workflow for changes is in
+compare it with the saved baseline, from this command line or the workbench
+**Evaluate** page. The workflow for changes is in
 [CONTRIBUTING.md](../../CONTRIBUTING.md#evaluating-improvements); the design is
 recorded in [ADR 0054](../../adr-code/0054-evaluation-runs-and-baseline.md).
 

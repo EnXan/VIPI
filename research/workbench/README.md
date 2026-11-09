@@ -1,8 +1,8 @@
 # Research workbench
 
-The local Flask workbench compares OCR models, browses the pinned evaluation
-catalogs, and inspects OCR/detection runs. It imports `vipi`; it is not included
-in the product wheel.
+A local Flask app with three pages: scan one image, evaluate a scan
+configuration against the saved baseline, and label the dataset. It imports
+`vipi`; it is not included in the product wheel.
 
 ## Start
 
@@ -11,88 +11,69 @@ repository root:
 
 ```bash
 uv run python -m research.download
-uv run python -m research.workbench prepare-models --model ppocr-v6-tiny
+uv run vipi setup
 uv run python -m research.workbench serve
 ```
 
-Open [localhost:8000](http://127.0.0.1:8000). The
-[research CLI reference](../../docs/research-cli.md) documents every command and
-option, directory override, optional model environment and exit code.
+Open [localhost:8000](http://127.0.0.1:8000). `vipi setup` prepares the local
+models; cloud settings need the provider API keys in the environment or
+`.env` instead (see the [CLI guide](../../docs/cli.md)).
 
-## Scan and review
+## Settings
 
-Use **Input**, **Options** and **Review** to choose uploaded/pasted images or
-dataset selections, OCR models/profile/backend/workers, and optional detectors.
-The interface initially selects PP-OCRv6 Tiny and the native original-only
-baseline. The research CLI defaults to Medium. Active comparison models and
-functional readiness checks are listed in [the baseline protocol](../ocr_eval/BASELINE.md).
+Scan and Evaluate use the options of `vipi scan` and nothing else:
 
-| Profile | Behavior |
-| --- | --- |
-| `baseline` | One original-image call using the model's native processing; default control |
-| `transforms` | Previous fixed-transform comparison profile, up to 15 selected full-image passes with size-dependent 2× eligibility |
-| `adaptive-jev` | Shared product recovery with OpenAI Decisions review; the historical name does not select Jev |
+- **Run on**: this computer (free, needs the local models) or the cloud (paid
+  API calls).
+- **Text recognition**: Speed, Balanced or Quality locally; Google Cloud
+  Vision, OpenAI or Mistral in the cloud.
+- **Threshold** (Scan only): flag at a detector score of at least this value,
+  default 80.
 
-The adaptive research profile needs `OPENAI_API_KEY` when visual review is
-triggered, even with local OCR. Product `vipi scan --modus local` instead uses
-its selected local decision model. See [recovery stages and measured limits](../../docs/ocr-recovery.md).
+The default is the product default: local, Quality, threshold 80. Detector
+choice follows the product (`auto`).
 
-Leave text classifiers and image/context checks off for OCR only. To run
-detection, select Jev, OpenAI Decisions and/or Prompt Guard, provide a threshold
-set version and a threshold for every selected signal. Scores at the threshold
-are flagged. The [detector guide](DETECTION.md) owns context, credentials,
-threshold formats and replay behavior.
+## Scan an image
 
-**Scan** shows single-image progress/results. **Evaluation** shows selection
-reports. **View OCR steps** opens transformed images, native boxes, variants and
-worker state. Opening saved results restores their data without starting model
-calls. Text-only OCR backends can be unscored for spatial references; timing,
-text and usage remain available.
+Choose, drop or paste an image and press **Scan image**. The result shows the
+verdict (prompt injection found, not found, or unclear), the detector score,
+time and API cost, the recognized text and, under **OCR passes**, every image
+variant the scanner read with its text.
+
+## Evaluate
+
+Choose the settings and the images:
+
+- **Development split** (450 images): use for every comparison.
+- **Test split** (104 images): only once, to confirm a change before a default
+  changes. Starting it needs a confirmation.
+
+Before you start, the page says whether a baseline is saved for these settings
+and whether it still matches this checkout. A run scans every image of the
+split, shows its progress and can be stopped and resumed. When it is complete,
+the page shows OCR word coverage, fully read images, attacks flagged, benign
+images flagged and detection accuracy, each with the change against the
+baseline, the number of images whose result changed, and results per content
+type. **Save as baseline** stores the run in `research/baselines/`; commit that
+file. **Report** and **Comparison** download the Markdown reports.
+
+The page runs the same steps as `python -m research.evaluate`; the
+[evaluation guide](../evaluate/README.md) defines the metrics. Only one scan or
+evaluation runs at a time. Keep the server and computer running for long runs;
+after a restart, open the run and resume it.
 
 ## Label
 
-The **Label** tab edits the combined catalog draft in
-`research/dataset/`. See the
+The **Label** tab edits `research/dataset/`. See the
 [curation guide](../curation/README.md#label-in-the-workbench).
-
-## Dataset batches
-
-Browse `ocr_evaluation` and/or `detection_evaluation`, filter by category or text,
-and apply the selection. Models run sequentially: each finishes all selected
-images before the next loads. Baseline/adaptive use one worker; transforms
-support 1–8 (default 4), each with its own OCR instance. CPU is the default OCR
-backend; compatible CoreML is experimental and CUDA requires its own runtime.
-
-The [OCR evaluation guide](../ocr_eval/README.md) defines reference matching,
-exact-word fidelity and denominators. The
-[detection evaluation guide](../detection_eval/README.md) defines case labels
-and metrics. Labeled detection cases run without caller context; catalog context
-is ground truth only. References never guide OCR or candidate selection.
-
-**Stop scan** cancels the active upload/detector work. **Stop batch** also skips
-remaining images. In-flight native/provider calls finish before cancellation;
-owned heavy model workers can be terminated. Completed steps/answers remain
-inspectable. Cancelled cases are separate from technical failures and excluded
-from percentages. Keep the server and computer running for long batches;
-restarting marks unfinished queues interrupted rather than resuming them.
 
 ## Saved artifacts
 
-Default output is the ignored repository `runs/` directory; `--runs-dir`
-overrides it. Browser downloads are optional because reports are saved as runs
-progress.
-
 | Artifact | Path |
 | --- | --- |
-| OCR text / JSON | `runs/<run-id>/result.txt`, `result.json` |
-| Transformed images and raw observations | `runs/<run-id>/images/`, `steps.jsonl` |
-| Progress and status | `runs/<run-id>/events.jsonl`, `status.json` |
-| Detector inputs, answers and result | `runs/<run-id>/detection/<check-id>/` |
-| Selection report | `runs/batches/<batch-id>/report.json` |
-| Functional model checks | `runs/reports/ocr-round0/<id>/` |
+| Scan runs (OCR passes, decisions, detection) | the product cache, `~/Library/Caches/vipi/runs/<run-id>/` on macOS |
+| Evaluation runs | `runs/evaluations/<run-id>/` (ignored by Git) |
+| Saved baselines | `research/baselines/<run-id>.json` (committed) |
 
-Failed/cancelled runs retain partial artifacts. Adaptive runs also retain
-attempts and decisions. Reports preserve actual models, profiles, hashes,
-evaluation policy, timings and usage. Cost estimates are not invoices; unknown
-fees remain unknown and local compute is excluded. Historical runs retain their
-original schema/results rather than being silently rescored.
+Research OCR models, profiles and the diagnostic detector are available from the
+command line only; see the [research CLI reference](../../docs/research-cli.md).

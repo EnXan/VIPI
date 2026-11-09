@@ -282,7 +282,7 @@ def run_root(manifest_root, monkeypatch):
     calls = []
     state = {"complete": True}
 
-    def fake_main(argv):
+    def fake_main(argv, cancel=None):
         calls.append(argv)
         return 0
 

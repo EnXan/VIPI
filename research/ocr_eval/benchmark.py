@@ -308,8 +308,11 @@ def retain_interrupted_progress(directory):
         checkpoint.unlink()
 
 
-def run_configuration(directory, configuration, rows):
-    """Recycle local workers every four images, retaining crashes as failed attempts."""
+def run_configuration(directory, configuration, rows, cancel=None):
+    """Recycle local workers every four images, retaining crashes as failed attempts.
+
+    Setting ``cancel`` (a threading.Event) stops the worker; the image in
+    progress stays unrecorded and is scanned again on resume."""
     directory.mkdir(parents=True, exist_ok=True)
     (directory / "rows").mkdir(exist_ok=True)
     retain_interrupted_progress(directory)
@@ -332,7 +335,20 @@ def run_configuration(directory, configuration, rows):
         )
         worker_started = time.perf_counter()
         process.start()
-        process.join()
+        while process.is_alive():
+            process.join(0.5)
+            if cancel is not None and cancel.is_set():
+                process.terminate()
+                process.join()
+                (directory / "current.json").unlink(missing_ok=True)
+                invocation.update(
+                    finished_at=utc_now(),
+                    elapsed_seconds=time.perf_counter() - started,
+                    cancelled=True,
+                )
+                write_json(directory / "invocation-current.json", invocation)
+                retain_interrupted_progress(directory)
+                return
         invocation["workers"].append(
             {
                 "exitcode": process.exitcode,
@@ -401,7 +417,7 @@ def build_parser():
     return parser
 
 
-def main(argv=None):
+def main(argv=None, cancel=None):
     args = build_parser().parse_args(argv)
     directory = args.directory.resolve()
     directory.mkdir(parents=True, exist_ok=True)
@@ -432,8 +448,10 @@ def main(argv=None):
     else:
         write_json(path, manifest)
     for configuration in args.configuration:
+        if cancel is not None and cancel.is_set():
+            break
         run_configuration(
-            directory / configuration, configuration, manifest["selection"]
+            directory / configuration, configuration, manifest["selection"], cancel
         )
     return 0
 
