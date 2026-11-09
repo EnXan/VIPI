@@ -2,7 +2,7 @@
 // Label page: browse the combined catalog draft and edit labels with autosave.
 (() => {
   const node = id => document.getElementById(id);
-  const state = {loaded: false, vocabulary: null, fields: [], items: [], index: -1, entry: null, proposal: null};
+  const state = {loaded: false, vocabulary: null, fields: [], items: [], index: -1, entry: null};
 
   /** @param {string} url @param {object} [options] */
   async function request(url, options = {}) {
@@ -72,10 +72,8 @@
 
   async function refreshProgress() {
     const status = await request('/api/curation');
-    const proposals = status.proposals || {};
     node('label-progress').textContent =
-      `${status.reviewed} of ${status.entries} reviewed · ${status.dropped} dropped`
-      + (proposals.proposals ? ` · ${proposals.pending} proposals pending` : '');
+      `${status.reviewed} of ${status.entries} reviewed · ${status.dropped} dropped`;
   }
 
   function renderList() {
@@ -98,7 +96,7 @@
       const text = element('span', null, 'label-row-text');
       text.append(element('span', item.label || 'no label', 'mono'),
         element('span', item.image.split('/').pop(), 'muted'));
-      const badge = element('span', item.decision === 'drop' ? 'dropped' : item.reviewed ? '✓' : item.proposed ? '◆' : '', 'label-badge');
+      const badge = element('span', item.decision === 'drop' ? 'dropped' : item.reviewed ? '✓' : '', 'label-badge');
       button.append(image, text, badge);
       button.onclick = () => select(position);
       row.append(button);
@@ -116,9 +114,7 @@
     if (position < 0) { state.entry = null; renderEntry(); return; }
     document.querySelector(`.label-row[data-position="${position}"]`)?.scrollIntoView({block: 'nearest'});
     const id = state.items[position].id;
-    const [entry, proposal] = await Promise.all([request(entryUrl(id)), request(`${entryUrl(id)}/proposal`)]);
-    state.entry = entry;
-    state.proposal = proposal.proposal && proposal.proposal.status === 'pending' ? proposal.proposal : null;
+    state.entry = await request(entryUrl(id));
     renderEntry();
   }
 
@@ -141,52 +137,8 @@
     node('label-cases-summary').textContent = `Cases (${entry.cases.length})`;
     node('label-cases').replaceChildren(...entry.cases.map(item =>
       element('li', `${item.expected}${item.context ? ` — ${item.context}` : ' — no context'}`)));
-    renderProposal();
     renderFields();
     renderCuration();
-  }
-
-  function proposedValues(field) {
-    const value = state.proposal ? state.proposal[field] : null;
-    return new Set(Array.isArray(value) ? value : value ? [value] : []);
-  }
-
-  function renderProposal() {
-    const proposal = state.proposal;
-    node('label-proposal').hidden = !proposal;
-    if (!proposal) return;
-    node('label-proposal-meta').textContent = `· ${proposal.model || 'model'} · ${proposal.confidence || '?'} confidence`;
-    node('label-proposal-rationale').textContent = proposal.rationale || '';
-    const changes = state.fields.map(field => {
-      const before = state.entry[field];
-      const after = proposal[field];
-      const show = value => (Array.isArray(value) ? value.join(', ') : value) || '—';
-      return show(before) === show(after) ? null : `${field}: ${show(before)} → ${show(after)}`;
-    }).filter(Boolean);
-    for (const item of proposal.new_values || []) changes.push(`new ${item.field} value: ${item.value} — ${item.description || ''}`);
-    node('label-proposal-changes').replaceChildren(...(changes.length ? changes : ['matches the current labels']).map(text => element('li', text)));
-    node('label-proposal-problems').hidden = !proposal.problems.length;
-    node('label-proposal-problems').textContent = proposal.problems.join('; ');
-    node('label-approve').disabled = Boolean(proposal.problems.length);
-  }
-
-  async function decide(decision) {
-    if (!state.proposal) return;
-    const id = state.entry.id;
-    try {
-      setSaved(decision === 'approve' ? 'Approving…' : 'Denying…');
-      await post(`${entryUrl(id)}/proposal/${decision}`, {});
-      if (decision === 'approve') await reloadVocabulary();
-      const position = state.index;
-      if (node('label-status').value === 'proposed' || node('label-status').value === 'unreviewed') {
-        await refreshList();
-        await select(Math.min(position, state.items.length - 1));
-      } else {
-        await refreshList(id);
-        if (state.index < state.items.length - 1) await select(state.index + 1);
-      }
-      setSaved(decision === 'approve' ? 'Approved' : 'Denied');
-    } catch (failure) { setSaved(failure.message, true); }
   }
 
   function applies(field) {
@@ -200,13 +152,11 @@
       group.append(element('legend', `${field}${spec(field).multiple ? '' : ' · one value'}`, 'eyebrow'));
       const current = state.entry[field];
       const chosen = new Set(Array.isArray(current) ? current : current ? [current] : []);
-      const proposed = proposedValues(field);
       const chips = element('div', null, 'label-chips');
       for (const item of spec(field).values) {
         const chip = element('button', item.value, 'label-chip');
         chip.type = 'button'; chip.title = item.description || item.value;
         chip.setAttribute('aria-pressed', String(chosen.has(item.value)));
-        if (proposed.has(item.value)) chip.classList.add('label-proposed');
         chip.onclick = () => toggle(field, item.value);
         chips.append(chip);
       }
@@ -338,8 +288,6 @@
     save({curation: {decision: 'drop', reason, duplicate_of: match ? match[1] : null}});
   };
   node('label-keep').onclick = () => save({curation: {decision: 'keep'}});
-  node('label-approve').onclick = () => decide('approve');
-  node('label-deny').onclick = () => decide('deny');
   node('label-vocabulary').closest('details').ontoggle = event => {
     if (event.target.open) renderVocabulary();
   };
@@ -349,8 +297,6 @@
     if (event.key === 'ArrowLeft' && state.index > 0) { event.preventDefault(); select(state.index - 1); }
     if (event.key === 'ArrowRight' && state.index < state.items.length - 1) { event.preventDefault(); select(state.index + 1); }
     if (event.key.toLowerCase() === 'r') { event.preventDefault(); node('label-reviewed').click(); }
-    if (event.key.toLowerCase() === 'a' && state.proposal && !node('label-approve').disabled) { event.preventDefault(); decide('approve'); }
-    if (event.key.toLowerCase() === 'd' && state.proposal) { event.preventDefault(); decide('deny'); }
   });
   window.vipiCuration = {open};
   if (!node('label-page').hidden) open();

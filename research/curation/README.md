@@ -10,29 +10,18 @@ taxonomy is in `vocabulary.py`.
 The combined catalog is a draft. VIPI still evaluates the two pinned catalogs
 until the rebuilt catalog is merged into the dataset and loaders are adapted.
 
-## Build the draft
+## Get the draft
 
-```bash
-uv run python -m research.download
-uv run python -m research.curation migrate
-```
+The draft lives in `.local-assets/dataset-submission/` (ignored by Git) as
+`catalog.json` and `vocabulary.json`. It was built once from the two pinned
+catalogs and has been curated since; it is published in the evaluation dataset
+under `combined/`. To work on it, copy both files from there into that
+directory. The one-time `migrate` command that built it was removed on
+2026-11-09; it remains in the Git history.
 
-This writes `.local-assets/dataset-submission/catalog.json` and
-`vocabulary.json` (ignored by Git). Known values are prefilled and every entry
-starts unreviewed:
-
-- detection labels from the case without context, techniques, obfuscation,
-  payload, cases and payload regions; technique `jailbreak` becomes the label
-  `jailbreak`;
-- OCR transcripts, scope, regions, source, provenance and license;
-- source-based labels (textocr benign; typographic, cyberseceval3, vpi_bench
-  injection; mm_safetybench jailbreak), typographic variants as obfuscation,
-  and content where the source makes it clear.
-
-Byte-identical images present in both catalogs become one entry. Image paths
-keep their dataset locations (`ocr_eval/images/…`, `detection_eval/images/…`).
-`migrate` refuses to overwrite an existing draft; `--force` replaces it and
-discards labeling work in it.
+Image paths keep their dataset locations (`ocr_eval/images/…`,
+`detection_eval/images/…`, `generated/…`), relative to `research/`. Every
+entry keeps where it came from in `migrated_from` and `source`.
 
 ## Check the draft
 
@@ -172,21 +161,6 @@ Start the workbench (`uv run python -m research.workbench serve`) and open the
   `low_contrast`) and you are asked to confirm when a similar spelling exists.
   **Manage vocabulary** renames values (renaming onto an existing value merges
   both in every entry) and removes values no entry uses.
-
-## Model proposals
-
-A model can propose labels following [LABELING_GUIDE.md](LABELING_GUIDE.md).
-It writes `proposals/batch-*.json` next to the draft and never edits the
-catalog; later batch files override earlier ones for the same entry. In the
-Label tab, choose status **Proposed**: proposed values are outlined and the
-panel lists every change with the model's rationale.
-
-- **Approve** (key `A`) applies the proposal, adds any proposed new vocabulary
-  value it uses, marks the entry reviewed and moves on.
-- **Deny** (key `D`) discards the proposal; the entry stays unreviewed.
-
-Decisions are stored in `proposals/decisions.json`. Proposals with values that
-are neither in the vocabulary nor proposed as new cannot be approved.
 
 ## Entry format
 

@@ -11,11 +11,14 @@ from pathlib import Path
 import tempfile
 import threading
 
-from . import migrate, schema, similarity
+from . import schema, similarity
 from .vocabulary import FIELDS, allowed, near_duplicates, normalize
 
+DEFAULT_DIRECTORY = Path(".local-assets/dataset-submission")
+CATALOG_NAME = "catalog.json"
+VOCABULARY_NAME = "vocabulary.json"
 CURATION_KEYS = ("reviewed", "decision", "reason", "duplicate_of")
-STATUSES = ("all", "unreviewed", "reviewed", "dropped", "proposed")
+STATUSES = ("all", "unreviewed", "reviewed", "dropped")
 
 
 class DraftMissing(ValueError):
@@ -47,11 +50,11 @@ class CurationStore:
 
     @property
     def catalog_path(self):
-        return self.directory / migrate.CATALOG_NAME
+        return self.directory / CATALOG_NAME
 
     @property
     def vocabulary_path(self):
-        return self.directory / migrate.VOCABULARY_NAME
+        return self.directory / VOCABULARY_NAME
 
     def load(self):
         """Return the cached draft, reloading it when a file changed on disk
@@ -62,7 +65,8 @@ class CurationStore:
         if self.catalog is None:
             if not self.catalog_path.is_file() or not self.vocabulary_path.is_file():
                 raise DraftMissing(
-                    "No catalog draft found. Run: uv run python -m research.curation migrate"
+                    f"No catalog draft found in {self.directory}. Copy combined/catalog.json "
+                    "and combined/vocabulary.json from the evaluation dataset there."
                 )
             self.catalog = json.loads(self.catalog_path.read_text(encoding="utf-8"))
             self.vocabulary = json.loads(
@@ -117,11 +121,9 @@ class CurationStore:
         catalog, _ = self.load()
         return catalog[self.index(identifier)]
 
-    def matches(self, entry, status, field, value, source, query, proposed=()):
+    def matches(self, entry, status, field, value, source, query):
         curation = entry["curation"]
         if (curation["decision"] == "drop") != (status == "dropped"):
-            return False
-        if status == "proposed" and entry["id"] not in proposed:
             return False
         if status == "unreviewed" and curation["reviewed"]:
             return False
@@ -183,10 +185,9 @@ class CurationStore:
         value="",
         source="",
         query="",
-        proposed=(),
         group=False,
     ):
-        """List entries matching the filters; ``proposed`` holds pending ids.
+        """List entries matching the filters.
 
         With ``group``, similar entries are listed together (see similarity.py).
         """
@@ -198,7 +199,7 @@ class CurationStore:
         entries = [
             entry
             for entry in catalog
-            if self.matches(entry, status, field, value, source, query, proposed)
+            if self.matches(entry, status, field, value, source, query)
         ]
         items = [
             {
@@ -207,7 +208,6 @@ class CurationStore:
                 "label": entry["label"],
                 "reviewed": entry["curation"]["reviewed"],
                 "decision": entry["curation"]["decision"],
-                "proposed": entry["id"] in proposed,
             }
             for entry in entries
         ]

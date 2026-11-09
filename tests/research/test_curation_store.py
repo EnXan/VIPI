@@ -4,17 +4,13 @@ import json
 
 import pytest
 
-from research.curation import migrate
 from research.curation.store import CurationStore
 from research.workbench.web import create_app
 
 
 @pytest.fixture
-def draft(catalogs_root):
-    catalog, words = migrate.build(catalogs_root)
-    directory = catalogs_root / "draft"
-    migrate.write(directory, catalog, words)
-    return directory, catalogs_root / "research"
+def draft(catalogs_root, draft_dir):
+    return draft_dir, catalogs_root / "research"
 
 
 @pytest.fixture
@@ -94,7 +90,7 @@ def test_existing_value_cannot_be_added_twice(store):
 def test_missing_draft_is_reported(tmp_path):
     status = CurationStore(tmp_path / "none", tmp_path).status()
     assert status["available"] is False
-    assert "research.curation migrate" in status["message"]
+    assert "combined/catalog.json" in status["message"]
 
 
 @pytest.fixture
@@ -167,114 +163,6 @@ def test_missing_draft_route_reports_how_to_create_it(tmp_path):
     client = app.test_client()
     assert client.get("/api/curation").json["available"] is False
     assert client.get("/api/curation/entries").status_code == 409
-
-
-def write_batch(directory, proposals, name="batch-001.json"):
-    folder = directory / "proposals"
-    folder.mkdir(exist_ok=True)
-    (folder / name).write_text(json.dumps({"model": "haiku", "proposals": proposals}))
-
-
-def proposal(identifier, **fields):
-    base = {
-        "id": identifier,
-        "label": "injection",
-        "techniques": [],
-        "goal": [],
-        "obfuscation": [],
-        "evidence": ["text"],
-        "content": "text_image",
-        "new_values": [],
-        "rationale": "fixture",
-        "confidence": "high",
-    }
-    return {**base, **fields}
-
-
-def test_approve_applies_proposal_adds_used_new_values_and_marks_reviewed(store, draft):
-    from research.curation.proposals import ProposalBook
-
-    directory, _ = draft
-    write_batch(
-        directory,
-        [
-            proposal(
-                "typo",
-                goal=["safety_bypass"],
-                new_values=[
-                    {
-                        "field": "goal",
-                        "value": "safety_bypass",
-                        "description": "Disable rules.",
-                    },
-                    {
-                        "field": "goal",
-                        "value": "unused_idea",
-                        "description": "Not used.",
-                    },
-                ],
-            )
-        ],
-    )
-    book = ProposalBook(store)
-    assert book.get("typo")["problems"] == []
-    entry = book.approve("typo")
-    assert entry["goal"] == ["safety_bypass"] and entry["curation"]["reviewed"]
-    words = json.loads((directory / "vocabulary.json").read_text())
-    goals = [item["value"] for item in words["fields"]["goal"]["values"]]
-    assert "safety_bypass" in goals and "unused_idea" not in goals
-    assert book.counts() == {"proposals": 1, "pending": 0, "approved": 1, "denied": 0}
-    with pytest.raises(ValueError, match="already approved"):
-        book.approve("typo")
-
-
-def test_invalid_proposals_cannot_be_approved_and_deny_hides_them(store, draft):
-    from research.curation.proposals import ProposalBook
-
-    directory, _ = draft
-    write_batch(directory, [proposal("photo", label="benign", goal=["invented"])])
-    book = ProposalBook(store)
-    assert "neither in the vocabulary" in book.get("photo")["problems"][0]
-    with pytest.raises(ValueError):
-        book.approve("photo")
-    assert store.entry("photo")["curation"]["reviewed"] is False
-    book.deny("photo")
-    assert book.pending() == {}
-    assert book.get("photo")["status"] == "denied"
-
-
-def test_later_batches_override_earlier_proposals(store, draft):
-    from research.curation.proposals import ProposalBook
-
-    directory, _ = draft
-    write_batch(directory, [proposal("typo", content="code")], "batch-001.json")
-    write_batch(directory, [proposal("typo", content="text_image")], "batch-002.json")
-    assert ProposalBook(store).get("typo")["content"] == "text_image"
-
-
-def test_proposal_routes_filter_approve_and_deny(client, draft):
-    directory, _ = draft
-    write_batch(
-        directory, [proposal("typo"), proposal("photo", label="benign", evidence=[])]
-    )
-    listed = client.get("/api/curation/entries?status=proposed").json["items"]
-    assert {item["id"] for item in listed} == {"typo", "photo"}
-    assert (
-        client.get("/api/curation/entries/typo/proposal").json["proposal"]["status"]
-        == "pending"
-    )
-    approved = client.post("/api/curation/entries/typo/proposal/approve", json={})
-    assert approved.status_code == 200 and approved.json["curation"]["reviewed"]
-    assert (
-        client.post("/api/curation/entries/photo/proposal/deny", json={}).status_code
-        == 200
-    )
-    assert client.get("/api/curation/entries?status=proposed").json["items"] == []
-    assert client.get("/api/curation").json["proposals"]["approved"] == 1
-    assert (
-        client.post("/api/curation/entries/typo/proposal/maybe", json={}).status_code
-        == 400
-    )
 
 
 def test_dropped_entries_only_appear_under_dropped_and_count_as_done(store):

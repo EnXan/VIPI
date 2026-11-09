@@ -1,8 +1,7 @@
 # Labeling guide
 
-Rules for labeling entries of the combined catalog, for people and for models
-that propose labels. Allowed values and their descriptions are in the draft's
-`vocabulary.json`.
+Rules for labeling entries of the combined catalog. Allowed values and their
+descriptions are in the draft's `vocabulary.json`.
 
 ## Label
 

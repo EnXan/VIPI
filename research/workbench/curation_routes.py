@@ -2,7 +2,6 @@
 
 from flask import jsonify, request, send_file
 
-from research.curation.proposals import ProposalBook
 from research.curation.store import DraftMissing
 from research.curation.vocabulary import FIELDS
 
@@ -10,8 +9,6 @@ from .datasets import thumbnail_bytes
 
 
 def register_routes(app, store):
-    book = ProposalBook(store)
-
     def failure(error, status=400):
         if isinstance(error, DraftMissing):
             return jsonify(error=str(error)), 409
@@ -32,7 +29,6 @@ def register_routes(app, store):
             _, vocabulary = store.load()
             status["vocabulary"] = vocabulary
             status["fields"] = list(FIELDS)
-            status["proposals"] = book.counts()
         return jsonify(status)
 
     @app.get("/api/curation/entries")
@@ -45,7 +41,6 @@ def register_routes(app, store):
                     request.args.get("value", ""),
                     request.args.get("source", ""),
                     request.args.get("q", "").strip(),
-                    set(book.pending()),
                     request.args.get("group") == "1",
                 )
             )
@@ -57,24 +52,6 @@ def register_routes(app, store):
         try:
             return jsonify(store.entry(identifier))
         except (KeyError, DraftMissing) as error:
-            return failure(error)
-
-    @app.get("/api/curation/entries/<identifier>/proposal")
-    def curation_proposal(identifier):
-        try:
-            return jsonify(proposal=book.get(identifier))
-        except (ValueError, DraftMissing) as error:
-            return failure(error)
-
-    @app.post("/api/curation/entries/<identifier>/proposal/<decision>")
-    def curation_decide(identifier, decision):
-        try:
-            if decision == "approve":
-                return jsonify(book.approve(identifier))
-            if decision == "deny":
-                return jsonify(book.deny(identifier))
-            return jsonify(error="Choose approve or deny."), 400
-        except (KeyError, ValueError, DraftMissing) as error:
             return failure(error)
 
     @app.post("/api/curation/entries/<identifier>")

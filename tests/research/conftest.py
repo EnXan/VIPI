@@ -1,9 +1,17 @@
 """Shared fixtures for curation tests."""
 
+import copy
+import hashlib
 import json
+from pathlib import Path
 
 import pytest
 from PIL import Image
+
+from research.curation import vocabulary
+from research.curation.store import CATALOG_NAME, VOCABULARY_NAME
+
+DRAFT = Path(__file__).parent / "fixtures/curation_draft.json"
 
 
 def image(path, color):
@@ -85,3 +93,23 @@ def catalogs_root(tmp_path):
         )
     )
     return tmp_path
+
+
+@pytest.fixture
+def draft_catalog(catalogs_root):
+    """The fixture catalogs as a curation draft, hashed against their images."""
+    catalog = copy.deepcopy(json.loads(DRAFT.read_text(encoding="utf-8")))
+    for entry in catalog:
+        data = (catalogs_root / "research" / entry["image"]).read_bytes()
+        entry["image_sha256"] = hashlib.sha256(data).hexdigest()
+    return catalog, vocabulary.seed()
+
+
+@pytest.fixture
+def draft_dir(catalogs_root, draft_catalog):
+    """A draft directory holding ``draft_catalog`` and its vocabulary."""
+    directory = catalogs_root / "draft"
+    directory.mkdir()
+    for name, value in zip((CATALOG_NAME, VOCABULARY_NAME), draft_catalog):
+        (directory / name).write_text(json.dumps(value, indent=2), encoding="utf-8")
+    return directory

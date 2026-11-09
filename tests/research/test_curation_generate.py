@@ -5,7 +5,7 @@ import json
 import pytest
 
 from research.curation import __main__ as cli
-from research.curation import generate, migrate, render
+from research.curation import generate, render
 from research.curation.store import CurationStore
 
 try:
@@ -137,10 +137,10 @@ def test_build_writes_images_and_skips_known_ids(spec, tmp_path):
     assert again == []
 
 
-def test_generate_command_adds_valid_entries_once(catalogs_root, spec, capsys):
-    catalog, words = migrate.build(catalogs_root)
-    draft = catalogs_root / "draft"
-    migrate.write(draft, catalog, words)
+def test_generate_command_adds_valid_entries_once(
+    catalogs_root, draft_dir, spec, capsys
+):
+    draft = draft_dir
     root = catalogs_root / "research"
     arguments = ["generate", str(spec), "--dir", str(draft), "--images-root", str(root)]
     assert cli.main(arguments) == 0
@@ -150,10 +150,11 @@ def test_generate_command_adds_valid_entries_once(catalogs_root, spec, capsys):
     assert cli.main(["validate", "--dir", str(draft), "--images-root", str(root)]) == 0
 
 
-def test_store_reloads_a_catalog_changed_on_disk(catalogs_root):
-    catalog, words = migrate.build(catalogs_root)
-    draft = catalogs_root / "draft"
-    migrate.write(draft, catalog, words)
+def test_store_reloads_a_catalog_changed_on_disk(
+    catalogs_root, draft_catalog, draft_dir
+):
+    catalog, _ = draft_catalog
+    draft = draft_dir
     store = CurationStore(draft, catalogs_root / "research")
     assert len(store.load()[0]) == len(catalog)
     shorter = catalog[:-1]
