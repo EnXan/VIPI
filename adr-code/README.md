@@ -13,16 +13,27 @@ Temporary planning and review queues belong in `.llm-plans/`.
 | [0003](0003-public-cli-contract.md) | Two-command CLI, explicit model setup, committed-image diffs and score policy |
 | [0006](0006-apache-2-license.md) | Apache License 2.0 for VIPI's original code and documentation |
 | [0012](0012-hugging-face-evaluation-dataset.md) | Maintainer-reviewed Hugging Face dataset and pinned local downloads |
-| [0014](0014-detection-evaluation-without-context.md) | Separate workbench collections and detection evaluation without scanner context |
-| [0017](0017-multi-classifier-workbench-cli.md) | Repeatable CLI classifier selection and guided workbench setup |
-| [0018](0018-workbench-scan-and-evaluation-pages.md) | Separate scan setup from evaluation reports |
-| [0019](0019-workbench-progress-and-image-reports.md) | Live scan progress and compact per-image evaluation details |
 | [0020](0020-ocr-assembly-geometry-and-reading-order.md) | Oriented OCR line matching and paragraph column order, implemented for review |
-| [0021](0021-low-contrast-ocr-profile.md) | Native CLAHE and color-derived contrast in the default OCR profile |
-| [0023](0023-tolerant-ocr-word-coverage.md) | Primary tolerant final-word coverage and separate case-sensitive word fidelity |
-| [0024](0024-document-vlm-workbench-adapters.md) | Optional full-page document VLM pipelines in the OCR Workbench |
-| [0026](0026-sequential-ocr-model-comparisons.md) | Native baselines, one-image readiness and sequential OCR comparisons (replaces 0025) |
-| [0027](0027-local-and-cloud-ocr-selection.md) | Local profiles and explicit cloud providers, with Google as cloud default (replaces 0009 and 0022) |
+| [0028](0028-independent-ocr-payload-regions.md) | Tolerant word coverage with independent visual groups and group integrity |
+| [0034](0034-expanded-priority-ocr-signals.md) | Expand the research priority cascade (replaces 0033) |
+| [0036](0036-layout-repair-research-trial.md) | Revert signal-context experiment and test layout repair (replaces 0035) |
+| [0037](0037-guarded-upscale-research-trial.md) | Trial a guarded upscaled OCR candidate |
+| [0039](0039-revert-group-wise-ocr-comparison.md) | Revert the group-wise OCR comparison trial (replaces 0038) |
+| [0040](0040-ambiguous-line-retry-trial.md) | Test a line-level retry for ambiguous OCR characters |
+| [0041](0041-missing-text-separate-evidence-trial.md) | Trial missing-text probes and separate OCR evidence |
+| [0042](0042-local-resolution-letter-insertions.md) | Trial local missing-letter corrections from a resolution probe |
+| [0044](0044-product-research-recovery.md) | Shared product recovery and full local/cloud execution (replaces 0021, 0027 and 0043) |
+| [0045](0045-shared-ocr-recovery-ownership.md) | Explicit recovery package ownership and direct research imports |
+| [0046](0046-product-ocr-benchmark.md) | Reproducible live product OCR benchmark and explicit reporting denominators |
+| [0047](0047-cloud-decision-image-resolution.md) | Preserve full-resolution images for cloud decisions |
+| [0048](0048-separate-ocr-completeness-and-repair.md) | Separate OCR completeness from repair selection |
+| [0049](0049-provider-specific-confidence-validation.md) | Validate provider confidence against OCR reference outcomes |
+| [0051](0051-combined-evaluation-catalog.md) | One combined evaluation catalog with an editable vocabulary (draft tooling) |
+| [0052](0052-reproducible-enterprise-attack-images.md) | Reproducible product-view attack screenshots and screenshot-backed Anamorpher scaling |
+| [0053](0053-one-evaluation-dataset.md) | One dataset layout (`catalog.json`, `vocabulary.json`, `images/`) replacing the two catalogs |
+| [0054](0054-evaluation-runs-and-baseline.md) | Evaluation runs of product scan configurations against a saved baseline (replaces 0050) |
+| [0055](0055-workbench-without-research-model-tools.md) | A product-only workbench without research model tools (replaces 0014, 0017, 0018, 0019, 0024, 0026) |
+| [0056](0056-contribute-only-changes.md) | Contributors add or generate images locally and submit only their changes |
 
 When revising an agreed decision, write its replacement with a summary of the
 old ADR (identifier, decision, rationale and reason for revision), then delete

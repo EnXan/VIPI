@@ -21,7 +21,9 @@ individual OCR pass. Two demonstrated defects are in assembly rather than OCR:
 The native readings and source identifiers for the RMA and first collage
 regressions are preserved in
 [`assembly_regressions.json`](../tests/fixtures/assembly_regressions.json).
-[`merge.py`](../src/vipi/ocr/merge.py) owns assembly; the engine contract in
+[`merge_geometry.py`](../src/vipi/ocr/merge_geometry.py) matches native word
+polygons in image space, and [`merge.py`](../src/vipi/ocr/merge.py) selects
+readings and assembles page text. The engine contract in
 [`architecture`](../docs/architecture.md) already supplies native word polygons.
 The user authorized this assembly fix, without changing detection policy,
 reference transcripts or OCR transformation selection.
@@ -101,6 +103,6 @@ to every unseen payload or layout.
 
 Those initial replays did not repeat OCR inference or live detection requests.
 Subsequent contrast inference and assembly-v6 checks are recorded in
-[ADR 0021](0021-low-contrast-ocr-profile.md).
+[ADR 0044](0044-product-research-recovery.md).
 Detection accuracy after changing final text remains unmeasured. Windows and
 Linux execution of this fix remains unverified until CI runs there.

@@ -9,9 +9,18 @@ inputs:
     description: Optional base branch for non-PR diff scans; PRs always use their actual base branch
     required: false
   detector:
-    description: Detector to use (jev, openai, or prompt-guard)
+    description: Injection detector (auto selects the decision model for the mode)
     required: false
-    default: jev
+    default: auto
+  modus:
+    description: Full scan execution (local or cloud)
+    default: local
+  ocr-provider:
+    description: Cloud OCR provider (google, openai, mistral)
+    default: google
+  decision-provider:
+    description: Optional decision model override (local clef/d1, cloud openai/jev)
+    default: ""
   threshold:
     description: Finding threshold on a 0–100 score scale
     required: false
@@ -32,28 +41,29 @@ runs:
   using: composite
   steps:
     - name: Install uv and Python
-      uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9
+      uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2
       with:
         python-version: "3.12"
         enable-cache: true
         cache-dependency-glob: ${{ github.action_path }}/uv.lock
 
     - name: Cache VIPI models
-      uses: actions/cache@9255dc7a253b0ccc959486e2bca901246202afeb # v5.0.1
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
         path: |
           ${{ runner.temp }}/vipi-cache/vipi/ocr
           ${{ runner.temp }}/vipi-cache/vipi/prompt-guard
-        key: ${{ runner.os }}-vipi-${{ inputs.detector }}-${{ inputs.ocr-mode }}-${{ github.action_ref }}
+          ${{ runner.temp }}/vipi-cache/vipi/decisions
+        key: ${{ runner.os }}-vipi-${{ inputs.modus }}-${{ inputs.detector }}-${{ inputs.ocr-mode }}-${{ inputs.decision-provider }}-${{ github.action_ref }}
         restore-keys: |
-          ${{ runner.os }}-vipi-${{ inputs.detector }}-${{ inputs.ocr-mode }}-
+          ${{ runner.os }}-vipi-${{ inputs.modus }}-${{ inputs.detector }}-${{ inputs.ocr-mode }}-${{ inputs.decision-provider }}-
 
     - name: Install VIPI with OCR
       shell: bash
       run: uv sync --project "$GITHUB_ACTION_PATH" --locked --extra ocr
 
-    - name: Install Prompt Guard dependencies
-      if: inputs.detector == 'prompt-guard'
+    - name: Install local decision dependencies
+      if: inputs.modus == 'local'
       shell: bash
       run: uv sync --project "$GITHUB_ACTION_PATH" --locked --extra ocr --extra detector-local
 
@@ -62,11 +72,21 @@ runs:
       env:
         VIPI_DETECTOR: ${{ inputs.detector }}
         VIPI_OCR_MODE: ${{ inputs.ocr-mode }}
+        VIPI_MODUS: ${{ inputs.modus }}
+        VIPI_OCR_PROVIDER: ${{ inputs.ocr-provider }}
+        VIPI_DECISION_PROVIDER: ${{ inputs.decision-provider }}
         XDG_CACHE_HOME: ${{ runner.temp }}/vipi-cache
-      run: >-
-        uv run --project "$GITHUB_ACTION_PATH" vipi setup
-        --detector "$VIPI_DETECTOR"
-        --ocr-mode "$VIPI_OCR_MODE"
+      run: |
+        args=(--modus "$VIPI_MODUS" --detector "$VIPI_DETECTOR")
+        if [[ "$VIPI_MODUS" == "local" ]]; then
+          args+=(--ocr-mode "$VIPI_OCR_MODE")
+        else
+          args+=(--ocr-provider "$VIPI_OCR_PROVIDER")
+        fi
+        if [[ -n "$VIPI_DECISION_PROVIDER" ]]; then
+          args+=(--decision-provider "$VIPI_DECISION_PROVIDER")
+        fi
+        uv run --project "$GITHUB_ACTION_PATH" vipi setup "${args[@]}"
 
     - name: Scan images
       id: scan
@@ -77,6 +97,9 @@ runs:
         VIPI_DETECTOR: ${{ inputs.detector }}
         VIPI_THRESHOLD: ${{ inputs.threshold }}
         VIPI_OCR_MODE: ${{ inputs.ocr-mode }}
+        VIPI_MODUS: ${{ inputs.modus }}
+        VIPI_OCR_PROVIDER: ${{ inputs.ocr-provider }}
+        VIPI_DECISION_PROVIDER: ${{ inputs.decision-provider }}
         VIPI_REPORT_PATH: ${{ inputs.report-path }}
         XDG_CACHE_HOME: ${{ runner.temp }}/vipi-cache
       run: |
@@ -90,7 +113,15 @@ runs:
           exit 2
         fi
 
-        args=("${paths[@]}" --detector "$VIPI_DETECTOR" --threshold "$VIPI_THRESHOLD" --ocr-mode "$VIPI_OCR_MODE" --output "$VIPI_REPORT_PATH")
+        args=("${paths[@]}" --modus "$VIPI_MODUS" --detector "$VIPI_DETECTOR" --threshold "$VIPI_THRESHOLD" --output "$VIPI_REPORT_PATH")
+        if [[ "$VIPI_MODUS" == "local" ]]; then
+          args+=(--ocr-mode "$VIPI_OCR_MODE")
+        else
+          args+=(--ocr-provider "$VIPI_OCR_PROVIDER")
+        fi
+        if [[ -n "$VIPI_DECISION_PROVIDER" ]]; then
+          args+=(--decision-provider "$VIPI_DECISION_PROVIDER")
+        fi
         base_ref="$VIPI_BASE_REF"
         if [[ "$GITHUB_EVENT_NAME" == "pull_request" || "$GITHUB_EVENT_NAME" == "pull_request_target" ]]; then
           base_ref="${GITHUB_BASE_REF:-}"

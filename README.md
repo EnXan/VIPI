@@ -1,171 +1,124 @@
-# VIPI — Visual Prompt Injection Scanner for Images
+<h1 align="center">
+  VIPI — Visual Prompt Injection Scanner for Images
+</h1>
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/EnXan/VIPI/main/assets/motion/vipi-reveal.gif" alt="Animated VIPI logo reveal" width="720">
 </p>
 
 <p align="center">
-  A Python CLI and GitHub Action that use OCR to detect prompt injections in images.
+  <b>Scan images for prompt injections before an AI agent reads them.</b><br>
+  A Python CLI and GitHub Action. Runs fully local or with hosted providers.
 </p>
 
 <p align="center">
-  <a href="https://github.com/EnXan/VIPI/blob/main/pyproject.toml"><img alt="Python 3.12" src="https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white"></a>
-  <a href="https://github.com/EnXan/VIPI/blob/main/docs/cli.md#platform-validation-status"><img alt="macOS supported" src="https://img.shields.io/badge/macOS-tested-2ea44f"></a>
-  <a href="https://github.com/EnXan/VIPI/blob/main/docs/cli.md#platform-validation-status"><img alt="Linux supported" src="https://img.shields.io/badge/Linux-tested-2ea44f"></a>
-  <a href="https://github.com/EnXan/VIPI/blob/main/docs/cli.md#platform-validation-status"><img alt="Windows supported" src="https://img.shields.io/badge/Windows-tested-2ea44f"></a>
+  <a href="https://github.com/EnXan/VIPI/blob/main/pyproject.toml"><img alt="Python 3.12" src="https://img.shields.io/badge/Python-3.12-0B0C10?logo=python&logoColor=white&labelColor=5C616C"></a>
+  <a href="https://pypi.org/project/vipi-scanner/"><img alt="PyPI version" src="https://img.shields.io/pypi/v/vipi-scanner?logo=pypi&logoColor=white&color=0B0C10&labelColor=5C616C"></a>
+  <a href="https://github.com/EnXan/VIPI/blob/main/docs/cli.md#platform-validation-status"><img alt="OS Support: macOS | Linux | Windows" src="https://img.shields.io/badge/OS-macOS%20%7C%20Linux%20%7C%20Windows-0B0C10?labelColor=5C616C"></a>
 </p>
 
-VIPI transforms each image through a multi-view OCR pipeline, then checks the
-final recognized text with Jev, OpenAI Decisions or the local Prompt Guard model.
-The public interface is a small command-line tool that can scan files,
-directories and committed image changes. Because detection evaluates OCR text,
-images that yield no recognized text may still contain visual prompt injections.
+Images can carry instructions that people overlook but AI models read. VIPI
+finds the text in an image, including text that standard OCR misses, and checks
+it for prompt injections. It scans single images, folders and committed image
+changes.
 
-Evaluation images, OCR references and detection labels are available in the
-[VIPI Evaluation dataset](https://huggingface.co/datasets/EnXan/VIPI-evaluation).
-See how to [download the pinned images](https://github.com/EnXan/VIPI/blob/main/research/README.md#download-images)
-or [contribute new examples for review](https://github.com/EnXan/VIPI/blob/main/research/README.md#add-images).
+- **CI/CD and AI code review:** scan pull-request images before AI triage tools
+  or coding assistants read them.
+- **Image ingestion:** scan uploaded or collected images before they enter an
+  AI pipeline.
+- **Agents with image input:** check screenshots before an agent decides or acts
+  on them.
 
-## Installation
+<p align="center">
+  <img src="https://raw.githubusercontent.com/EnXan/VIPI/main/assets/diagrams/vipi-scan-flow.svg" alt="VIPI scans an image before it reaches an AI agent. Clean images continue to the agent; for images with findings, your workflow reports, blocks or allows them." width="900">
+</p>
 
-VIPI requires Python 3.12 and [uv](https://docs.astral.sh/uv/getting-started/installation/).
-Install the CLI from [PyPI](https://pypi.org/project/vipi-scanner/) with
-`uv tool install`. Choose the install path for the detector you plan to use.
-Both paths include the OCR dependencies. OCR uses the local models by default;
-you can explicitly select Mistral OCR for hosted image recognition.
+## Quick start
 
-### Cloud API detector
+Requires Python 3.12 and [uv](https://docs.astral.sh/uv/getting-started/installation/).
 
-For Jev or OpenAI, install VIPI with its OCR extra:
-
-```bash
-uv tool install --python 3.12 'vipi-scanner[ocr]'
-vipi setup
-```
-
-Set the credential for the detector you will use before scanning. Jev accepts
-`TYPESAFE_API_KEY` (or the alias `JEV_API_KEY`); OpenAI uses `OPENAI_API_KEY`.
-For example, set one in your shell before running `vipi scan`:
-
-```bash
-# macOS / Linux
-export TYPESAFE_API_KEY="your-typesafe-api-key"
-
-# Windows PowerShell
-$env:TYPESAFE_API_KEY = "your-typesafe-api-key"
-```
-
-For OpenAI, set `OPENAI_API_KEY` in place of `TYPESAFE_API_KEY`. The default
-detector is Jev; select OpenAI with `--detector openai`.
-
-```bash
-vipi scan image.png
-```
-
-### Cloud OCR
-
-Local OCR is the default. Select `--modus cloud` to send each image to Google
-Cloud Vision, or choose another OCR provider explicitly. The downstream detector
-is selected independently.
-
-```bash
-export GOOGLE_CLOUD_API_KEY="your-google-cloud-api-key"
-vipi setup --modus cloud
-vipi scan image.png --modus cloud --output report.json
-
-# Alternatives: configure OPENAI_API_KEY or MISTRAL_API_KEY respectively
-vipi scan image.png --modus cloud --ocr-provider openai
-vipi scan image.png --modus cloud --ocr-provider mistral
-```
-
-Cloud providers are `google` (Google Cloud Vision, default), `openai` (GPT-6
-Luna), and `mistral` (Mistral OCR 4.1). They are provider choices, not quality
-tiers. Cloud OCR uses one original-image request per image, with no automatic
-retries or fallback. Setup skips local OCR downloads; credentials are checked
-at scan time. Keep keys in the environment or an ignored `.env` file; VIPI
-does not write them into reports. Provider usage charges apply.
-
-### Local Prompt Guard detector
-
-To run the detector locally, install the OCR and local-detector extras, then
-prepare Prompt Guard and its model weights:
+**Local:** images never leave your machine.
 
 ```bash
 uv tool install --python 3.12 'vipi-scanner[ocr,detector-local]'
-vipi setup --detector prompt-guard
-vipi scan image.png --detector prompt-guard
+vipi setup --ocr-mode balanced
+vipi scan image.png --ocr-mode balanced --output report.json
 ```
 
-Prompt Guard weights require authorized access to the
-[Prompt Guard model](https://huggingface.co/meta-llama/Prompt-Guard-86M). Visit
-its model page and accept Meta's access terms first. If you need a Hugging Face
-token, install the [Hugging Face CLI](https://huggingface.co/docs/huggingface_hub/guides/cli)
-and run `hf auth login`; the Hugging Face Hub client will use the saved login
-when downloading the model. You can also provide a token through `HF_TOKEN`.
-OCR model setup downloads the pinned PP-OCRv6 files for both install paths;
-scanning does not download models.
+**Cloud:** hosted OCR and decisions. Set `GOOGLE_CLOUD_API_KEY` and
+`OPENAI_API_KEY` in the environment or an ignored `.env`
+([example](https://github.com/EnXan/VIPI/blob/main/.env.example)).
 
-If `vipi` is not found after installation, run `uv tool update-shell` and
-restart your terminal so uv's tool directory is added to `PATH`.
+```bash
+uv tool install --python 3.12 'vipi-scanner[ocr]'
+vipi setup --modus cloud
+vipi scan image.png --modus cloud --output report.json
+```
+
+Run `setup` with the same options you scan with. A bare `vipi setup` also
+downloads the large `quality` model. If `vipi` is not on `PATH`, run
+`uv tool update-shell` and restart the terminal.
+
+## Models at a glance
+
+Every scan runs up to three steps; step 2 runs only when the OCR result is
+uncertain. The mode decides who provides the models.
+
+| Step | Local `quality` (default) | Local `balanced` | Local `speed` | Cloud |
+| :-- | :-- | :-- | :-- | :-- |
+| 1 · Read text | <img src="https://raw.githubusercontent.com/EnXan/VIPI/main/assets/providers/paddlepaddle.svg" width="14" height="14" alt="PaddlePaddle"> PP-OCRv6 Medium<br><sub>or Small · Tiny</sub> | <img src="https://raw.githubusercontent.com/EnXan/VIPI/main/assets/providers/paddlepaddle.svg" width="14" height="14" alt="PaddlePaddle"> PP-OCRv6 Small<br><sub>or Medium · Tiny</sub> | <img src="https://raw.githubusercontent.com/EnXan/VIPI/main/assets/providers/paddlepaddle.svg" width="14" height="14" alt="PaddlePaddle"> PP-OCRv6 Tiny<br><sub>or Medium · Small</sub> | <img src="https://raw.githubusercontent.com/EnXan/VIPI/main/assets/providers/google.svg" width="14" height="14" alt="Google"> Cloud Vision<br><sub>or <img src="https://raw.githubusercontent.com/EnXan/VIPI/main/assets/providers/openai.svg" width="12" height="12" alt=""> OpenAI · <img src="https://raw.githubusercontent.com/EnXan/VIPI/main/assets/providers/mistralai.svg" width="12" height="12" alt=""> Mistral</sub> |
+| 2 · Verify OCR visually | <img src="https://raw.githubusercontent.com/EnXan/VIPI/main/assets/providers/cloudflare.svg" width="14" height="14" alt="Cloudflare"> Clef 27B<br><sub>or <img src="https://raw.githubusercontent.com/EnXan/VIPI/main/assets/providers/liquidai.svg" width="12" height="12" alt="Liquid AI"> d1 3B</sub> | <img src="https://raw.githubusercontent.com/EnXan/VIPI/main/assets/providers/liquidai.svg" width="14" height="14" alt="Liquid AI"> d1 3B<br><sub>or <img src="https://raw.githubusercontent.com/EnXan/VIPI/main/assets/providers/cloudflare.svg" width="12" height="12" alt="Cloudflare"> Clef 27B</sub> | <img src="https://raw.githubusercontent.com/EnXan/VIPI/main/assets/providers/liquidai.svg" width="14" height="14" alt="Liquid AI"> d1 3B<br><sub>or <img src="https://raw.githubusercontent.com/EnXan/VIPI/main/assets/providers/cloudflare.svg" width="12" height="12" alt="Cloudflare"> Clef 27B</sub> | <img src="https://raw.githubusercontent.com/EnXan/VIPI/main/assets/providers/openai.svg" width="14" height="14" alt="OpenAI"> Decisions API<br><sub>or <img src="https://raw.githubusercontent.com/EnXan/VIPI/main/assets/providers/typesafe.svg" width="12" height="12" alt=""> TypeSafe Jev</sub> |
+| 3 · Detect injections | <img src="https://raw.githubusercontent.com/EnXan/VIPI/main/assets/providers/cloudflare.svg" width="14" height="14" alt="Cloudflare"> Clef 27B<br><sub>or <img src="https://raw.githubusercontent.com/EnXan/VIPI/main/assets/providers/liquidai.svg" width="12" height="12" alt="Liquid AI"> d1 3B · <img src="https://raw.githubusercontent.com/EnXan/VIPI/main/assets/providers/meta.svg" width="12" height="12" alt="Meta"> Prompt Guard 2</sub> | <img src="https://raw.githubusercontent.com/EnXan/VIPI/main/assets/providers/liquidai.svg" width="14" height="14" alt="Liquid AI"> d1 3B<br><sub>or <img src="https://raw.githubusercontent.com/EnXan/VIPI/main/assets/providers/cloudflare.svg" width="12" height="12" alt="Cloudflare"> Clef 27B · <img src="https://raw.githubusercontent.com/EnXan/VIPI/main/assets/providers/meta.svg" width="12" height="12" alt="Meta"> Prompt Guard 2</sub> | <img src="https://raw.githubusercontent.com/EnXan/VIPI/main/assets/providers/liquidai.svg" width="14" height="14" alt="Liquid AI"> d1 3B<br><sub>or <img src="https://raw.githubusercontent.com/EnXan/VIPI/main/assets/providers/cloudflare.svg" width="12" height="12" alt="Cloudflare"> Clef 27B · <img src="https://raw.githubusercontent.com/EnXan/VIPI/main/assets/providers/meta.svg" width="12" height="12" alt="Meta"> Prompt Guard 2</sub> | <img src="https://raw.githubusercontent.com/EnXan/VIPI/main/assets/providers/openai.svg" width="14" height="14" alt="OpenAI"> Decisions API<br><sub>or <img src="https://raw.githubusercontent.com/EnXan/VIPI/main/assets/providers/typesafe.svg" width="12" height="12" alt=""> TypeSafe Jev</sub> |
+| Memory&nbsp;¹ | ~128 GB RAM | ~24 GB RAM | ~24 GB RAM | ~8 GB RAM |
+
+¹ Untested planning estimates for CPU-only use with the defaults. GPU alternatives, disk space,
+model IDs and pinned revisions are in [Models and hardware](https://github.com/EnXan/VIPI/blob/main/docs/models.md).
 
 ## Usage
 
 ```bash
-# Scan one or more images
 vipi scan label.png screenshot.jpg
-
-# Scan a directory recursively and save a JSON report
-vipi scan ./images --output report.json
-
-# Choose a speed/quality mode or a specific supported model
-vipi scan ./images --ocr-mode speed
-vipi scan ./images --ocr-mode balanced
-vipi scan ./images --ocr-model ppocr-v6-medium
-
-# Scan committed images added or modified on a branch
+vipi scan ./images --verbose --output report.json
+vipi scan ./images --exclude 'generated/' --exclude '*.webp'
 vipi scan . --diff origin/main --output report.json
-
-# Choose a detector and adjust the finding threshold
-vipi scan image.png --detector openai --threshold 90
+vipi scan image.png --modus cloud --detector openai --threshold 90
 ```
 
-The interface has two commands, `vipi setup` and `vipi scan`. `--modus local`
-is the default. Local profiles map `speed` to PP-OCRv6 Tiny, `balanced` to Small
-and `quality` to Medium; `quality` is the default and `fast` remains an alias
-for `speed`. `--ocr-model` selects a supported model directly; an explicit
-execution mode must match it. `vipi setup` prepares all three local models by
-default. The default detector is Jev with a threshold of 80 on a
-0–100 score scale. A score at the threshold counts as a finding; it is not a
-calibrated probability of an attack.
+| Format | Extensions | Notes |
+| :-- | :-- | :-- |
+| PNG | `.png` | Static images only; animated PNGs are rejected |
+| JPEG | `.jpg`, `.jpeg` | EXIF orientation is applied |
+| WebP | `.webp` | Static images only; animated WebPs are rejected |
 
-See the [CLI guide](https://github.com/EnXan/VIPI/blob/main/docs/cli.md) for provider configuration, GitHub Actions
-examples, branch-diff behavior, cache paths and report details.
+Extensions are matched case-insensitively. Local inputs are limited to 40
+megapixels; hosted inputs follow provider limits. Other file types in scanned
+folders or diffs are skipped and listed in the report.
 
-## Results and automation
+A score at or above the threshold (default 80/100) is a finding. Scores are not
+calibrated probabilities, and a score below the threshold does not prove an
+image is safe. Cloud scans can make additional billable requests.
 
-Exit codes support CI use:
+| Exit code | Result |
+| :-- | :-- |
+| <img src="https://raw.githubusercontent.com/EnXan/VIPI/main/assets/readme/status-clean.svg" width="10" height="10" alt=""> `0` | Scan complete, no findings |
+| <img src="https://raw.githubusercontent.com/EnXan/VIPI/main/assets/readme/status-injection.svg" width="10" height="10" alt=""> `1` | Injection found, every image completed |
+| <img src="https://raw.githubusercontent.com/EnXan/VIPI/main/assets/readme/status-review.svg" width="10" height="10" alt=""> `2` | Error or incomplete scan; wins over findings |
 
-| Code | Meaning |
-| --- | --- |
-| `0` | Scan completed without detections, or no images were selected |
-| `1` | At least one image was detected |
-| `2` | An error or incomplete scan occurred; errors take precedence |
+Every option, credential and report field is in the
+[CLI reference](https://github.com/EnXan/VIPI/blob/main/docs/cli.md).
 
 ## GitHub Actions
 
-Add this workflow at `.github/workflows/vipi-scan.yml` to scan images added or
-modified in pull requests targeting `main`:
+Scan the images a pull request adds or changes. This example uses the local
+`balanced` profile with Meta Prompt Guard as the injection detector:
 
 ```yaml
 name: VIPI image scan
-
 on:
   pull_request:
     branches: [main]
-
 permissions:
   contents: read
-
 jobs:
   scan:
     runs-on: ubuntu-latest
@@ -173,43 +126,36 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
-
-      - uses: EnXan/VIPI@v0.5.0
+      - uses: EnXan/VIPI@v0.6.0
         with:
+          modus: local
+          ocr-mode: balanced
           detector: prompt-guard
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
-
-      - name: Upload scan report
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: vipi-report
           path: vipi-report.json
 ```
 
-This example uses the local Prompt Guard detector; inference runs on the GitHub
-runner. Accept the model terms and add `HF_TOKEN` as a repository Actions secret
-so the runner can download the gated weights. Fork pull requests do not receive
-repository secrets, so a cache miss for those weights makes the scan fail
-closed. Jev and OpenAI are also available and need their API keys; see the
-[CLI guide](https://github.com/EnXan/VIPI/blob/main/docs/cli.md#branch-and-pr-scans) for other detectors, scan inputs,
-diff behavior and report details.
+The runner needs enough memory for the chosen models, and Prompt Guard requires
+accepted model terms on Hugging Face. Fork PRs normally get no secrets. For
+hosted models, set `modus: cloud` and the provider keys; see
+[Action inputs](https://github.com/EnXan/VIPI/blob/main/docs/cli.md#github-action).
 
 ## Documentation
 
-- [CLI usage and platform validation](https://github.com/EnXan/VIPI/blob/main/docs/cli.md)
-- [Package architecture](https://github.com/EnXan/VIPI/blob/main/docs/architecture.md)
-- [Development setup and checks](https://github.com/EnXan/VIPI/blob/main/docs/development.md)
-- [Research workbench and datasets](https://github.com/EnXan/VIPI/blob/main/research/README.md)
+- [CLI reference and platform validation](https://github.com/EnXan/VIPI/blob/main/docs/cli.md)
+- [Models and hardware](https://github.com/EnXan/VIPI/blob/main/docs/models.md)
+- [OCR recovery and measured limits](https://github.com/EnXan/VIPI/blob/main/docs/ocr-recovery.md)
+- [Architecture](https://github.com/EnXan/VIPI/blob/main/docs/architecture.md) and [development](https://github.com/EnXan/VIPI/blob/main/docs/development.md)
+- [Research CLI](https://github.com/EnXan/VIPI/blob/main/docs/research-cli.md), [workbench](https://github.com/EnXan/VIPI/blob/main/research/workbench/README.md) and [datasets](https://github.com/EnXan/VIPI/blob/main/research/README.md)
 - [Decision records](https://github.com/EnXan/VIPI/blob/main/adr-code/README.md)
-
-A built wheel contains the `vipi` package. Research tools, datasets, model
-weights and run artifacts remain outside the runtime package.
 
 ## License
 
-VIPI's original code, documentation and project assets are licensed under the
-[Apache License, Version 2.0](https://github.com/EnXan/VIPI/blob/main/LICENSE). Third-party models, dependencies,
-datasets and other third-party material retain their own license terms; see
-their respective notices and source projects.
+VIPI's code, documentation and assets use the
+[Apache License 2.0](https://github.com/EnXan/VIPI/blob/main/LICENSE). Models,
+dependencies, datasets and provider marks keep their own terms.

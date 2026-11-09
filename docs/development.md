@@ -1,110 +1,71 @@
 # Development
 
-Use Python 3.12 and uv. From the repository root, create and activate the
-project environment:
-
-```bash
-uv venv
-```
-
-```bash
-# macOS / Linux
-source .venv/bin/activate
-
-# Windows PowerShell
-.venv\Scripts\Activate.ps1
-```
-
-Then synchronize the product and development dependencies into `.venv`:
+Use Python 3.12 and uv. From the repository root:
 
 ```bash
 uv sync --extra ocr --extra detector-local --extra research --extra test
 ```
 
-Then run project commands through `uv run` so they use the synchronized
-environment. `uv run` also selects the project environment when it is not
-activated.
+`uv run` uses the synchronized `.venv` without activation. Use `uv add` and
+`uv remove` for dependencies and keep `uv.lock` synchronized. Additional OCR
+model environments are described in the
+[research CLI reference](research-cli.md#separate-model-environments).
 
-## Commands
+## Commands and checks
 
-Public product commands:
-
-```bash
-uv run vipi setup
-uv run vipi scan image.png
-uv run vipi scan . --diff origin/main --output report.json
-```
-
-Research commands, run from the repository root:
+The [product CLI reference](cli.md) and [research CLI reference](research-cli.md)
+document the complete command sets. Common development commands:
 
 ```bash
+uv run vipi setup --ocr-mode balanced
+uv run vipi scan image.png --ocr-mode balanced
 uv run python -m research.download
 uv run python -m research.workbench serve
-uv run python -m research.workbench extract image.png --model ppocr-v6
-uv run python -m research.workbench extract image.png --text-classifier jev --text-classifier openai --thresholds-file thresholds.json
-uv run python -m research.workbench extract image.png --evaluate
-uv run python -m research.workbench reassemble RUN_ID
-uv run python -m research.workbench.detector_cli detect RUN_ID --text-classifier jev
 ```
 
-See [download images](../research/README.md#download-images) for individual
-suites, local paths and dataset versioning, and
-[add images](../research/README.md#add-images) for submissions and maintainer
-approval on Hugging Face.
+The CLI and the workbench use the platform user cache for models and scan
+runs; evaluation runs go to the repository's ignored `runs/evaluations/`.
+Dataset downloads and contributions are described in the
+[research guide](../research/README.md). Preserve exact transcripts and provenance.
 
-The public CLI uses its user cache. Workbench defaults continue to use the
-repository's `models/ocr`, `models/detector` and `runs` directories, with its
-existing path options. Prepare workbench models separately using
-`uv run python -m research.workbench prepare-models --model ppocr-v6`.
+```bash
+uv run pytest -q tests/unit tests/integration tests/research
+uv run ruff check src/vipi research tests
+uv build
+```
 
-## Releases and versioning
+Changes that claim a quality or efficiency improvement also need a matched
+baseline/candidate comparison; see
+[evaluating improvements](../CONTRIBUTING.md#evaluating-improvements).
 
-Update the package version with `uv` when preparing a release. For example, a
-backward-compatible bug fix uses:
+Tests use temporary catalogs, fixture engines and simulated provider responses;
+they require no paid API calls. Builds and help smoke tests do not establish
+trained-model accuracy. Report the actual operating system/model tested; see
+[platform validation](cli.md#platform-validation-status).
+
+## Releases
+
+Include a version bump in the same PR as release-worthy changes:
 
 ```bash
 uv version --bump patch
 ```
 
-Use `uv version --bump minor` for a new feature. VIPI is currently before
-`1.0.0`: while the public interface is still developing, use a minor bump for
-intentional breaking changes as well, and describe those changes in the release
-notes. After `1.0.0`, follow Semantic Versioning: patch for compatible fixes,
-minor for backward-compatible features, and `uv version --bump major` for
-breaking changes. The version command updates `pyproject.toml` and keeps
-`uv.lock` in sync.
+Use minor for new features and pre-1.0 intentional breaking changes. After 1.0,
+use major for breaking changes. Update current documentation/examples referring
+to the previous version; preserve clearly historical references. The version
+command updates `pyproject.toml` and `uv.lock`.
 
-Include the version change in a pull request. After that commit has been merged
-to `main` and CI passes, tag the commit with the same version, prefixed with
-`v`, and push the tag:
+After the version PR merges and CI passes, update `main` and push an annotated
+tag matching `uv version --short`. For version 0.6.0:
 
 ```bash
 git switch main
 git pull --ff-only
-git tag -a v0.1.1 -m "Release v0.1.1"
-git push origin v0.1.1
+git tag -a v0.6.0 -m "Release v0.6.0"
+git push origin v0.6.0
 ```
 
-Pushing a tag that starts with `v` starts the release workflow. It verifies the
-tag against the project version, runs CI, builds the distributions, and
-publishes them to PyPI using Trusted Publishing. Merging to `main` alone does
-not publish a release. Each PyPI release needs a new version and tag; do not
-reuse a version that has already been published.
-
-## Verification
-
-```bash
-uv run pytest -q tests/unit tests/integration
-uv run pytest -q tests/research
-uv run ruff check src/vipi research/download.py research/workbench research/ocr_eval/evaluation tests
-uv build
-```
-
-The research tests use temporary catalog fixtures rather than rebuilding or
-modifying the active OCR selection. Catalogs and images are downloaded from the
-Hugging Face dataset at the revision in `research/dataset.json`, and local copies
-are ignored by Git. See the [research guide](../research/README.md) for downloads
-and contributions. Preserve exact OCR source transcripts and provenance.
-
-macOS, Linux and Windows have been tested; see the [platform status](cli.md#platform-validation-status).
-No live paid provider calls are required by the automated suite.
+The `v*` tag starts CI, builds distributions and publishes to PyPI through
+Trusted Publishing. A merge alone does not publish. Verify the tag workflow
+and publication; never reuse a published version.

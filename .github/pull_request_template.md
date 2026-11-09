@@ -15,6 +15,18 @@
 - [ ] Lint (`uv run ruff check src/vipi research/download.py research/workbench research/ocr_eval/evaluation tests`), if relevant
 - [ ] Documentation updated, if relevant
 
+## Evaluation
+
+<!-- Required when the change claims to improve OCR, detection or the scan.
+Otherwise write "Not applicable" and why. See CONTRIBUTING.md#evaluating-improvements. -->
+
+- Affected path and configuration:
+- Baseline run ID (captured before code changes):
+- Candidate run ID:
+- Comparison report:
+- Matched inputs: yes / no (reason)
+- Value versus complexity (added modules, branches, dependencies, operational requirements):
+
 ## Notes for reviewers
 
 <!-- Call out behavior, configuration, security, or compatibility details. -->

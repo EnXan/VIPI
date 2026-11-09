@@ -27,7 +27,7 @@ def scan_image(image, *, options=None, session=None, provider=None, on_event=Non
 
     options = options or ScanOptions()
     provider = provider or prepare_provider(
-        options.detector, cache_directory() / "prompt-guard"
+        options.resolved_detector, cache_directory() / "prompt-guard"
     )
     with ExitStack() as resources:
         if session is None:
@@ -35,6 +35,7 @@ def scan_image(image, *, options=None, session=None, provider=None, on_event=Non
                 OcrSession(
                     mode=options.ocr_mode,
                     model=options.resolved_ocr_model,
+                    decision_provider=options.resolved_decision_provider,
                 )
             )
         ocr = session.extract(image, on_event)
@@ -56,6 +57,7 @@ def scan(
     ocr_model=None,
     ocr_execution_mode=None,
     ocr_provider=None,
+    decision_provider=None,
     diff=None,
     exclude_patterns=(),
     output=None,
@@ -83,8 +85,17 @@ def scan(
 
     try:
         options = ScanOptions(
-            detector, threshold, ocr_mode, ocr_model, ocr_execution_mode, ocr_provider
+            detector,
+            threshold,
+            ocr_mode,
+            ocr_model,
+            ocr_execution_mode,
+            ocr_provider,
+            decision_provider,
         )
+        detector = options.resolved_detector
+        report["detector"] = detector
+        report["decision_provider"] = options.resolved_decision_provider
         report["ocr_mode"] = options.resolved_ocr_mode
         report["ocr_execution_mode"] = options.resolved_ocr_execution_mode
         report["ocr_provider"] = options.resolved_ocr_provider
@@ -115,7 +126,10 @@ def scan(
 
         provider = prepare_provider(detector, root / "prompt-guard")
         with OcrSession(
-            root, mode=options.ocr_mode, model=options.resolved_ocr_model
+            root,
+            mode=options.ocr_mode,
+            model=options.resolved_ocr_model,
+            decision_provider=options.resolved_decision_provider,
         ) as session:
             report["ocr"] = session.metadata
             for index, (source, item) in enumerate(
@@ -153,7 +167,7 @@ def scan(
     except (Exception, KeyboardInterrupt) as error:
         message = (
             "Missing runtime dependencies. Install VIPI with the ocr extra "
-            "(and detector-local for Prompt Guard)."
+            "and detector-local for local decision models or Prompt Guard."
             if isinstance(error, ModuleNotFoundError)
             else str(error) or "Scan interrupted."
         )

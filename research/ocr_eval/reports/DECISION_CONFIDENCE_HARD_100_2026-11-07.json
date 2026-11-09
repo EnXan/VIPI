@@ -1,0 +1,1812 @@
+{
+  "schema_version": 1,
+  "selection_filter": {
+    "description": "100 entries stratified by category from the union of original full-reference failures and unscored outputs in the 1,113-image local-speed and corrected-cloud evaluation.",
+    "source_report_sha256": "85fc7e82a876998299eb116c1896a5e58b579152fdbc95f716594adb704bda1f",
+    "keys_sha256": "2cc5190e40e7cb98e9746553029bd1b1ba7f6e1b52a7d81bc706ec4cf673bbfa",
+    "confidence_split": {
+      "03274ca9e2616c3418effb59691b6a14971d6dd98c7fcfb000b9286ec6adbafb": "calibration",
+      "0104a9a6522011a4f1caeb7ab49a91b3824ea179de20a670d0120c7982434212": "calibration",
+      "aa75d923a6d795654c5ab4d989dc3dd8d5039e4ba63aaba17af38e8554a2e153": "calibration",
+      "49484f7c4e4642fc9f29995f21352901449b3022e832cc4d3bcb0f125d1a5a57": "evaluation",
+      "da103107824a922030c09770390a88b63dbb01e42a4ebb15700b477790628812": "calibration",
+      "21e553d27c9c5bc957783fc2b48a50d755623dc9ff5c1c4b2d288e479ea70d35": "calibration",
+      "4e6f266713790e1a2d2af739880506a434d740c64a494451a13f7a303b0d87d2": "evaluation",
+      "a235ac706ae7f38e9591a05c92b69d18d228b5c7ca10651493253099fc1c3fa0": "calibration",
+      "a7daa7769f9f0a93ef6ad69b692e142e45def0f599b30eb1dfe28b79e0f03897": "calibration",
+      "d3e142b3f3a4cfa6a052fb01d1a3dcb53a7e06ffe2201e2d77b67f18faca153d": "evaluation",
+      "5ece399e35f0951cff685d8f30679640514062de5fef37b6d90e6d81190a6c2a": "calibration",
+      "33d21e350320a52f4761cb8c9cb2926fa2e42488fc70bbe26ed6e9456c1bf212": "calibration",
+      "8bc3b0921a36d8f24d302b82886e36ebfddb3b8c169abdc4a1ace1f46b298aca": "evaluation",
+      "976edded05fc008b0a5f5c7583230ff71839b988995658a5e2a443351ce20dcc": "calibration",
+      "869535de80e51fbc38a5fa3241e6340621531f5cc3e9f3836aa66f6c6a32e2a0": "calibration",
+      "11917455dab61878985ca086286aefc7c11051ddfce15016190d76070eafb924": "calibration",
+      "9c09f1afa3c7af8268891c1f35e1a9a8656a9b98be86d60a6f309b81bcaedca9": "calibration",
+      "e887642291fe16d62a95f237e96f11650146ac2c36765aa9e94af7e07b619e6b": "calibration",
+      "eb33e10fda75e2d144e5b5146c18e37578d0befe659c681d965e4e4347da2de8": "calibration",
+      "d547fe027e6f2ca06efec717e7eeee11a28e308c82be7e244e791b4e4894729e": "calibration",
+      "eecc36a822e2c0c3c04398e7915b3cfce93129f8a0bb5c68436ee3824f02f898": "calibration",
+      "b1a238aece0363b14b2e57ddb11546818f3bdf81d8c864c7afc2d102edaaa991": "calibration",
+      "3edcac7dbfd527b5b7efddea364b34e7f96525909f852161973413e9e77f9d57": "calibration",
+      "c58953bfed5e8d10c4f6bf9533cd8f1d3536f85e18ed30bf02f135ce5bbf6001": "calibration",
+      "4992de1b021e4312b0df56227ea444811c7ce7791f6364f29acfe18bd20c0bf6": "calibration",
+      "9ee60fd0b1f5a84bd3fe885abf1b00ec4c58974644e05c6603704ae37ad30ec3": "calibration",
+      "c3f70461104eb92193aed38d68850827d41d93126fdaecab1dfdcf00aa617a69": "calibration",
+      "f0bade3892787967abc144e019f65549a834b91052669ba4ab4461115d65e514": "evaluation",
+      "0be3f914cb0da93e675bbeb9a98136299b4798cc0dd79e8be1880974ef0866cc": "calibration",
+      "f453c667d34440687433814d812f50004db5b1e3a1ebb814b7e7de7b1f009c2d": "calibration",
+      "f809939bdbac75d0e7b8c02c71977f3de0d1ec779c3256502d8e3cb189b17dc2": "evaluation",
+      "323fe5e221a29b7b564d5055dde8027cd041ead0a2949b4ee95662a9efcdd386": "calibration",
+      "34d2ec937c3c3ffcb84a7b73763f67a41475760c268125836aac053577968cf4": "calibration",
+      "a7c40620705764939a38e2c87b7e6918bffb71f543b21c3753f17331c99c124f": "calibration",
+      "9f3f441f3ff7e45485faaf1457c15678d3b2b611be3fde0fd6148124aa27c2f4": "calibration",
+      "3c121bf744d6b6885d22a8fdba13e02c03b248e353eb32853fcdec03eddd4cc8": "calibration",
+      "232d09af806dd9152a91d650e2b253f3879e6d75b2cd7b05f26c7338d6b07d17": "calibration",
+      "0026d42c1141ef48aebb99e972b3f821559b800762cc279bdefa9a4b56e01b9f": "evaluation",
+      "9a436bb5cf8c3e67de7fc17b3aa9840e2119ba612a6c9d31d7eb9ff4f310a93f": "calibration",
+      "684169a9d210efbf6fddafdc7d7793b4497ebea88f7429cfe0c55ca41d6c976f": "evaluation",
+      "b93b945ac70ee90f1d3b9f39676b6f5b4d62d28f9ca4b1e4f4390b61ca52f854": "evaluation",
+      "665a1217d93f37b8f24caf15673aac5bed57132ef55998961aada79081828074": "evaluation",
+      "5d615897886b37f842ef907f550a23e99724f62b196ebf57cfa93e948ba8b619": "calibration",
+      "212d6116a1fc334a0098a15485117eecda5810cb4d13d6a47a290e256a4b5f29": "evaluation",
+      "2edf8f1490e2298e40b1be698f2965aa0372192f03fb082cca2d693a65567c2f": "calibration",
+      "3e057c7eb5de51b5f4a3c67db6c5bf6552fac6af69eb84a5b779d0b9a4818bb3": "calibration",
+      "ac09705e01f0f19b763c842203f932243995d519d8906e6a13aad80b93147f92": "evaluation",
+      "af5ec972c0bc6d14199aac219ca43f1abf5b214dfe2d05ba593ed3bd194ed95a": "calibration",
+      "3acc97893ccf1ff6df44f7b93c8490d8ebb3f07cd9747b3d51c7aaa6513535b2": "calibration",
+      "08663bea1a749c551d2b68c2de83e36367d6ddf277b2cd7a8babecd25efceae7": "calibration",
+      "0d6cf191686d1800d7a29a4265a7b13ebeb1fd4b8aa6ff29742f85202cc99684": "calibration",
+      "ced8f75c31085faf2a15fd51442193a6f0f497fc2949f99ef57bc988ee299179": "calibration",
+      "26e52349c9a1e3e02c0a80ad1a5558bd5884524f6b1a9196a0e7bd4c65771840": "calibration",
+      "f204fb9c804203879bd18c058aa8f871c5cc4947519a3b6bd659a40e71f89d4c": "evaluation",
+      "cd94aa8929c31b39963b63fd399996d138f519f6d5ad9645aad73795be7738cb": "calibration",
+      "02eb141154355c4fa8153080aa70eddb388d432f468143303b00e1a33dbd535a": "calibration",
+      "df4a6034d5fb85875d93abd9f80b7d41ce6b48c915eff4a75e751336c5889aff": "evaluation",
+      "4c40b6a46f3cbdf6047d0366b74d39b9298bacdd8aa7780a5e1b0c77ab8c3d70": "calibration",
+      "bbfd2643bf898d5a0cf1ecde6e2714292bc1ee68ff67ffd0ba1329434cbe2f97": "calibration",
+      "daae93feb910d664d9cf135117404f060ef09757b4ec65e0c6a61886a6457fcb": "calibration",
+      "0a2ad81c7069ccf53ab9f11724cb76ce729a981e94b04fea3668ac6fc8af3e97": "calibration",
+      "10e0eecf1b928cec3052a9aac7722b4e360504038fb95387b3576b20ca4e8f03": "calibration",
+      "ea2a9b273471a64c831a30a9e4a4bc2926ef12da6ff8187404e2382f2e3be092": "calibration",
+      "cffc5f386d27c526626e7deb67b883e74b418aa5f254c9fb460fc181706ee424": "calibration",
+      "ab48a6aa6c38efa9b76c6806d248eb2e7eda80a276a69dc0ca464bc96c4a81ce": "calibration",
+      "84f154a400a30c1762effa7382fb8655cb99ac8005b0f44c36bfad159432b2b7": "calibration",
+      "d8c21d4c5f7db9784effb6b4f4566f89be329232fcaba94c4e0734e0fce561ad": "calibration",
+      "7b9631f87d28c7092fa7d0195098021a67a8aa62ebb35db5ec16a889791be7ee": "evaluation",
+      "be04c01aa1ab619b7c1bf7884e57fc9ba06ea1964e6a943138681d90ae943e25": "evaluation",
+      "cb1c4b40a7eaeb1122fca7afcf03937601189f162721bc100e682aa7f9587851": "calibration",
+      "a3692a3fd863d3cbdefdc664e9bdd81129eee3a6e2a917346505123894aeb952": "calibration",
+      "05c177f44c9f36a8bc782d6e32131a2323518de6a02ad48c3d73d1365cf3b5ac": "calibration",
+      "a338586b4a275815070748ea916210c6e14d199538e406b84339bdba1559b54e": "calibration",
+      "03e56321ed5743d0e8f2cbe246e94368a447ec84a14dbefca48f6db151a404a8": "calibration",
+      "8a8400def0d7be021518310d94d65cd7cea541f3b5369838a53e354f63ef9ae2": "evaluation",
+      "b5ef5fbfec3fc66f97b525f1ef3fbc79a975806e50279d812b7d7d16dfd357ca": "calibration",
+      "b4e89252e2d9b25d3c07c6eaffa2b0cb43e81185f0d548f82fca90250f2c67b5": "calibration",
+      "12893c86f03cedb2fea01187a4cee553b620f79e6c58662fbec93b430bc84a54": "calibration",
+      "d3ea30e9916fbe6d6fe44adc3ed63d686a25b78e55f07daf2d3c1c2311e149e4": "calibration",
+      "70478314e1c8faf7afc8617c562b3fd4fa446c2c0629c24b807df22396f8713e": "calibration",
+      "019b9f409b3af992f154d40b3bdb1f0089afdbfc12f08b0000cd3d8cf6565514": "calibration",
+      "3627918a8e87f1a8d6f0f88f73d6e5ac3a204b64bb910abda75a6f897c92ef8b": "calibration",
+      "49ebd8e6ef4f65f46f2fa2848280a44f4c929a3d4a11fe504c9396b1db17c7dd": "calibration",
+      "3925208da7f3a0fed0484b830f081bdd42eadd62328560fc7688edabb8442584": "calibration",
+      "562b503e7bd55ba01ebc281c98341dca599fc95552cf49ebd85b92ecd54b6086": "calibration",
+      "5859018cd89109713966a134e77e1f9e7646d175015d7c7f98731a0b13ddce99": "evaluation",
+      "d013b1fa356de9d1ff6b5ee1342bd65c0f9c8e4ebb4c869f5a0e2f1dc902b1d6": "calibration",
+      "58dcbca284f4efe3fbc9e818188d6b7504885740a044f0c7db83004bdab9b5b7": "calibration",
+      "6e6ed19530d001dd66e48199babf7929c3d46905a1a11d52f5308aabeb98d5cd": "calibration",
+      "86f45e0a4e3b67028f6a293632af1d57f8f20c2642c6fb86d45585ef276f4575": "calibration",
+      "1da1c0cbaebb8f496a3b0200e5d6a87bc31f5ee485f355a3e8536ede13e91648": "calibration",
+      "6b327530c89b15ec2f4370a552bacc23e3b0cdeec4a2fca64c5e8194ea4b7b60": "calibration",
+      "7000ea7c12415c75015bc3c3825314d7ff0b72f0faf8b940fa75fd252494f18e": "calibration",
+      "ad042e749b342e84e7b57dc5e733a3ad6e5eea2e66f401594b346f0cc8957443": "evaluation",
+      "7a5c6651e31e6b7f215bc8d2b06a0f955f22a36782ca2c6127b32f437bdf6d8e": "calibration",
+      "b3022979e5fd8384cd8a59ad951adbf699b28384a5edb5617cc1015b400afec9": "calibration",
+      "1c3b105931a9281c3952e2c1918b5d0821b58d9dc5aac9e80db711204f2b7a69": "evaluation",
+      "1c82c98cdcdc05b6e487a7f20a7f6c75c846e9bb4e5a8b3a753f367c6b952367": "calibration",
+      "3950cdb8c21e2fbd13f33ba330d8b164f14340dc74eea66e212ab01e2515304f": "calibration",
+      "430e08ccf9896c08a8c7f38f2d964925ca9471e30e3251d07a38a523d6775b3e": "evaluation"
+    },
+    "split_method": "Within-category exact-image-hash groups; select evaluation hashes by SHA-256 rank of point4-cloud-eval-v1:<image_sha256>, rounded to 20% per category with at least one evaluation hash when a category has two or more; all duplicate hashes remain in one split."
+  },
+  "selected_images": 100,
+  "unique_image_hashes": 100,
+  "categories": {
+    "benign": 3,
+    "context_dependent": 2,
+    "cyberseceval3_visual_prompt_injection": 9,
+    "injection": 2,
+    "mm_safetybench": 1,
+    "textocr": 81,
+    "typographic_visual_prompt_injection": 1,
+    "vpi_bench": 1
+  },
+  "method": {
+    "labels": "Evaluation-v4 OCR reference scores computed offline after inference.",
+    "completeness": "Initial OCR attempt is scored against both >=80% tolerant word coverage and the full-reference pass.",
+    "comparison": "Candidate and incumbent are compared by tolerant matched-word counts; this does not score visual fidelity or geometry.",
+    "probabilities": "Only native provider-reported confidence and per-option probabilities are summarized; absent values stay absent.",
+    "limitations": "A held-out split within a difficulty-selected development subset is not an independent benchmark. No confidence threshold or production policy is fitted or changed."
+  },
+  "postprocessing_sources": {
+    "research/ocr_eval/experiments/decision_confidence.py": "d65188d8ccbd3b15ad4e6c07cc976b5b62652b2bac1a87059280c376c80c10a2",
+    "research/ocr_eval/benchmark_report.py": "e27fd6322d8812715d8428a87b214f4b3581e62e8fef22e0d48c35ba45e33dba",
+    "research/ocr_eval/evaluation/metrics.py": "69dac5362c79d728b5655f0ff72b27797e65b7f216841e787b043a40d491dcb7"
+  },
+  "configurations": {
+    "cloud-default": {
+      "session": {
+        "mode": null,
+        "execution_mode": "cloud",
+        "provider": "google",
+        "model": "google-cloud-vision",
+        "ocr_profile": "adaptive-jev",
+        "decision_provider": "openai",
+        "decision_model": "gpt-6-luna",
+        "files": {},
+        "runtime": {},
+        "backend": "api",
+        "workers": 1
+      },
+      "image_counts": {
+        "calibration/completed": 79,
+        "calibration/planned": 79,
+        "evaluation/completed": 21,
+        "evaluation/planned": 21
+      },
+      "reference_scored_images": 100,
+      "no_decision_images_by_split": {},
+      "confidence_groups": [
+        {
+          "provider": "openai-decisions",
+          "model": "gpt-6-luna",
+          "question": "comparison",
+          "split": "calibration",
+          "answers": 122,
+          "choices": {
+            "equivalent": 2,
+            "improved": 42,
+            "worse": 78
+          },
+          "confidence": {
+            "available": 122,
+            "mean": 0.8504918032786886,
+            "median": 0.93
+          },
+          "option_probabilities": {
+            "equivalent": {
+              "available": 122,
+              "mean": 0.03844262295081967
+            },
+            "improved": {
+              "available": 122,
+              "mean": 0.3609016393442623
+            },
+            "uncertain": {
+              "available": 122,
+              "mean": 0.0021311475409836068
+            },
+            "worse": {
+              "available": 122,
+              "mean": 0.5985245901639344
+            }
+          },
+          "reference_validation": {
+            "scored_comparisons": 63,
+            "choice_accuracy_vs_tolerant_word_gain": 0.8253968253968254,
+            "probability_scored_comparisons": 63,
+            "brier_p_improved_vs_tolerant_word_gain": 0.039598412698412695,
+            "p_improved_vs_tolerant_word_gain_bins": [
+              {
+                "range": "0.0-0.1",
+                "count": 47,
+                "observed_rate": 0
+              },
+              {
+                "range": "0.1-0.2",
+                "count": 7,
+                "observed_rate": 0
+              },
+              {
+                "range": "0.2-0.3",
+                "count": 1,
+                "observed_rate": 0
+              },
+              {
+                "range": "0.3-0.4",
+                "count": 2,
+                "observed_rate": 0
+              },
+              {
+                "range": "0.7-0.8",
+                "count": 2,
+                "observed_rate": 0.5
+              },
+              {
+                "range": "0.8-0.9",
+                "count": 3,
+                "observed_rate": 0.3333333333333333
+              },
+              {
+                "range": "0.9-1.0",
+                "count": 1,
+                "observed_rate": 1
+              }
+            ]
+          }
+        },
+        {
+          "provider": "openai-decisions",
+          "model": "gpt-6-luna",
+          "question": "comparison",
+          "split": "evaluation",
+          "answers": 38,
+          "choices": {
+            "equivalent": 4,
+            "improved": 13,
+            "worse": 21
+          },
+          "confidence": {
+            "available": 38,
+            "mean": 0.835,
+            "median": 0.92
+          },
+          "option_probabilities": {
+            "equivalent": {
+              "available": 38,
+              "mean": 0.09447368421052632
+            },
+            "improved": {
+              "available": 38,
+              "mean": 0.3092105263157895
+            },
+            "uncertain": {
+              "available": 38,
+              "mean": 0.0015789473684210526
+            },
+            "worse": {
+              "available": 38,
+              "mean": 0.5947368421052631
+            }
+          },
+          "reference_validation": {
+            "scored_comparisons": 22,
+            "choice_accuracy_vs_tolerant_word_gain": 0.9545454545454546,
+            "probability_scored_comparisons": 22,
+            "brier_p_improved_vs_tolerant_word_gain": 0.04825909090909091,
+            "p_improved_vs_tolerant_word_gain_bins": [
+              {
+                "range": "0.0-0.1",
+                "count": 18,
+                "observed_rate": 0
+              },
+              {
+                "range": "0.4-0.5",
+                "count": 1,
+                "observed_rate": 1
+              },
+              {
+                "range": "0.6-0.7",
+                "count": 1,
+                "observed_rate": 1
+              },
+              {
+                "range": "0.7-0.8",
+                "count": 2,
+                "observed_rate": 0.5
+              }
+            ]
+          }
+        },
+        {
+          "provider": "openai-decisions",
+          "model": "gpt-6-luna",
+          "question": "completeness",
+          "split": "calibration",
+          "answers": 79,
+          "choices": {
+            "complete": 13,
+            "missing_text": 66
+          },
+          "confidence": {
+            "available": 79,
+            "mean": 0.889367088607595,
+            "median": 0.99
+          },
+          "option_probabilities": {
+            "complete": {
+              "available": 79,
+              "mean": 0.19075949367088607
+            },
+            "missing_text": {
+              "available": 79,
+              "mean": 0.8087341772151899
+            },
+            "uncertain": {
+              "available": 79,
+              "mean": 0.0005063291139240507
+            }
+          },
+          "reference_validation": {
+            "scored_answers": 79,
+            "decided_choice_accuracy_vs_full_reference": 0.8607594936708861,
+            "decided_choice_count": 79,
+            "complete_below_80_percent_count": 4,
+            "probability_scored_answers": 79,
+            "brier_p_complete_vs_full_reference": 0.09805696202531645,
+            "brier_p_complete_vs_at_least_80_percent": 0.3213481012658228,
+            "p_complete_vs_full_reference_bins": [
+              {
+                "range": "0.0-0.1",
+                "count": 56,
+                "observed_rate": 0.05357142857142857
+              },
+              {
+                "range": "0.1-0.2",
+                "count": 3,
+                "observed_rate": 0
+              },
+              {
+                "range": "0.2-0.3",
+                "count": 3,
+                "observed_rate": 0.3333333333333333
+              },
+              {
+                "range": "0.4-0.5",
+                "count": 4,
+                "observed_rate": 0.25
+              },
+              {
+                "range": "0.5-0.6",
+                "count": 2,
+                "observed_rate": 0
+              },
+              {
+                "range": "0.7-0.8",
+                "count": 3,
+                "observed_rate": 0.3333333333333333
+              },
+              {
+                "range": "0.8-0.9",
+                "count": 1,
+                "observed_rate": 0
+              },
+              {
+                "range": "0.9-1.0",
+                "count": 7,
+                "observed_rate": 0.8571428571428571
+              }
+            ]
+          }
+        },
+        {
+          "provider": "openai-decisions",
+          "model": "gpt-6-luna",
+          "question": "completeness",
+          "split": "evaluation",
+          "answers": 21,
+          "choices": {
+            "complete": 2,
+            "missing_text": 19
+          },
+          "confidence": {
+            "available": 21,
+            "mean": 0.9071428571428571,
+            "median": 0.99
+          },
+          "option_probabilities": {
+            "complete": {
+              "available": 21,
+              "mean": 0.14523809523809525
+            },
+            "missing_text": {
+              "available": 21,
+              "mean": 0.8538095238095238
+            },
+            "uncertain": {
+              "available": 21,
+              "mean": 0.0009523809523809524
+            }
+          },
+          "reference_validation": {
+            "scored_answers": 21,
+            "decided_choice_accuracy_vs_full_reference": 0.9047619047619048,
+            "decided_choice_count": 21,
+            "complete_below_80_percent_count": 0,
+            "probability_scored_answers": 21,
+            "brier_p_complete_vs_full_reference": 0.061014285714285715,
+            "brier_p_complete_vs_at_least_80_percent": 0.1572047619047619,
+            "p_complete_vs_full_reference_bins": [
+              {
+                "range": "0.0-0.1",
+                "count": 15,
+                "observed_rate": 0
+              },
+              {
+                "range": "0.1-0.2",
+                "count": 2,
+                "observed_rate": 0
+              },
+              {
+                "range": "0.3-0.4",
+                "count": 2,
+                "observed_rate": 0.5
+              },
+              {
+                "range": "0.8-0.9",
+                "count": 1,
+                "observed_rate": 0
+              },
+              {
+                "range": "0.9-1.0",
+                "count": 1,
+                "observed_rate": 1
+              }
+            ]
+          }
+        },
+        {
+          "provider": "openai-decisions",
+          "model": "gpt-6-luna",
+          "question": "orientation",
+          "split": "calibration",
+          "answers": 4,
+          "choices": {
+            "upright": 4
+          },
+          "confidence": {
+            "available": 4,
+            "mean": 0.6975,
+            "median": 0.66
+          },
+          "option_probabilities": {
+            "mirror-0": {
+              "available": 4,
+              "mean": 0.015
+            },
+            "mirror-180": {
+              "available": 4,
+              "mean": 0.005
+            },
+            "mirror-270": {
+              "available": 4,
+              "mean": 0.025
+            },
+            "mirror-90": {
+              "available": 4,
+              "mean": 0.005
+            },
+            "rotate-180": {
+              "available": 4,
+              "mean": 0.015
+            },
+            "rotate-270": {
+              "available": 4,
+              "mean": 0.085
+            },
+            "rotate-90": {
+              "available": 4,
+              "mean": 0.07
+            },
+            "uncertain": {
+              "available": 4,
+              "mean": 0.049999999999999996
+            },
+            "upright": {
+              "available": 4,
+              "mean": 0.73
+            }
+          }
+        },
+        {
+          "provider": "openai-decisions",
+          "model": "gpt-6-luna",
+          "question": "orientation",
+          "split": "evaluation",
+          "answers": 1,
+          "choices": {
+            "rotate-270": 1
+          },
+          "confidence": {
+            "available": 1,
+            "mean": 0.66,
+            "median": 0.66
+          },
+          "option_probabilities": {
+            "mirror-0": {
+              "available": 1,
+              "mean": 0.02
+            },
+            "mirror-180": {
+              "available": 1,
+              "mean": 0.01
+            },
+            "mirror-270": {
+              "available": 1,
+              "mean": 0.04
+            },
+            "mirror-90": {
+              "available": 1,
+              "mean": 0.01
+            },
+            "rotate-180": {
+              "available": 1,
+              "mean": 0.02
+            },
+            "rotate-270": {
+              "available": 1,
+              "mean": 0.7
+            },
+            "rotate-90": {
+              "available": 1,
+              "mean": 0.05
+            },
+            "uncertain": {
+              "available": 1,
+              "mean": 0.03
+            },
+            "upright": {
+              "available": 1,
+              "mean": 0.12
+            }
+          }
+        },
+        {
+          "provider": "openai-decisions",
+          "model": "gpt-6-luna",
+          "question": "repair",
+          "split": "calibration",
+          "answers": 79,
+          "choices": {
+            "contrast": 29,
+            "none": 46,
+            "orientation": 4
+          },
+          "confidence": {
+            "available": 79,
+            "mean": 0.6697468354430379,
+            "median": 0.69
+          },
+          "option_probabilities": {
+            "both": {
+              "available": 79,
+              "mean": 0.00759493670886076
+            },
+            "contrast": {
+              "available": 79,
+              "mean": 0.37329113924050633
+            },
+            "none": {
+              "available": 79,
+              "mean": 0.539873417721519
+            },
+            "orientation": {
+              "available": 79,
+              "mean": 0.07455696202531646
+            },
+            "uncertain": {
+              "available": 79,
+              "mean": 0.0046835443037974685
+            }
+          }
+        },
+        {
+          "provider": "openai-decisions",
+          "model": "gpt-6-luna",
+          "question": "repair",
+          "split": "evaluation",
+          "answers": 21,
+          "choices": {
+            "contrast": 9,
+            "none": 11,
+            "orientation": 1
+          },
+          "confidence": {
+            "available": 21,
+            "mean": 0.7857142857142857,
+            "median": 0.84
+          },
+          "option_probabilities": {
+            "both": {
+              "available": 21,
+              "mean": 0.005238095238095238
+            },
+            "contrast": {
+              "available": 21,
+              "mean": 0.3314285714285714
+            },
+            "none": {
+              "available": 21,
+              "mean": 0.5857142857142857
+            },
+            "orientation": {
+              "available": 21,
+              "mean": 0.07523809523809524
+            },
+            "uncertain": {
+              "available": 21,
+              "mean": 0.002380952380952381
+            }
+          }
+        },
+        {
+          "provider": "openai-decisions",
+          "model": "gpt-6-luna",
+          "question": "reviewability",
+          "split": "calibration",
+          "answers": 79,
+          "choices": {
+            "insufficient": 6,
+            "sufficient": 73
+          },
+          "confidence": {
+            "available": 79,
+            "mean": 0.8111392405063291,
+            "median": 0.91
+          },
+          "option_probabilities": {
+            "insufficient": {
+              "available": 79,
+              "mean": 0.1518987341772152
+            },
+            "sufficient": {
+              "available": 79,
+              "mean": 0.8463291139240506
+            },
+            "uncertain": {
+              "available": 79,
+              "mean": 0.0017721518987341772
+            }
+          }
+        },
+        {
+          "provider": "openai-decisions",
+          "model": "gpt-6-luna",
+          "question": "reviewability",
+          "split": "evaluation",
+          "answers": 21,
+          "choices": {
+            "insufficient": 1,
+            "sufficient": 20
+          },
+          "confidence": {
+            "available": 21,
+            "mean": 0.878095238095238,
+            "median": 0.96
+          },
+          "option_probabilities": {
+            "insufficient": {
+              "available": 21,
+              "mean": 0.09047619047619047
+            },
+            "sufficient": {
+              "available": 21,
+              "mean": 0.909047619047619
+            },
+            "uncertain": {
+              "available": 21,
+              "mean": 0.0004761904761904762
+            }
+          }
+        }
+      ]
+    }
+  },
+  "historical_baseline": {
+    "sha256": "85fc7e82a876998299eb116c1896a5e58b579152fdbc95f716594adb704bda1f",
+    "configurations": {
+      "local-speed": {
+        "summary": {
+          "images": 100,
+          "attempted": 100,
+          "completed": 100,
+          "failed": 0,
+          "failure_counts": {},
+          "unattempted": 0,
+          "scored": 100,
+          "unscored_completed": 0,
+          "zero_word_references": 0,
+          "group_conflict_images": 0,
+          "counts": {
+            "at_least_80": 24,
+            "coverage_100": 6,
+            "reference_pass": 6,
+            "exact_100": 2,
+            "exact_reference_pass": 2
+          },
+          "image_rates": {
+            "at_least_80": 0.24,
+            "coverage_100": 0.06,
+            "reference_pass": 0.06,
+            "exact_100": 0.02,
+            "exact_reference_pass": 0.02
+          },
+          "words": {
+            "matched": 1502,
+            "exact_matched": 1287,
+            "scored_total": 2670,
+            "planned_total": 2670
+          },
+          "word_weighted_coverage": 0.5625468164794007,
+          "word_weighted_exact_coverage": 0.4820224719101124,
+          "mean_image_coverage": 0.4417981546970491,
+          "mean_image_exact_coverage": 0.35619743624073125,
+          "all_planned_word_coverage_lower_bound": 0.5625468164794007,
+          "all_planned_exact_word_coverage_lower_bound": 0.4820224719101124,
+          "all_planned_mean_coverage_lower_bound": 0.4417981546970491,
+          "time": {
+            "measured_images": 100,
+            "unknown_images": 0,
+            "image_seconds_total": 1648.7048587479512,
+            "mean_image_seconds": 16.487048587479514,
+            "median_image_seconds": 15.159630729525816,
+            "p95_image_seconds": 32.984249917033594
+          },
+          "cost": {
+            "currency": "USD",
+            "known_images": 100,
+            "unknown_images": 0,
+            "recorded_estimate_subtotal": 0.0,
+            "recorded_estimate_per_attempt": 0.0,
+            "estimated_usd": 0.0,
+            "mean_estimated_usd_per_attempt": 0.0,
+            "decision_http_attempts": 0,
+            "decision_api_calls": 0,
+            "ocr_api_calls": 0,
+            "retry_uncertain_images": 0,
+            "unreported_requests": 0
+          }
+        },
+        "categories": {
+          "benign": {
+            "images": 3,
+            "attempted": 3,
+            "completed": 3,
+            "failed": 0,
+            "failure_counts": {},
+            "unattempted": 0,
+            "scored": 3,
+            "unscored_completed": 0,
+            "zero_word_references": 0,
+            "group_conflict_images": 0,
+            "counts": {
+              "at_least_80": 3,
+              "coverage_100": 1,
+              "reference_pass": 1,
+              "exact_100": 0,
+              "exact_reference_pass": 0
+            },
+            "image_rates": {
+              "at_least_80": 1.0,
+              "coverage_100": 0.3333333333333333,
+              "reference_pass": 0.3333333333333333,
+              "exact_100": 0.0,
+              "exact_reference_pass": 0.0
+            },
+            "words": {
+              "matched": 174,
+              "exact_matched": 167,
+              "scored_total": 193,
+              "planned_total": 193
+            },
+            "word_weighted_coverage": 0.9015544041450777,
+            "word_weighted_exact_coverage": 0.8652849740932642,
+            "mean_image_coverage": 0.888095238095238,
+            "mean_image_exact_coverage": 0.8376506024096385,
+            "all_planned_word_coverage_lower_bound": 0.9015544041450777,
+            "all_planned_exact_word_coverage_lower_bound": 0.8652849740932642,
+            "all_planned_mean_coverage_lower_bound": 0.888095238095238,
+            "time": {
+              "measured_images": 3,
+              "unknown_images": 0,
+              "image_seconds_total": 35.334768999018706,
+              "mean_image_seconds": 11.778256333006235,
+              "median_image_seconds": 0.7950969579978846,
+              "p95_image_seconds": 33.95976670802338
+            },
+            "cost": {
+              "currency": "USD",
+              "known_images": 3,
+              "unknown_images": 0,
+              "recorded_estimate_subtotal": 0.0,
+              "recorded_estimate_per_attempt": 0.0,
+              "estimated_usd": 0.0,
+              "mean_estimated_usd_per_attempt": 0.0,
+              "decision_http_attempts": 0,
+              "decision_api_calls": 0,
+              "ocr_api_calls": 0,
+              "retry_uncertain_images": 0,
+              "unreported_requests": 0
+            }
+          },
+          "context_dependent": {
+            "images": 2,
+            "attempted": 2,
+            "completed": 2,
+            "failed": 0,
+            "failure_counts": {},
+            "unattempted": 0,
+            "scored": 2,
+            "unscored_completed": 0,
+            "zero_word_references": 0,
+            "group_conflict_images": 0,
+            "counts": {
+              "at_least_80": 2,
+              "coverage_100": 2,
+              "reference_pass": 2,
+              "exact_100": 0,
+              "exact_reference_pass": 0
+            },
+            "image_rates": {
+              "at_least_80": 1.0,
+              "coverage_100": 1.0,
+              "reference_pass": 1.0,
+              "exact_100": 0.0,
+              "exact_reference_pass": 0.0
+            },
+            "words": {
+              "matched": 62,
+              "exact_matched": 59,
+              "scored_total": 62,
+              "planned_total": 62
+            },
+            "word_weighted_coverage": 1.0,
+            "word_weighted_exact_coverage": 0.9516129032258065,
+            "mean_image_coverage": 1.0,
+            "mean_image_exact_coverage": 0.9181547619047619,
+            "all_planned_word_coverage_lower_bound": 1.0,
+            "all_planned_exact_word_coverage_lower_bound": 0.9516129032258065,
+            "all_planned_mean_coverage_lower_bound": 1.0,
+            "time": {
+              "measured_images": 2,
+              "unknown_images": 0,
+              "image_seconds_total": 43.02204312500544,
+              "mean_image_seconds": 21.51102156250272,
+              "median_image_seconds": 21.51102156250272,
+              "p95_image_seconds": 24.9928100000252
+            },
+            "cost": {
+              "currency": "USD",
+              "known_images": 2,
+              "unknown_images": 0,
+              "recorded_estimate_subtotal": 0.0,
+              "recorded_estimate_per_attempt": 0.0,
+              "estimated_usd": 0.0,
+              "mean_estimated_usd_per_attempt": 0.0,
+              "decision_http_attempts": 0,
+              "decision_api_calls": 0,
+              "ocr_api_calls": 0,
+              "retry_uncertain_images": 0,
+              "unreported_requests": 0
+            }
+          },
+          "cyberseceval3_visual_prompt_injection": {
+            "images": 9,
+            "attempted": 9,
+            "completed": 9,
+            "failed": 0,
+            "failure_counts": {},
+            "unattempted": 0,
+            "scored": 9,
+            "unscored_completed": 0,
+            "zero_word_references": 0,
+            "group_conflict_images": 0,
+            "counts": {
+              "at_least_80": 4,
+              "coverage_100": 0,
+              "reference_pass": 0,
+              "exact_100": 0,
+              "exact_reference_pass": 0
+            },
+            "image_rates": {
+              "at_least_80": 0.4444444444444444,
+              "coverage_100": 0.0,
+              "reference_pass": 0.0,
+              "exact_100": 0.0,
+              "exact_reference_pass": 0.0
+            },
+            "words": {
+              "matched": 80,
+              "exact_matched": 70,
+              "scored_total": 131,
+              "planned_total": 131
+            },
+            "word_weighted_coverage": 0.6106870229007634,
+            "word_weighted_exact_coverage": 0.5343511450381679,
+            "mean_image_coverage": 0.5984279609279609,
+            "mean_image_exact_coverage": 0.5205026455026455,
+            "all_planned_word_coverage_lower_bound": 0.6106870229007634,
+            "all_planned_exact_word_coverage_lower_bound": 0.5343511450381679,
+            "all_planned_mean_coverage_lower_bound": 0.5984279609279609,
+            "time": {
+              "measured_images": 9,
+              "unknown_images": 0,
+              "image_seconds_total": 108.39175795699703,
+              "mean_image_seconds": 12.043528661888558,
+              "median_image_seconds": 3.6707460840116255,
+              "p95_image_seconds": 34.15236366598401
+            },
+            "cost": {
+              "currency": "USD",
+              "known_images": 9,
+              "unknown_images": 0,
+              "recorded_estimate_subtotal": 0.0,
+              "recorded_estimate_per_attempt": 0.0,
+              "estimated_usd": 0.0,
+              "mean_estimated_usd_per_attempt": 0.0,
+              "decision_http_attempts": 0,
+              "decision_api_calls": 0,
+              "ocr_api_calls": 0,
+              "retry_uncertain_images": 0,
+              "unreported_requests": 0
+            }
+          },
+          "injection": {
+            "images": 2,
+            "attempted": 2,
+            "completed": 2,
+            "failed": 0,
+            "failure_counts": {},
+            "unattempted": 0,
+            "scored": 2,
+            "unscored_completed": 0,
+            "zero_word_references": 0,
+            "group_conflict_images": 0,
+            "counts": {
+              "at_least_80": 1,
+              "coverage_100": 0,
+              "reference_pass": 0,
+              "exact_100": 0,
+              "exact_reference_pass": 0
+            },
+            "image_rates": {
+              "at_least_80": 0.5,
+              "coverage_100": 0.0,
+              "reference_pass": 0.0,
+              "exact_100": 0.0,
+              "exact_reference_pass": 0.0
+            },
+            "words": {
+              "matched": 130,
+              "exact_matched": 130,
+              "scored_total": 146,
+              "planned_total": 146
+            },
+            "word_weighted_coverage": 0.8904109589041096,
+            "word_weighted_exact_coverage": 0.8904109589041096,
+            "mean_image_coverage": 0.49242424242424243,
+            "mean_image_exact_coverage": 0.49242424242424243,
+            "all_planned_word_coverage_lower_bound": 0.8904109589041096,
+            "all_planned_exact_word_coverage_lower_bound": 0.8904109589041096,
+            "all_planned_mean_coverage_lower_bound": 0.49242424242424243,
+            "time": {
+              "measured_images": 2,
+              "unknown_images": 0,
+              "image_seconds_total": 18.54505712602986,
+              "mean_image_seconds": 9.27252856301493,
+              "median_image_seconds": 9.27252856301493,
+              "p95_image_seconds": 15.99006104201544
+            },
+            "cost": {
+              "currency": "USD",
+              "known_images": 2,
+              "unknown_images": 0,
+              "recorded_estimate_subtotal": 0.0,
+              "recorded_estimate_per_attempt": 0.0,
+              "estimated_usd": 0.0,
+              "mean_estimated_usd_per_attempt": 0.0,
+              "decision_http_attempts": 0,
+              "decision_api_calls": 0,
+              "ocr_api_calls": 0,
+              "retry_uncertain_images": 0,
+              "unreported_requests": 0
+            }
+          },
+          "mm_safetybench": {
+            "images": 1,
+            "attempted": 1,
+            "completed": 1,
+            "failed": 0,
+            "failure_counts": {},
+            "unattempted": 0,
+            "scored": 1,
+            "unscored_completed": 0,
+            "zero_word_references": 0,
+            "group_conflict_images": 0,
+            "counts": {
+              "at_least_80": 1,
+              "coverage_100": 1,
+              "reference_pass": 1,
+              "exact_100": 1,
+              "exact_reference_pass": 1
+            },
+            "image_rates": {
+              "at_least_80": 1.0,
+              "coverage_100": 1.0,
+              "reference_pass": 1.0,
+              "exact_100": 1.0,
+              "exact_reference_pass": 1.0
+            },
+            "words": {
+              "matched": 5,
+              "exact_matched": 5,
+              "scored_total": 5,
+              "planned_total": 5
+            },
+            "word_weighted_coverage": 1.0,
+            "word_weighted_exact_coverage": 1.0,
+            "mean_image_coverage": 1.0,
+            "mean_image_exact_coverage": 1.0,
+            "all_planned_word_coverage_lower_bound": 1.0,
+            "all_planned_exact_word_coverage_lower_bound": 1.0,
+            "all_planned_mean_coverage_lower_bound": 1.0,
+            "time": {
+              "measured_images": 1,
+              "unknown_images": 0,
+              "image_seconds_total": 16.738047415972687,
+              "mean_image_seconds": 16.738047415972687,
+              "median_image_seconds": 16.738047415972687,
+              "p95_image_seconds": 16.738047415972687
+            },
+            "cost": {
+              "currency": "USD",
+              "known_images": 1,
+              "unknown_images": 0,
+              "recorded_estimate_subtotal": 0.0,
+              "recorded_estimate_per_attempt": 0.0,
+              "estimated_usd": 0.0,
+              "mean_estimated_usd_per_attempt": 0.0,
+              "decision_http_attempts": 0,
+              "decision_api_calls": 0,
+              "ocr_api_calls": 0,
+              "retry_uncertain_images": 0,
+              "unreported_requests": 0
+            }
+          },
+          "textocr": {
+            "images": 81,
+            "attempted": 81,
+            "completed": 81,
+            "failed": 0,
+            "failure_counts": {},
+            "unattempted": 0,
+            "scored": 81,
+            "unscored_completed": 0,
+            "zero_word_references": 0,
+            "group_conflict_images": 0,
+            "counts": {
+              "at_least_80": 11,
+              "coverage_100": 1,
+              "reference_pass": 1,
+              "exact_100": 0,
+              "exact_reference_pass": 0
+            },
+            "image_rates": {
+              "at_least_80": 0.13580246913580246,
+              "coverage_100": 0.012345679012345678,
+              "reference_pass": 0.012345679012345678,
+              "exact_100": 0.0,
+              "exact_reference_pass": 0.0
+            },
+            "words": {
+              "matched": 988,
+              "exact_matched": 795,
+              "scored_total": 2069,
+              "planned_total": 2069
+            },
+            "word_weighted_coverage": 0.4775253745770904,
+            "word_weighted_exact_coverage": 0.3842435959400677,
+            "mean_image_coverage": 0.37240046253526315,
+            "mean_image_exact_coverage": 0.2797522657786933,
+            "all_planned_word_coverage_lower_bound": 0.4775253745770904,
+            "all_planned_exact_word_coverage_lower_bound": 0.3842435959400677,
+            "all_planned_mean_coverage_lower_bound": 0.37240046253526315,
+            "time": {
+              "measured_images": 81,
+              "unknown_images": 0,
+              "image_seconds_total": 1425.2238543748972,
+              "mean_image_seconds": 17.595356226850583,
+              "median_image_seconds": 15.292912999982946,
+              "p95_image_seconds": 32.68952808302129
+            },
+            "cost": {
+              "currency": "USD",
+              "known_images": 81,
+              "unknown_images": 0,
+              "recorded_estimate_subtotal": 0.0,
+              "recorded_estimate_per_attempt": 0.0,
+              "estimated_usd": 0.0,
+              "mean_estimated_usd_per_attempt": 0.0,
+              "decision_http_attempts": 0,
+              "decision_api_calls": 0,
+              "ocr_api_calls": 0,
+              "retry_uncertain_images": 0,
+              "unreported_requests": 0
+            }
+          },
+          "typographic_visual_prompt_injection": {
+            "images": 1,
+            "attempted": 1,
+            "completed": 1,
+            "failed": 0,
+            "failure_counts": {},
+            "unattempted": 0,
+            "scored": 1,
+            "unscored_completed": 0,
+            "zero_word_references": 0,
+            "group_conflict_images": 0,
+            "counts": {
+              "at_least_80": 1,
+              "coverage_100": 1,
+              "reference_pass": 1,
+              "exact_100": 1,
+              "exact_reference_pass": 1
+            },
+            "image_rates": {
+              "at_least_80": 1.0,
+              "coverage_100": 1.0,
+              "reference_pass": 1.0,
+              "exact_100": 1.0,
+              "exact_reference_pass": 1.0
+            },
+            "words": {
+              "matched": 13,
+              "exact_matched": 13,
+              "scored_total": 13,
+              "planned_total": 13
+            },
+            "word_weighted_coverage": 1.0,
+            "word_weighted_exact_coverage": 1.0,
+            "mean_image_coverage": 1.0,
+            "mean_image_exact_coverage": 1.0,
+            "all_planned_word_coverage_lower_bound": 1.0,
+            "all_planned_exact_word_coverage_lower_bound": 1.0,
+            "all_planned_mean_coverage_lower_bound": 1.0,
+            "time": {
+              "measured_images": 1,
+              "unknown_images": 0,
+              "image_seconds_total": 0.35093737504212186,
+              "mean_image_seconds": 0.35093737504212186,
+              "median_image_seconds": 0.35093737504212186,
+              "p95_image_seconds": 0.35093737504212186
+            },
+            "cost": {
+              "currency": "USD",
+              "known_images": 1,
+              "unknown_images": 0,
+              "recorded_estimate_subtotal": 0.0,
+              "recorded_estimate_per_attempt": 0.0,
+              "estimated_usd": 0.0,
+              "mean_estimated_usd_per_attempt": 0.0,
+              "decision_http_attempts": 0,
+              "decision_api_calls": 0,
+              "ocr_api_calls": 0,
+              "retry_uncertain_images": 0,
+              "unreported_requests": 0
+            }
+          },
+          "vpi_bench": {
+            "images": 1,
+            "attempted": 1,
+            "completed": 1,
+            "failed": 0,
+            "failure_counts": {},
+            "unattempted": 0,
+            "scored": 1,
+            "unscored_completed": 0,
+            "zero_word_references": 0,
+            "group_conflict_images": 0,
+            "counts": {
+              "at_least_80": 1,
+              "coverage_100": 0,
+              "reference_pass": 0,
+              "exact_100": 0,
+              "exact_reference_pass": 0
+            },
+            "image_rates": {
+              "at_least_80": 1.0,
+              "coverage_100": 0.0,
+              "reference_pass": 0.0,
+              "exact_100": 0.0,
+              "exact_reference_pass": 0.0
+            },
+            "words": {
+              "matched": 50,
+              "exact_matched": 48,
+              "scored_total": 51,
+              "planned_total": 51
+            },
+            "word_weighted_coverage": 0.9803921568627451,
+            "word_weighted_exact_coverage": 0.9411764705882353,
+            "mean_image_coverage": 0.9803921568627451,
+            "mean_image_exact_coverage": 0.9411764705882353,
+            "all_planned_word_coverage_lower_bound": 0.9803921568627451,
+            "all_planned_exact_word_coverage_lower_bound": 0.9411764705882353,
+            "all_planned_mean_coverage_lower_bound": 0.9803921568627451,
+            "time": {
+              "measured_images": 1,
+              "unknown_images": 0,
+              "image_seconds_total": 1.0983923749881797,
+              "mean_image_seconds": 1.0983923749881797,
+              "median_image_seconds": 1.0983923749881797,
+              "p95_image_seconds": 1.0983923749881797
+            },
+            "cost": {
+              "currency": "USD",
+              "known_images": 1,
+              "unknown_images": 0,
+              "recorded_estimate_subtotal": 0.0,
+              "recorded_estimate_per_attempt": 0.0,
+              "estimated_usd": 0.0,
+              "mean_estimated_usd_per_attempt": 0.0,
+              "decision_http_attempts": 0,
+              "decision_api_calls": 0,
+              "ocr_api_calls": 0,
+              "retry_uncertain_images": 0,
+              "unreported_requests": 0
+            }
+          }
+        }
+      },
+      "cloud-default": {
+        "summary": {
+          "images": 100,
+          "attempted": 100,
+          "completed": 98,
+          "failed": 2,
+          "failure_counts": {
+            "Decisions refused question: assessment": 1,
+            "Google OCR failed: The service is currently unavailable.": 1
+          },
+          "unattempted": 0,
+          "scored": 98,
+          "unscored_completed": 0,
+          "zero_word_references": 0,
+          "group_conflict_images": 0,
+          "counts": {
+            "at_least_80": 40,
+            "coverage_100": 13,
+            "reference_pass": 13,
+            "exact_100": 6,
+            "exact_reference_pass": 6
+          },
+          "image_rates": {
+            "at_least_80": 0.4,
+            "coverage_100": 0.13,
+            "reference_pass": 0.13,
+            "exact_100": 0.06,
+            "exact_reference_pass": 0.06
+          },
+          "words": {
+            "matched": 1997,
+            "exact_matched": 1654,
+            "scored_total": 2641,
+            "planned_total": 2670
+          },
+          "word_weighted_coverage": 0.756152972358955,
+          "word_weighted_exact_coverage": 0.6262779250283983,
+          "mean_image_coverage": 0.6608342950891634,
+          "mean_image_exact_coverage": 0.5478454310427553,
+          "all_planned_word_coverage_lower_bound": 0.747940074906367,
+          "all_planned_exact_word_coverage_lower_bound": 0.6194756554307116,
+          "all_planned_mean_coverage_lower_bound": 0.6476176091873801,
+          "time": {
+            "measured_images": 100,
+            "unknown_images": 0,
+            "image_seconds_total": 588.3058106588433,
+            "mean_image_seconds": 5.883058106588432,
+            "median_image_seconds": 5.675308708479861,
+            "p95_image_seconds": 10.478238416020758
+          },
+          "cost": {
+            "currency": "USD",
+            "known_images": 98,
+            "unknown_images": 2,
+            "recorded_estimate_subtotal": 0.6712976,
+            "recorded_estimate_per_attempt": 0.006712976000000001,
+            "estimated_usd": null,
+            "mean_estimated_usd_per_attempt": null,
+            "decision_http_attempts": 219,
+            "decision_api_calls": 220,
+            "ocr_api_calls": 390,
+            "retry_uncertain_images": 0,
+            "unreported_requests": 2
+          }
+        },
+        "categories": {
+          "benign": {
+            "images": 3,
+            "attempted": 3,
+            "completed": 3,
+            "failed": 0,
+            "failure_counts": {},
+            "unattempted": 0,
+            "scored": 3,
+            "unscored_completed": 0,
+            "zero_word_references": 0,
+            "group_conflict_images": 0,
+            "counts": {
+              "at_least_80": 2,
+              "coverage_100": 1,
+              "reference_pass": 1,
+              "exact_100": 0,
+              "exact_reference_pass": 0
+            },
+            "image_rates": {
+              "at_least_80": 0.6666666666666666,
+              "coverage_100": 0.3333333333333333,
+              "reference_pass": 0.3333333333333333,
+              "exact_100": 0.0,
+              "exact_reference_pass": 0.0
+            },
+            "words": {
+              "matched": 176,
+              "exact_matched": 153,
+              "scored_total": 193,
+              "planned_total": 193
+            },
+            "word_weighted_coverage": 0.9119170984455959,
+            "word_weighted_exact_coverage": 0.7927461139896373,
+            "mean_image_coverage": 0.9197934595524957,
+            "mean_image_exact_coverage": 0.7827596098680436,
+            "all_planned_word_coverage_lower_bound": 0.9119170984455959,
+            "all_planned_exact_word_coverage_lower_bound": 0.7927461139896373,
+            "all_planned_mean_coverage_lower_bound": 0.9197934595524956,
+            "time": {
+              "measured_images": 3,
+              "unknown_images": 0,
+              "image_seconds_total": 13.080271748942323,
+              "mean_image_seconds": 4.360090582980774,
+              "median_image_seconds": 3.805248290998861,
+              "p95_image_seconds": 5.90335724997567
+            },
+            "cost": {
+              "currency": "USD",
+              "known_images": 3,
+              "unknown_images": 0,
+              "recorded_estimate_subtotal": 0.0272774,
+              "recorded_estimate_per_attempt": 0.009092466666666667,
+              "estimated_usd": 0.0272774,
+              "mean_estimated_usd_per_attempt": 0.009092466666666667,
+              "decision_http_attempts": 6,
+              "decision_api_calls": 6,
+              "ocr_api_calls": 16,
+              "retry_uncertain_images": 0,
+              "unreported_requests": 0
+            }
+          },
+          "context_dependent": {
+            "images": 2,
+            "attempted": 2,
+            "completed": 2,
+            "failed": 0,
+            "failure_counts": {},
+            "unattempted": 0,
+            "scored": 2,
+            "unscored_completed": 0,
+            "zero_word_references": 0,
+            "group_conflict_images": 0,
+            "counts": {
+              "at_least_80": 1,
+              "coverage_100": 0,
+              "reference_pass": 0,
+              "exact_100": 0,
+              "exact_reference_pass": 0
+            },
+            "image_rates": {
+              "at_least_80": 0.5,
+              "coverage_100": 0.0,
+              "reference_pass": 0.0,
+              "exact_100": 0.0,
+              "exact_reference_pass": 0.0
+            },
+            "words": {
+              "matched": 45,
+              "exact_matched": 44,
+              "scored_total": 62,
+              "planned_total": 62
+            },
+            "word_weighted_coverage": 0.7258064516129032,
+            "word_weighted_exact_coverage": 0.7096774193548387,
+            "mean_image_coverage": 0.7723214285714286,
+            "mean_image_exact_coverage": 0.7619047619047619,
+            "all_planned_word_coverage_lower_bound": 0.7258064516129032,
+            "all_planned_exact_word_coverage_lower_bound": 0.7096774193548387,
+            "all_planned_mean_coverage_lower_bound": 0.7723214285714286,
+            "time": {
+              "measured_images": 2,
+              "unknown_images": 0,
+              "image_seconds_total": 21.823280666023493,
+              "mean_image_seconds": 10.911640333011746,
+              "median_image_seconds": 10.911640333011746,
+              "p95_image_seconds": 16.10273920802865
+            },
+            "cost": {
+              "currency": "USD",
+              "known_images": 2,
+              "unknown_images": 0,
+              "recorded_estimate_subtotal": 0.027231675,
+              "recorded_estimate_per_attempt": 0.0136158375,
+              "estimated_usd": 0.027231675,
+              "mean_estimated_usd_per_attempt": 0.0136158375,
+              "decision_http_attempts": 4,
+              "decision_api_calls": 4,
+              "ocr_api_calls": 16,
+              "retry_uncertain_images": 0,
+              "unreported_requests": 0
+            }
+          },
+          "cyberseceval3_visual_prompt_injection": {
+            "images": 9,
+            "attempted": 9,
+            "completed": 8,
+            "failed": 1,
+            "failure_counts": {
+              "Google OCR failed: The service is currently unavailable.": 1
+            },
+            "unattempted": 0,
+            "scored": 8,
+            "unscored_completed": 0,
+            "zero_word_references": 0,
+            "group_conflict_images": 0,
+            "counts": {
+              "at_least_80": 6,
+              "coverage_100": 6,
+              "reference_pass": 6,
+              "exact_100": 5,
+              "exact_reference_pass": 5
+            },
+            "image_rates": {
+              "at_least_80": 0.6666666666666666,
+              "coverage_100": 0.6666666666666666,
+              "reference_pass": 0.6666666666666666,
+              "exact_100": 0.5555555555555556,
+              "exact_reference_pass": 0.5555555555555556
+            },
+            "words": {
+              "matched": 101,
+              "exact_matched": 97,
+              "scored_total": 115,
+              "planned_total": 131
+            },
+            "word_weighted_coverage": 0.8782608695652174,
+            "word_weighted_exact_coverage": 0.8434782608695652,
+            "mean_image_coverage": 0.8715659340659341,
+            "mean_image_exact_coverage": 0.8351648351648352,
+            "all_planned_word_coverage_lower_bound": 0.7709923664122137,
+            "all_planned_exact_word_coverage_lower_bound": 0.7404580152671756,
+            "all_planned_mean_coverage_lower_bound": 0.7747252747252747,
+            "time": {
+              "measured_images": 9,
+              "unknown_images": 0,
+              "image_seconds_total": 57.95248404098675,
+              "mean_image_seconds": 6.439164893442972,
+              "median_image_seconds": 5.85118329199031,
+              "p95_image_seconds": 8.080403333005961
+            },
+            "cost": {
+              "currency": "USD",
+              "known_images": 8,
+              "unknown_images": 1,
+              "recorded_estimate_subtotal": 0.047722175000000006,
+              "recorded_estimate_per_attempt": 0.00530246388888889,
+              "estimated_usd": null,
+              "mean_estimated_usd_per_attempt": null,
+              "decision_http_attempts": 16,
+              "decision_api_calls": 16,
+              "ocr_api_calls": 29,
+              "retry_uncertain_images": 0,
+              "unreported_requests": 1
+            }
+          },
+          "injection": {
+            "images": 2,
+            "attempted": 2,
+            "completed": 2,
+            "failed": 0,
+            "failure_counts": {},
+            "unattempted": 0,
+            "scored": 2,
+            "unscored_completed": 0,
+            "zero_word_references": 0,
+            "group_conflict_images": 0,
+            "counts": {
+              "at_least_80": 1,
+              "coverage_100": 0,
+              "reference_pass": 0,
+              "exact_100": 0,
+              "exact_reference_pass": 0
+            },
+            "image_rates": {
+              "at_least_80": 0.5,
+              "coverage_100": 0.0,
+              "reference_pass": 0.0,
+              "exact_100": 0.0,
+              "exact_reference_pass": 0.0
+            },
+            "words": {
+              "matched": 129,
+              "exact_matched": 129,
+              "scored_total": 146,
+              "planned_total": 146
+            },
+            "word_weighted_coverage": 0.8835616438356164,
+            "word_weighted_exact_coverage": 0.8835616438356164,
+            "mean_image_coverage": 0.48863636363636365,
+            "mean_image_exact_coverage": 0.48863636363636365,
+            "all_planned_word_coverage_lower_bound": 0.8835616438356164,
+            "all_planned_exact_word_coverage_lower_bound": 0.8835616438356164,
+            "all_planned_mean_coverage_lower_bound": 0.48863636363636365,
+            "time": {
+              "measured_images": 2,
+              "unknown_images": 0,
+              "image_seconds_total": 13.637870915990788,
+              "mean_image_seconds": 6.818935457995394,
+              "median_image_seconds": 6.818935457995394,
+              "p95_image_seconds": 12.029103957989719
+            },
+            "cost": {
+              "currency": "USD",
+              "known_images": 2,
+              "unknown_images": 0,
+              "recorded_estimate_subtotal": 0.016761150000000002,
+              "recorded_estimate_per_attempt": 0.008380575000000001,
+              "estimated_usd": 0.016761150000000002,
+              "mean_estimated_usd_per_attempt": 0.008380575000000001,
+              "decision_http_attempts": 3,
+              "decision_api_calls": 3,
+              "ocr_api_calls": 8,
+              "retry_uncertain_images": 0,
+              "unreported_requests": 0
+            }
+          },
+          "mm_safetybench": {
+            "images": 1,
+            "attempted": 1,
+            "completed": 1,
+            "failed": 0,
+            "failure_counts": {},
+            "unattempted": 0,
+            "scored": 1,
+            "unscored_completed": 0,
+            "zero_word_references": 0,
+            "group_conflict_images": 0,
+            "counts": {
+              "at_least_80": 0,
+              "coverage_100": 0,
+              "reference_pass": 0,
+              "exact_100": 0,
+              "exact_reference_pass": 0
+            },
+            "image_rates": {
+              "at_least_80": 0.0,
+              "coverage_100": 0.0,
+              "reference_pass": 0.0,
+              "exact_100": 0.0,
+              "exact_reference_pass": 0.0
+            },
+            "words": {
+              "matched": 3,
+              "exact_matched": 3,
+              "scored_total": 5,
+              "planned_total": 5
+            },
+            "word_weighted_coverage": 0.6,
+            "word_weighted_exact_coverage": 0.6,
+            "mean_image_coverage": 0.6,
+            "mean_image_exact_coverage": 0.6,
+            "all_planned_word_coverage_lower_bound": 0.6,
+            "all_planned_exact_word_coverage_lower_bound": 0.6,
+            "all_planned_mean_coverage_lower_bound": 0.6,
+            "time": {
+              "measured_images": 1,
+              "unknown_images": 0,
+              "image_seconds_total": 6.311073583026882,
+              "mean_image_seconds": 6.311073583026882,
+              "median_image_seconds": 6.311073583026882,
+              "p95_image_seconds": 6.311073583026882
+            },
+            "cost": {
+              "currency": "USD",
+              "known_images": 1,
+              "unknown_images": 0,
+              "recorded_estimate_subtotal": 0.00547565,
+              "recorded_estimate_per_attempt": 0.00547565,
+              "estimated_usd": 0.00547565,
+              "mean_estimated_usd_per_attempt": 0.00547565,
+              "decision_http_attempts": 2,
+              "decision_api_calls": 2,
+              "ocr_api_calls": 3,
+              "retry_uncertain_images": 0,
+              "unreported_requests": 0
+            }
+          },
+          "textocr": {
+            "images": 81,
+            "attempted": 81,
+            "completed": 81,
+            "failed": 0,
+            "failure_counts": {},
+            "unattempted": 0,
+            "scored": 81,
+            "unscored_completed": 0,
+            "zero_word_references": 0,
+            "group_conflict_images": 0,
+            "counts": {
+              "at_least_80": 29,
+              "coverage_100": 5,
+              "reference_pass": 5,
+              "exact_100": 1,
+              "exact_reference_pass": 1
+            },
+            "image_rates": {
+              "at_least_80": 0.35802469135802467,
+              "coverage_100": 0.06172839506172839,
+              "reference_pass": 0.06172839506172839,
+              "exact_100": 0.012345679012345678,
+              "exact_reference_pass": 0.012345679012345678
+            },
+            "words": {
+              "matched": 1492,
+              "exact_matched": 1187,
+              "scored_total": 2069,
+              "planned_total": 2069
+            },
+            "word_weighted_coverage": 0.7211213146447559,
+            "word_weighted_exact_coverage": 0.5737071048815853,
+            "mean_image_coverage": 0.6284930553473761,
+            "mean_image_exact_coverage": 0.5031389001426853,
+            "all_planned_word_coverage_lower_bound": 0.7211213146447559,
+            "all_planned_exact_word_coverage_lower_bound": 0.5737071048815853,
+            "all_planned_mean_coverage_lower_bound": 0.6284930553473761,
+            "time": {
+              "measured_images": 81,
+              "unknown_images": 0,
+              "image_seconds_total": 471.00127695384435,
+              "mean_image_seconds": 5.814830579677091,
+              "median_image_seconds": 5.414194624987431,
+              "p95_image_seconds": 9.901288042019587
+            },
+            "cost": {
+              "currency": "USD",
+              "known_images": 81,
+              "unknown_images": 0,
+              "recorded_estimate_subtotal": 0.5381569,
+              "recorded_estimate_per_attempt": 0.006643912345679013,
+              "estimated_usd": 0.5381569,
+              "mean_estimated_usd_per_attempt": 0.006643912345679013,
+              "decision_http_attempts": 186,
+              "decision_api_calls": 186,
+              "ocr_api_calls": 313,
+              "retry_uncertain_images": 0,
+              "unreported_requests": 0
+            }
+          },
+          "typographic_visual_prompt_injection": {
+            "images": 1,
+            "attempted": 1,
+            "completed": 0,
+            "failed": 1,
+            "failure_counts": {
+              "Decisions refused question: assessment": 1
+            },
+            "unattempted": 0,
+            "scored": 0,
+            "unscored_completed": 0,
+            "zero_word_references": 0,
+            "group_conflict_images": 0,
+            "counts": {
+              "at_least_80": 0,
+              "coverage_100": 0,
+              "reference_pass": 0,
+              "exact_100": 0,
+              "exact_reference_pass": 0
+            },
+            "image_rates": {
+              "at_least_80": 0.0,
+              "coverage_100": 0.0,
+              "reference_pass": 0.0,
+              "exact_100": 0.0,
+              "exact_reference_pass": 0.0
+            },
+            "words": {
+              "matched": 0,
+              "exact_matched": 0,
+              "scored_total": 0,
+              "planned_total": 13
+            },
+            "word_weighted_coverage": null,
+            "word_weighted_exact_coverage": null,
+            "mean_image_coverage": null,
+            "mean_image_exact_coverage": null,
+            "all_planned_word_coverage_lower_bound": 0.0,
+            "all_planned_exact_word_coverage_lower_bound": 0.0,
+            "all_planned_mean_coverage_lower_bound": 0.0,
+            "time": {
+              "measured_images": 1,
+              "unknown_images": 0,
+              "image_seconds_total": 0.48088783299317583,
+              "mean_image_seconds": 0.48088783299317583,
+              "median_image_seconds": 0.48088783299317583,
+              "p95_image_seconds": 0.48088783299317583
+            },
+            "cost": {
+              "currency": "USD",
+              "known_images": 0,
+              "unknown_images": 1,
+              "recorded_estimate_subtotal": 0.0015,
+              "recorded_estimate_per_attempt": 0.0015,
+              "estimated_usd": null,
+              "mean_estimated_usd_per_attempt": null,
+              "decision_http_attempts": 0,
+              "decision_api_calls": 1,
+              "ocr_api_calls": 1,
+              "retry_uncertain_images": 0,
+              "unreported_requests": 1
+            }
+          },
+          "vpi_bench": {
+            "images": 1,
+            "attempted": 1,
+            "completed": 1,
+            "failed": 0,
+            "failure_counts": {},
+            "unattempted": 0,
+            "scored": 1,
+            "unscored_completed": 0,
+            "zero_word_references": 0,
+            "group_conflict_images": 0,
+            "counts": {
+              "at_least_80": 1,
+              "coverage_100": 1,
+              "reference_pass": 1,
+              "exact_100": 0,
+              "exact_reference_pass": 0
+            },
+            "image_rates": {
+              "at_least_80": 1.0,
+              "coverage_100": 1.0,
+              "reference_pass": 1.0,
+              "exact_100": 0.0,
+              "exact_reference_pass": 0.0
+            },
+            "words": {
+              "matched": 51,
+              "exact_matched": 41,
+              "scored_total": 51,
+              "planned_total": 51
+            },
+            "word_weighted_coverage": 1.0,
+            "word_weighted_exact_coverage": 0.803921568627451,
+            "mean_image_coverage": 1.0,
+            "mean_image_exact_coverage": 0.803921568627451,
+            "all_planned_word_coverage_lower_bound": 1.0,
+            "all_planned_exact_word_coverage_lower_bound": 0.803921568627451,
+            "all_planned_mean_coverage_lower_bound": 1.0,
+            "time": {
+              "measured_images": 1,
+              "unknown_images": 0,
+              "image_seconds_total": 4.018664917035494,
+              "mean_image_seconds": 4.018664917035494,
+              "median_image_seconds": 4.018664917035494,
+              "p95_image_seconds": 4.018664917035494
+            },
+            "cost": {
+              "currency": "USD",
+              "known_images": 1,
+              "unknown_images": 0,
+              "recorded_estimate_subtotal": 0.007172650000000001,
+              "recorded_estimate_per_attempt": 0.007172650000000001,
+              "estimated_usd": 0.007172650000000001,
+              "mean_estimated_usd_per_attempt": 0.007172650000000001,
+              "decision_http_attempts": 2,
+              "decision_api_calls": 2,
+              "ocr_api_calls": 4,
+              "retry_uncertain_images": 0,
+              "unreported_requests": 0
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,4 +1,4 @@
-"""Bounded independent detector scheduling over frozen OCR readings."""
+"""Schedule detector checks over frozen OCR readings and persist their verdicts."""
 
 from concurrent.futures import CancelledError, ThreadPoolExecutor, as_completed
 import json
@@ -15,20 +15,20 @@ from vipi.storage.detection import DetectionStore
 from vipi.cancellation import check_cancelled
 from .verdict import probability, summarize, validate_thresholds
 
-TEXT_CLASSIFIERS = ("jev", "openai", "prompt-guard", "compare", "off")
+COMPARISON_PROVIDERS = ("jev", "openai", "prompt-guard")
+TEXT_PROVIDERS = (*COMPARISON_PROVIDERS, "clef", "d1")
+TEXT_CLASSIFIERS = (*TEXT_PROVIDERS, "compare", "off")
 
 
 def classifier_names(options):
     if "text_classifiers" in options:
         return options["text_classifiers"]
     name = options["text_classifier"]
-    return (
-        list(TEXT_CLASSIFIERS[:3])
-        if name == "compare"
-        else []
-        if name == "off"
-        else [name]
-    )
+    if name == "compare":
+        return list(COMPARISON_PROVIDERS)
+    if name == "off":
+        return []
+    return [name]
 
 
 def settings(
@@ -50,11 +50,11 @@ def settings(
     selected = None
     if text_classifiers is not None:
         if not isinstance(text_classifiers, list) or any(
-            not isinstance(name, str) or name not in TEXT_CLASSIFIERS[:3]
+            not isinstance(name, str) or name not in TEXT_PROVIDERS
             for name in text_classifiers
         ):
             raise ValueError("Choose supported text classifiers as a list.")
-        selected = [name for name in TEXT_CLASSIFIERS[:3] if name in text_classifiers]
+        selected = [name for name in TEXT_PROVIDERS if name in text_classifiers]
         text_classifier = (
             selected[0] if len(selected) == 1 else "compare" if selected else "off"
         )
@@ -158,6 +158,104 @@ def cached_answers(directory):
     return saved
 
 
+def _check_job(
+    job,
+    evidence,
+    image,
+    options,
+    prepared,
+    providers,
+    errors,
+    saved,
+    store,
+    cancel_event,
+):
+    """Execute or replay one check against the already frozen evidence."""
+    check_cancelled(cancel_event)
+    provider = providers.get(job["provider"])
+    context = {} if job["provider"] == "prompt-guard" else options["context"]
+    payload = state(job["evidence"], context)
+    with_image = job["signal"] in {"image", "context"}
+    fingerprint = digest(
+        {
+            "schema_version": 2,
+            "evidence_scope": "final_ocr",
+            "provider": job["provider"],
+            "identity": provider.identity if provider else None,
+            "policy": INSTRUCTIONS,
+            "policy_version": POLICY_VERSION,
+            "signal": job["signal"],
+            "payload": payload,
+            "image": evidence["image_hash"] if with_image else None,
+            "context_hash": prepared["context_hash"],
+        }
+    )
+    base = {key: value for key, value in job.items() if key not in {"text", "evidence"}}
+    base.update(
+        fingerprint=fingerprint,
+        policy_version=POLICY_VERSION,
+        context_hash=prepared["context_hash"],
+        probability=None,
+        model=provider.model if provider else None,
+        status="error",
+        replayed=False,
+    )
+    if provider and fingerprint in saved:
+        old = saved[fingerprint]
+        base.update(
+            {
+                key: value
+                for key, value in old.items()
+                if key not in base
+                or key in {"probability", "status", "model", "partial_context"}
+            }
+        )
+        base.update(
+            replayed=True,
+            replayed_from=old.get("check_id"),
+            latency_seconds=0.0,
+        )
+        return base
+    check_started = time.perf_counter()
+    store.emit("check_started", active_check=job["id"], active_signal=job["signal"])
+    check_cancelled(cancel_event)
+    try:
+        if not provider:
+            raise ValueError(errors[job["provider"]])
+        if with_image and image is None:
+            raise ValueError(
+                "Original input raster is missing; image check cannot run."
+            )
+        answer = provider.check(payload, image if with_image else None)
+        if answer.get("status") == "completed":
+            probability(answer.get("probability"))
+        base.update(answer)
+    except Exception as error:
+        base.update(
+            status="error",
+            error=str(error),
+            attempts=getattr(error, "attempts", 0),
+            cost_uncertain=getattr(error, "attempts", 0) > 0,
+        )
+    base["latency_seconds"] = time.perf_counter() - check_started
+    return base
+
+
+def _save_answer(answer, evidence, options, prepared, store):
+    """Apply the current threshold policy and persist one provider answer."""
+    if answer["signal"] == "context" and not prepared["context_available"]:
+        answer["partial_context"] = True
+    single = summarize(
+        [answer],
+        [answer["signal"]],
+        options["thresholds"],
+        evidence_complete=evidence["ocr_complete"]
+        and (bool(evidence["readings"]) or not classifier_names(options)),
+    )
+    answer.update(verdict=single["verdict"], check_id=store.id)
+    store.save_answer(answer)
+
+
 def detect(
     evidence,
     image=None,
@@ -170,6 +268,7 @@ def detect(
     provider_factory=None,
     cancel_event=None,
 ):
+    """Check final OCR evidence, preserving replay, cancellation and partial answers."""
     options = settings(**(options or {}))
     store = store or DetectionStore(on_event=on_event, run_id=evidence["run_id"])
     factory = provider_factory or (lambda name: create_provider(name, model_dir))
@@ -206,96 +305,6 @@ def detect(
             except Exception as error:
                 errors[name] = str(error)
 
-        def work(job):
-            check_cancelled(cancel_event)
-            provider = providers.get(job["provider"])
-            context = {} if job["provider"] == "prompt-guard" else options["context"]
-            payload = state(job["evidence"], context)
-            with_image = job["signal"] in {"image", "context"}
-            fingerprint = digest(
-                {
-                    "schema_version": 2,
-                    "evidence_scope": "final_ocr",
-                    "provider": job["provider"],
-                    "identity": provider.identity if provider else None,
-                    "policy": INSTRUCTIONS,
-                    "policy_version": POLICY_VERSION,
-                    "signal": job["signal"],
-                    "payload": payload,
-                    "image": evidence["image_hash"] if with_image else None,
-                    "context_hash": prepared["context_hash"],
-                }
-            )
-            base = {
-                key: value
-                for key, value in job.items()
-                if key not in {"text", "evidence"}
-            }
-            base.update(
-                fingerprint=fingerprint,
-                policy_version=POLICY_VERSION,
-                context_hash=prepared["context_hash"],
-                probability=None,
-                model=provider.model if provider else None,
-                status="error",
-                replayed=False,
-            )
-            if provider and fingerprint in saved:
-                old = saved[fingerprint]
-                base.update(
-                    {
-                        key: value
-                        for key, value in old.items()
-                        if key not in base
-                        or key in {"probability", "status", "model", "partial_context"}
-                    }
-                )
-                base.update(
-                    replayed=True,
-                    replayed_from=old.get("check_id"),
-                    latency_seconds=0.0,
-                )
-                return base
-            check_started = time.perf_counter()
-            store.emit(
-                "check_started", active_check=job["id"], active_signal=job["signal"]
-            )
-            check_cancelled(cancel_event)
-            try:
-                if not provider:
-                    raise ValueError(errors[job["provider"]])
-                if with_image and image is None:
-                    raise ValueError(
-                        "Original input raster is missing; image check cannot run."
-                    )
-                answer = provider.check(payload, image if with_image else None)
-                if answer.get("status") == "completed":
-                    probability(answer.get("probability"))
-                base.update(answer)
-            except Exception as error:
-                base.update(
-                    status="error",
-                    error=str(error),
-                    attempts=getattr(error, "attempts", 0),
-                    cost_uncertain=getattr(error, "attempts", 0) > 0,
-                )
-            base["latency_seconds"] = time.perf_counter() - check_started
-            return base
-
-        def save(future):
-            answer = future.result()
-            if answer["signal"] == "context" and not prepared["context_available"]:
-                answer["partial_context"] = True
-            single = summarize(
-                [answer],
-                [answer["signal"]],
-                options["thresholds"],
-                evidence_complete=evidence["ocr_complete"]
-                and (bool(evidence["readings"]) or not classifier_names(options)),
-            )
-            answer.update(verdict=single["verdict"], check_id=store.id)
-            store.save_answer(answer)
-
         with (
             ThreadPoolExecutor(max_workers=4, thread_name_prefix="detector-api") as api,
             ThreadPoolExecutor(
@@ -303,12 +312,24 @@ def detect(
             ) as local,
         ):
             futures = [
-                (local if job["provider"] == "prompt-guard" else api).submit(work, job)
+                (local if job["provider"] == "prompt-guard" else api).submit(
+                    _check_job,
+                    job,
+                    evidence,
+                    image,
+                    options,
+                    prepared,
+                    providers,
+                    errors,
+                    saved,
+                    store,
+                    cancel_event,
+                )
                 for job in jobs
             ]
             for future in as_completed(futures):
                 try:
-                    save(future)
+                    _save_answer(future.result(), evidence, options, prepared, store)
                 except CancelledError:
                     continue
         check_cancelled(cancel_event)

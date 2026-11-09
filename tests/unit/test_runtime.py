@@ -25,26 +25,21 @@ def test_cpu_budget_is_shared_between_workers(monkeypatch, cores, workers, expec
 
 def test_coreml_requires_a_supported_runtime_and_model(monkeypatch):
     monkeypatch.setattr("vipi.ocr.runtime.coreml_available", lambda: False)
-    validate_backend("tesseract", "cpu")
     with pytest.raises(ValueError, match="macOS"):
         validate_backend("ppocr-v6", "coreml")
     monkeypatch.setattr("vipi.ocr.runtime.coreml_available", lambda: True)
     validate_backend("ppocr-v6", "coreml")
-    with pytest.raises(ValueError, match="Tesseract"):
-        validate_backend("tesseract", "coreml")
     for backend in [None, "unknown", [], {}]:
         with pytest.raises(ValueError, match="Choose"):
             validate_backend("ppocr-v6", backend)
 
 
-def test_cuda_requires_the_gpu_runtime_and_rejects_tesseract(monkeypatch):
+def test_cuda_requires_the_gpu_runtime(monkeypatch):
     monkeypatch.setattr("vipi.ocr.runtime.cuda_available", lambda: False)
     with pytest.raises(ValueError, match="ocr-cuda"):
         validate_backend("ppocr-v6", "cuda")
     monkeypatch.setattr("vipi.ocr.runtime.cuda_available", lambda: True)
     validate_backend("ppocr-v6", "cuda")
-    with pytest.raises(ValueError, match="Tesseract"):
-        validate_backend("tesseract", "cuda")
 
 
 @pytest.mark.parametrize(

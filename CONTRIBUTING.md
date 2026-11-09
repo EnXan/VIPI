@@ -41,6 +41,41 @@ See [Development](docs/development.md) for available commands and setup details.
 - Do not commit API keys, credentials, downloaded model weights, or generated
   run artifacts.
 
+## Evaluating improvements
+
+A change that claims to improve OCR, injection detection or the end-to-end
+scan needs a comparison with a baseline, not just a higher primary score. See
+the [evaluation guide](research/evaluate/README.md) for configurations, metrics
+and outputs. The workbench **Evaluate** page runs the same steps.
+
+1. **Name the affected configuration** (for example `local-speed` or
+   `cloud-google`) before editing. Include only configurations your change
+   can affect.
+2. **Check the baseline before changing code:**
+   `uv run python -m research.evaluate status <configuration>`. `fresh` means
+   the saved baseline matches the current dataset, split and configuration.
+3. **Refresh a stale or missing baseline** on unmodified code:
+   `uv run python -m research.evaluate run <configuration>`, then
+   `uv run python -m research.evaluate save-baseline <run-id>` and commit the
+   file in `research/baselines/`. A baseline produced after implementation
+   started does not count.
+4. **Run your change:** `uv run python -m research.evaluate run <configuration>`.
+   The run compares itself with the saved baseline and writes
+   `comparison.md` into its run directory. If it says "not the same inputs",
+   it is not a direct comparison.
+5. **Report.** Attach or link `comparison.md` in the pull request. Keep OCR
+   and detection outcomes separate, and include failures, time, resources and
+   cost.
+6. **Review value against complexity.** Describe the modules, branches,
+   dependencies and operational requirements you added, and whether the
+   measured change justifies them. A small gain does not automatically justify
+   a large expansion.
+
+Use the `development` split for all of this. The `test` split is reserved for
+one confirmation run before a default changes (`--confirm-test-split`); never
+iterate or tune on it. Cloud runs call providers and incur charges; check a
+request with `--dry-run` first.
+
 ## Pull requests
 
 1. Create a branch for your change (or work in a fork).

@@ -1,0 +1,145 @@
+{
+  "description": "Attack screenshots obfuscated after the fact (ADR 0051 rule 5): image-level obfuscations applied to clean vpi_bench attack screenshots (CC-BY-4.0), so benign and attack screenshots carry mirrored, rotated, distorted and blurred text at similar rates. Each replaces its original; labels, payload, OCR reference and source are copied.",
+  "items": [
+    {
+      "from": "04e2c90d84e040f8",
+      "obfuscation": [
+        "mirrored_text"
+      ],
+      "note": "web_page, injection"
+    },
+    {
+      "from": "08e0f596520c28ce",
+      "obfuscation": [
+        "mirrored_text"
+      ],
+      "note": "web_page, injection"
+    },
+    {
+      "from": "0f2be1a03e8ebf28",
+      "obfuscation": [
+        "mirrored_text"
+      ],
+      "note": "web_page, injection"
+    },
+    {
+      "from": "1568ba320424ba7e",
+      "obfuscation": [
+        "mirrored_text"
+      ],
+      "note": "email, injection"
+    },
+    {
+      "from": "185e7d1d9505e2d9",
+      "obfuscation": [
+        "mirrored_text"
+      ],
+      "note": "chat, injection"
+    },
+    {
+      "from": "1d67bc4f23627a94",
+      "obfuscation": [
+        "mirrored_text"
+      ],
+      "note": "web_page, injection"
+    },
+    {
+      "from": "209bd919aecfcae6",
+      "obfuscation": [
+        "rotated_text"
+      ],
+      "note": "email, injection"
+    },
+    {
+      "from": "255d0a1f17b3f160",
+      "obfuscation": [
+        "rotated_text"
+      ],
+      "note": "email, injection"
+    },
+    {
+      "from": "29b2730f1d8b4b52",
+      "obfuscation": [
+        "rotated_text"
+      ],
+      "note": "web_page, injection"
+    },
+    {
+      "from": "2de2a0241ad74bcd",
+      "obfuscation": [
+        "rotated_text"
+      ],
+      "note": "chat, injection"
+    },
+    {
+      "from": "32c2b797d098da75",
+      "obfuscation": [
+        "rotated_text"
+      ],
+      "note": "web_page, injection"
+    },
+    {
+      "from": "3ff5489badd63a32",
+      "obfuscation": [
+        "distorted_text"
+      ],
+      "note": "email, injection"
+    },
+    {
+      "from": "4ab1e2819da09963",
+      "obfuscation": [
+        "distorted_text"
+      ],
+      "note": "chat, injection"
+    },
+    {
+      "from": "622046869690ab9c",
+      "obfuscation": [
+        "distorted_text"
+      ],
+      "note": "web_page, injection"
+    },
+    {
+      "from": "65542e857e675628",
+      "obfuscation": [
+        "distorted_text"
+      ],
+      "note": "chat, injection"
+    },
+    {
+      "from": "7295a616b3cf64fa",
+      "obfuscation": [
+        "distorted_text"
+      ],
+      "note": "web_page, injection"
+    },
+    {
+      "from": "78150b9bd6150933",
+      "obfuscation": [
+        "blur"
+      ],
+      "note": "web_page, injection"
+    },
+    {
+      "from": "7c40c84b8ae5088b",
+      "obfuscation": [
+        "blur"
+      ],
+      "note": "email, injection"
+    },
+    {
+      "from": "9605a9f72d7ff526",
+      "obfuscation": [
+        "blur"
+      ],
+      "note": "chat, injection"
+    },
+    {
+      "from": "a8616d1b98034c4c",
+      "obfuscation": [
+        "blur"
+      ],
+      "note": "chat, injection"
+    }
+  ]
+}

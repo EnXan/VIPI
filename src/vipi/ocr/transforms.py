@@ -9,6 +9,8 @@ import cv2
 import numpy as np
 from PIL import Image, ImageOps
 
+# Local OCR retains a 40-megapixel input guard. Cloud routes defer image-size
+# handling to their providers; the view limit applies only to generated resizes.
 MAX_INPUT_PIXELS = 40_000_000
 MAX_VIEW_PIXELS = 80_000_000
 FILTERS = ("unchanged", "grayscale", "clahe", "inverted", "threshold", "color-contrast")
@@ -50,15 +52,15 @@ def _tensorflow_cpu():
     return tf
 
 
-def decode_image(path: str | Path) -> Image.Image:
+def decode_image(path: str | Path, *, max_pixels=MAX_INPUT_PIXELS) -> Image.Image:
     with Image.open(path) as image:
         if (
             image.format not in {"PNG", "JPEG", "WEBP"}
             or getattr(image, "n_frames", 1) != 1
         ):
             raise ValueError("Use a static PNG, JPEG or WebP image.")
-        if image.width * image.height > MAX_INPUT_PIXELS:
-            raise ValueError("Input exceeds 40 megapixels.")
+        if max_pixels is not None and image.width * image.height > max_pixels:
+            raise ValueError(f"Input exceeds {max_pixels / 1_000_000:g} megapixels.")
         image = ImageOps.exif_transpose(image)
         rgba = image.convert("RGBA")
         background = Image.new("RGBA", image.size, "white")
@@ -77,6 +79,7 @@ class View:
     rotation: int = 0
     crop: tuple[int, int, int, int] | None = None
     factor: float = 1.0
+    mirrored: bool = False
 
     def map_polygon(self, polygon):
         points = np.array([[x, y, 1] for x, y in polygon], dtype=float)
@@ -102,7 +105,8 @@ def views_for_size(
         if selected_ids is not None and identifier not in selected_ids:
             return None
         w, h = max(1, int(width * factor)), max(1, int(height * factor))
-        if w * h > MAX_VIEW_PIXELS:
+        is_original = backend == "original" and method == "unchanged" and factor == 1
+        if w * h > MAX_VIEW_PIXELS and not is_original:
             raise ValueError("A required transformed view exceeds 80 megapixels.")
         matrix = ((width / w, 0, 0), (0, height / h, 0), (0, 0, 1))
         return View(
@@ -222,8 +226,10 @@ def resize(
 
 
 def render_view(image: Image.Image, view: View) -> Image.Image:
+    if view.mirrored:
+        image = ImageOps.mirror(image)
     if view.rotation:
-        return image.transpose(
+        image = image.transpose(
             {
                 90: Image.Transpose.ROTATE_270,
                 180: Image.Transpose.ROTATE_180,
@@ -266,5 +272,7 @@ def apply_filter(image: Image.Image, name: str) -> Image.Image:
         )
         result = 255 - cv2.normalize(strokes, None, 0, 255, cv2.NORM_MINMAX)
     else:
-        raise ValueError(f"Unknown filter: {name}")
+        from .measured_transforms import apply_measured_filter
+
+        return apply_measured_filter(image, name)
     return Image.fromarray(result).convert("RGB")

@@ -18,6 +18,7 @@ from .config import (
     OCR_MODEL_IDS,
     OCR_EXECUTION_MODES,
     CLOUD_OCR_PROVIDERS,
+    DECISION_PROVIDERS,
 )
 from .reporting import report_overwrites_input, write_report
 
@@ -95,7 +96,8 @@ def print_error(console, message, *, path=None):
     console.print(line)
 
 
-def main(argv=None):
+def build_parser():
+    """Build the CLI contract without starting inference or model downloads."""
     parser = argparse.ArgumentParser(
         prog="vipi", description="Scan images for visual prompt injections."
     )
@@ -107,7 +109,7 @@ def main(argv=None):
         "--detector",
         choices=DETECTORS,
         default=DEFAULT_DETECTOR,
-        help="Also prepare a local detector if selected (default: jev)",
+        help="Injection detector (default: same model as OCR decisions)",
     )
     prepare.add_argument(
         "--ocr-mode",
@@ -142,7 +144,7 @@ def main(argv=None):
         "--detector",
         choices=DETECTORS,
         default=DEFAULT_DETECTOR,
-        help="Injection detector (default: jev)",
+        help="Injection detector (default: same model as OCR decisions)",
     )
     command.add_argument(
         "--ocr-mode",
@@ -174,20 +176,30 @@ def main(argv=None):
             "--modus",
             dest="ocr_execution_mode",
             choices=OCR_EXECUTION_MODES,
-            help="OCR execution: local (default) or cloud; cloud sends images to the selected provider",
+            help="Execute the full scan locally (default) or with cloud OCR and decision providers",
+        )
+        target.add_argument(
+            "--decision-provider",
+            choices=DECISION_PROVIDERS,
+            help="Decision model: local quality=clef, balanced/speed/fast=d1; cloud=openai by default or jev",
         )
         target.add_argument(
             "--ocr-provider",
             choices=tuple(CLOUD_OCR_PROVIDERS),
             help="Cloud OCR provider: google (default), openai or mistral; requires --modus cloud",
         )
+    return parser
+
+
+def main(argv=None):
+    parser = build_parser()
     args = parser.parse_args(argv)
     if args.ocr_execution_mode == "cloud" and args.ocr_mode is not None:
         parser.error(
             "--ocr-mode selects a local profile; use --ocr-provider with --modus cloud."
         )
     if args.command == "scan" and not args.paths and args.diff is None:
-        command.error("provide at least one path, or use --diff REFERENCE")
+        parser.error("provide at least one path, or use --diff REFERENCE")
 
     console = Console()
     error_console = Console(stderr=True)
@@ -209,6 +221,7 @@ def main(argv=None):
                     ocr_model=args.ocr_model,
                     ocr_execution_mode=args.ocr_execution_mode,
                     ocr_provider=args.ocr_provider,
+                    decision_provider=args.decision_provider,
                     progress=lambda message: status.update(Text(message, style="cyan")),
                 )
             console.print(Text("✓ Models ready", style="bold green"))
@@ -223,6 +236,10 @@ def main(argv=None):
                 next_command += f" --ocr-model {args.ocr_model}"
             if args.ocr_mode:
                 next_command += f" --ocr-mode {args.ocr_mode}"
+            if args.decision_provider:
+                next_command += f" --decision-provider {args.decision_provider}"
+            if args.detector != DEFAULT_DETECTOR:
+                next_command += f" --detector {args.detector}"
             next_step.append(next_command, style="cyan")
             console.print(next_step)
             return 0
@@ -245,6 +262,7 @@ def main(argv=None):
                 ocr_model=args.ocr_model,
                 ocr_execution_mode=args.ocr_execution_mode,
                 ocr_provider=args.ocr_provider,
+                decision_provider=args.decision_provider,
                 diff=args.diff,
                 exclude_patterns=args.exclude,
                 output=args.output,
@@ -269,7 +287,7 @@ def main(argv=None):
         return report["exit_code"]
     except (Exception, KeyboardInterrupt) as error:
         if isinstance(error, ModuleNotFoundError):
-            message = "Missing runtime dependencies. Install VIPI with the ocr extra (and detector-local for Prompt Guard)."
+            message = "Missing runtime dependencies. Install VIPI with the ocr extra and detector-local for local decision models or Prompt Guard."
         else:
             message = str(error) or "Interrupted."
         print_error(error_console, message)

@@ -1,22 +1,15 @@
 """OCR adapters returning text and boxes in the supplied raster's coordinates."""
 
-import base64
-import csv
-import io
 import json
-import os
-import subprocess
-import urllib.error
-import urllib.request
 from pathlib import Path
-from typing import Protocol
 
 import cv2
 import numpy as np
 from PIL import Image
-from vipi.config import MISTRAL_OCR_MODEL, GOOGLE_OCR_MODEL, LUNA_OCR_MODEL, api_key
+from vipi.config import MISTRAL_OCR_MODEL, GOOGLE_OCR_MODEL, LUNA_OCR_MODEL
 
 from .models import FILES, REQUIRED, validate_model
+from .types import OcrEngine, box_region
 from .runtime import (
     DEFAULT_BACKEND,
     prepare_backend,
@@ -26,223 +19,20 @@ from .runtime import (
 )
 
 
-class OcrEngine(Protocol):
-    def recognize(self, image: Image.Image) -> dict:
-        """Return text and regions in the supplied raster's coordinates."""
-        ...
+def load_rapid_models(ocr) -> dict[str, list[str]]:
+    """Load RapidOCR's detector and recognizer and return their ONNX providers.
 
-
-class MistralEngine:
-    """Single-image OCR through Mistral's authenticated OCR API."""
-
-    endpoint = "https://api.mistral.ai/v1/ocr"
-    timeout_seconds = 120
-
-    def __init__(self):
-        self.api_key = api_key("MISTRAL_API_KEY")
-        if not self.api_key:
-            raise ValueError(
-                "Mistral OCR requires MISTRAL_API_KEY. Set it in the environment or .env."
-            )
-
-    def recognize(self, image: Image.Image) -> dict:
-        encoded = io.BytesIO()
-        image.save(encoded, format="PNG")
-        data_url = "data:image/png;base64," + base64.b64encode(
-            encoded.getvalue()
-        ).decode("ascii")
-        body = json.dumps(
-            {
-                "model": MISTRAL_OCR_MODEL,
-                "document": {"type": "image_url", "image_url": data_url},
-                "include_blocks": True,
-                "confidence_scores_granularity": "block",
-            }
-        ).encode("utf-8")
-        request = urllib.request.Request(
-            self.endpoint,
-            data=body,
-            headers={
-                "Authorization": f"Bearer {self.api_key}",
-                "Content-Type": "application/json",
-                "Accept": "application/json",
-            },
-            method="POST",
-        )
-        try:
-            with urllib.request.urlopen(
-                request, timeout=self.timeout_seconds
-            ) as response:
-                payload = json.loads(response.read())
-        except urllib.error.HTTPError as error:
-            try:
-                body = json.loads(error.read())
-                detail = body.get("message") or body.get("detail")
-                if not detail and isinstance(body.get("error"), dict):
-                    detail = body["error"].get("message")
-            except (ValueError, AttributeError):
-                detail = ""
-            if isinstance(detail, str):
-                detail = detail.replace(self.api_key, "[redacted]")
-            message = f"Mistral OCR request failed (HTTP {error.code})"
-            raise RuntimeError(f"{message}: {detail}" if detail else message) from None
-        except urllib.error.URLError as error:
-            reason = str(error.reason).replace(self.api_key, "[redacted]")
-            raise RuntimeError(f"Mistral OCR request failed: {reason}") from None
-        return self._result(payload, image.size)
-
-    @staticmethod
-    def _result(payload, image_size):
-        if not isinstance(payload, dict) or not isinstance(payload.get("pages"), list):
-            raise RuntimeError("Mistral OCR response did not contain a pages array.")
-        width, height = image_size
-        regions, texts, pages = [], [], payload.get("pages") or []
-        for page_index, page in enumerate(pages):
-            page_text_count = len(texts)
-            dimensions = page.get("dimensions") or {}
-            source_width = dimensions.get("width") or width
-            source_height = dimensions.get("height") or height
-            scale_x, scale_y = width / source_width, height / source_height
-            blocks = page.get("blocks") or []
-            for block in blocks:
-                content = block.get("content")
-                if not isinstance(content, str) or not content.strip():
-                    continue
-                texts.append(content)
-                coordinates = [
-                    block.get("top_left_x"),
-                    block.get("top_left_y"),
-                    block.get("bottom_right_x"),
-                    block.get("bottom_right_y"),
-                ]
-                if all(isinstance(value, (int, float)) for value in coordinates):
-                    left, top, right, bottom = coordinates
-                    polygon = [
-                        [left * scale_x, top * scale_y],
-                        [right * scale_x, top * scale_y],
-                        [right * scale_x, bottom * scale_y],
-                        [left * scale_x, bottom * scale_y],
-                    ]
-                else:
-                    polygon = [[0, 0], [width, 0], [width, height], [0, height]]
-                scores = block.get("confidence_scores") or {}
-                confidence = scores.get("average_content_confidence_score", 0.0)
-                if not isinstance(confidence, (int, float)):
-                    confidence = 0.0
-                regions.append(
-                    box_region(
-                        content,
-                        polygon,
-                        confidence,
-                        level="line",
-                        line_id=f"{page_index}:{len(regions)}",
-                    )
-                )
-            if len(texts) == page_text_count and isinstance(page.get("markdown"), str):
-                text = page["markdown"].strip()
-                if text:
-                    texts.append(text)
-                    regions.append(
-                        box_region(
-                            text,
-                            [[0, 0], [width, 0], [width, height], [0, height]],
-                            0.0,
-                            level="line",
-                            line_id=f"{page_index}:fallback",
-                        )
-                    )
-        return {
-            "text": "\n".join(texts),
-            "regions": regions,
-            "preprocessing": {
-                "provider": "Mistral OCR API",
-                "model": payload.get("model", MISTRAL_OCR_MODEL),
-                "detector_input": [width, height],
-                "resize": "none",
-                "usage_info": payload.get("usage_info"),
-                "backend": "api",
-            },
-        }
-
-
-def box_region(text, polygon, confidence, level="word", line_id=None):
+    RapidOCR 3.10 creates ``text_det`` and ``text_rec`` lazily on first use.
+    Loading them here keeps the provider check and the pipeline patches in
+    ``RapidEngine`` ahead of the first scan.
+    """
     return {
-        "text": text,
-        "polygon": np.asarray(polygon, dtype=float).tolist(),
-        "confidence": float(confidence),
-        "level": level,
-        "line_id": line_id,
+        name: component.session.session.get_providers()
+        for name, component in [
+            ("detector", ocr._load_det_model()),
+            ("recognizer", ocr._load_rec_model()),
+        ]
     }
-
-
-class TesseractEngine:
-    def __init__(self, directory: Path, *, threads=1):
-        validate_model("tesseract", directory, verify=True)
-        self.directory = directory.resolve()
-        self.threads = threads
-
-    def recognize(self, image: Image.Image) -> dict:
-        encoded = io.BytesIO()
-        image.save(encoded, format="PNG")
-        result = subprocess.run(
-            [
-                "tesseract",
-                "stdin",
-                "stdout",
-                "--tessdata-dir",
-                str(self.directory),
-                "-l",
-                "eng",
-                "--oem",
-                "1",
-                "--psm",
-                "3",
-                "-c",
-                "tessedit_create_tsv=1",
-            ],
-            input=encoded.getvalue(),
-            capture_output=True,
-            check=False,
-            env={**os.environ, "OMP_THREAD_LIMIT": str(self.threads)},
-        )
-        if result.returncode:
-            detail = result.stderr.decode("utf-8", errors="replace").strip()
-            raise RuntimeError(
-                detail or f"Tesseract exited with code {result.returncode}."
-            )
-        regions, lines = [], {}
-        for row in csv.DictReader(
-            io.StringIO(result.stdout.decode("utf-8")),
-            delimiter="\t",
-            quoting=csv.QUOTE_NONE,
-        ):
-            text = row["text"].strip()
-            if row["level"] != "5" or not text:
-                continue
-            x, y, w, h = (int(row[key]) for key in ("left", "top", "width", "height"))
-            line = ":".join(
-                row[key] for key in ("page_num", "block_num", "par_num", "line_num")
-            )
-            regions.append(
-                box_region(
-                    text,
-                    [(x, y), (x + w, y), (x + w, y + h), (x, y + h)],
-                    float(row["conf"]) / 100,
-                    line_id=line,
-                )
-            )
-            lines.setdefault(line, []).append(text)
-        return {
-            "text": "\n".join(" ".join(words) for words in lines.values()),
-            "regions": regions,
-            "preprocessing": {
-                "detector_input": list(image.size),
-                "resize": "none",
-                "recognizer": "Tesseract LSTM, eng tessdata_best, OEM 1, PSM 3",
-                "backend": "cpu",
-                "threads_per_worker": self.threads,
-            },
-        }
 
 
 class RapidEngine:
@@ -290,14 +80,13 @@ class RapidEngine:
                 return cv2.resize(image, size, interpolation=cv2.INTER_LINEAR)
 
         det, rec, cls = [directory / FILES[key]["file"] for key in REQUIRED[model]]
-        v5 = model == "ppocr-v5"
         v6_size = {
             "ppocr-v6": ModelType.MEDIUM,
             "ppocr-v6-medium": ModelType.MEDIUM,
             "ppocr-v6-small": ModelType.SMALL,
             "ppocr-v6-tiny": ModelType.TINY,
         }
-        model_type = ModelType.SERVER if v5 else v6_size[model]
+        model_type = v6_size[model]
         params = {
             "Global.use_cls": False,
             "Global.use_preprocess_img": False,
@@ -308,12 +97,12 @@ class RapidEngine:
             "Det.model_path": str(det.resolve()),
             "Rec.model_path": str(rec.resolve()),
             "Cls.model_path": str(cls.resolve()),
-            "Det.ocr_version": OCRVersion.PPOCRV5 if v5 else OCRVersion.PPOCRV6,
+            "Det.ocr_version": OCRVersion.PPOCRV6,
             "Det.model_type": model_type,
-            "Det.lang_type": LangDet.CH if v5 else LangDet.MULTI,
-            "Rec.ocr_version": OCRVersion.PPOCRV5 if v5 else OCRVersion.PPOCRV6,
-            "Rec.model_type": ModelType.MOBILE if v5 else model_type,
-            "Rec.lang_type": LangRec.EN if v5 else LangRec.CH,
+            "Det.lang_type": LangDet.MULTI,
+            "Rec.ocr_version": OCRVersion.PPOCRV6,
+            "Rec.model_type": model_type,
+            "Rec.lang_type": LangRec.CH,
             "Cls.ocr_version": OCRVersion.PPOCRV5,
             **rapid_runtime_params(backend, threads, directory),
         }
@@ -330,13 +119,7 @@ class RapidEngine:
         self.runtime = {
             "backend": backend,
             "threads_per_worker": threads,
-            "providers": {
-                name: component.session.session.get_providers()
-                for name, component in [
-                    ("detector", self.ocr.text_det),
-                    ("recognizer", self.ocr.text_rec),
-                ]
-            },
+            "providers": load_rapid_models(self.ocr),
         }
         validate_session_providers(backend, self.runtime["providers"])
         detector = self.ocr.text_det
@@ -445,7 +228,8 @@ def create_engine(
     backend=DEFAULT_BACKEND,
     threads=1,
     native_pipeline=False,
-):
+) -> OcrEngine:
+    """Create a local or hosted OCR adapter without changing its native contract."""
     validate_backend(model, backend)
     if model == GOOGLE_OCR_MODEL:
         from .cloud import GoogleVisionEngine
@@ -456,9 +240,9 @@ def create_engine(
 
         return LunaEngine()
     if model == MISTRAL_OCR_MODEL:
+        from .cloud import MistralEngine
+
         return MistralEngine()
-    if model == "tesseract":
-        return TesseractEngine(directory, threads=threads)
     return RapidEngine(
         model,
         directory,

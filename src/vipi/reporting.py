@@ -38,6 +38,18 @@ def finish(report, started):
 
 def file_record(result):
     ocr, detection = result.ocr, result.detection
+    fees = [answer.get("estimated_usd") for answer in detection.answers]
+    detector_fee = (
+        sum(fees)
+        if fees and all(isinstance(value, (int, float)) for value in fees)
+        else None
+    )
+    remote = [
+        a
+        for a in detection.answers
+        if a.get("provider") in {"jev", "openai"} and not a.get("replayed")
+    ]
+    ocr_fee = ocr.cost.get("estimated_usd")
     return {
         "status": "error" if detection.errors else "completed",
         "artifacts": str(ocr.artifacts) if ocr.artifacts is not None else None,
@@ -45,6 +57,16 @@ def file_record(result):
         "ocr_seconds": ocr.elapsed_seconds,
         "ocr_profile": ocr.ocr_profile,
         "ocr_passes": len(ocr.variants),
+        "ocr_selection": ocr.selection,
+        "ocr_cost": ocr.cost,
+        "detection_cost": {
+            "estimated_usd": detector_fee,
+            "api_calls": len(remote),
+            "http_attempts": sum(a.get("attempts", 1) for a in remote),
+        },
+        "estimated_total_api_cost_usd": ocr_fee + detector_fee
+        if ocr_fee is not None and detector_fee is not None
+        else None,
         "verdict": detection.verdict,
         "review_required": detection.review_required,
         "signals": detection.signals,

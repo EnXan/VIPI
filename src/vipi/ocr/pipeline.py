@@ -19,6 +19,7 @@ from vipi.cancellation import check_cancelled
 from .transforms import (
     BASELINE_OCR_PROFILE,
     CLOUD_OCR_PROFILES,
+    MAX_INPUT_PIXELS,
     OCR_PROFILE,
     apply_filter,
     decode_image,
@@ -49,6 +50,7 @@ def extract(
     single_pass=False,
     baseline=False,
 ):
+    """Run the configured OCR views, save each attempt, and persist a result."""
     workers = worker_count(workers)
     if model in CLOUD_OCR_MODELS:
         workers = 1
@@ -79,7 +81,10 @@ def extract(
     started = time.perf_counter()
     try:
         check_cancelled(cancel_event)
-        original = decode_image(image)
+        original = decode_image(
+            image,
+            max_pixels=None if model in CLOUD_OCR_MODELS else MAX_INPUT_PIXELS,
+        )
         original.save(store.directory / "input.png", format="PNG")
         if baseline or model in CLOUD_OCR_MODELS:
             view = views_for_size(
