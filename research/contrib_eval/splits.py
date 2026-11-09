@@ -1,13 +1,12 @@
-"""Assign both pinned catalogs to disjoint, grouped development/test splits.
+"""Assign the evaluation dataset to disjoint, grouped development/test splits.
 
 Entries that share content are grouped so variants never straddle the splits:
-OCR entries by source ``content_group_id``, detection images by exact payload,
-by filename family (the stem without its trailing obfuscation suffix) and by
-listed matched-control pairs, entries whose image bytes are identical, and
-entries whose texts share at least 80% of their words, including across
-catalogs (template variants that differ in one slot word). Groups
-are ranked per stratum by a seeded SHA-256 and the lowest-ranked groups fill
-the test split up to the configured fraction of that stratum's entries.
+identical images, the same source content group, the same visible text, texts
+that share at least 80% of their words (template variants that differ in one
+slot word), the same scenario family of former detection fixtures (filename
+without its obfuscation suffix) and listed matched-control pairs. Groups are
+ranked per label × content stratum by a seeded SHA-256 and the lowest-ranked
+groups fill the test split up to the configured fraction of that stratum.
 """
 
 from collections import defaultdict
@@ -16,9 +15,10 @@ import json
 from pathlib import Path
 import re
 
-from research.ocr_eval.benchmark import ROOT, catalogs, digest
+from research.catalog import CATALOG_NAME
+from research.ocr_eval.benchmark import ROOT, catalog, dataset_directory, digest
 
-ALGORITHM = "grouped_stratified_sha256_rank_v2"
+ALGORITHM = "grouped_stratified_sha256_rank_v3"
 SEED = "vipi-contribution-evaluation-v1"
 TEST_FRACTION = 0.2
 SPLITS_PATH = Path("research/splits.json")
@@ -56,16 +56,23 @@ CONTROL_GROUPS = {
 CONTROL_BY_STEM = {
     stem: name for name, stems in CONTROL_GROUPS.items() for stem in stems
 }
+# obfuscation suffixes used in the former detection fixture filenames
+OBFUSCATION_TOKENS = {
+    "blur", "distorted-text", "high-transparency", "image-scaling", "italic-font",
+    "low-contrast", "mirrored-text", "rotated-text", "small-font", "split-text",
+    "unicode-homoglyphs", "base64", "flowchart",
+}  # fmt: skip
 
 
 def sha256_text(value):
     return hashlib.sha256(value.encode()).hexdigest()
 
 
-def filename_family(image, obfuscation_tokens):
-    """Strip trailing ``none``/obfuscation tokens from a detection filename stem."""
+def filename_family(image):
+    """Strip trailing ``none``/obfuscation tokens from a former detection
+    filename stem (``…_contextual-camouflage_low-contrast`` → scenario)."""
     parts = Path(image).stem.split("_")
-    while len(parts) > 1 and parts[-1] in obfuscation_tokens:
+    while len(parts) > 1 and (parts[-1] == "none" or parts[-1] in OBFUSCATION_TOKENS):
         parts.pop()
     return "_".join(parts)
 
@@ -96,50 +103,35 @@ def similar_text_tokens(entries, threshold=TEXT_SIMILARITY, min_words=TEXT_MIN_W
     ]
 
 
+def visible_text(entry):
+    return (entry["ocr_reference"] or {}).get("text") or entry["payload"] or ""
+
+
 def collect_entries(root=ROOT):
-    """Read both catalogs and return one grouping record per entry."""
-    loaded = catalogs(root)
-    detection = loaded["detection_eval"]
-    obfuscation_tokens = {"none"} | {
-        label.replace("_", "-")
-        for item in detection.items.values()
-        for label in item["obfuscation"]
-    }
+    """Read the dataset and return one grouping record per entry."""
+    dataset = catalog(root)
     entries = []
-    for identifier, item in loaded["ocr_eval"].items.items():
-        image_sha256 = digest(loaded["ocr_eval"].path(identifier))
+    for identifier, item in dataset.items.items():
+        image_sha256 = digest(dataset.path(identifier))
+        text = visible_text(item)
+        tokens = [f"image:{image_sha256}"]
+        if item["source"].get("content_group_id"):
+            tokens.append(f"content:{item['source']['content_group_id']}")
+        if text.strip():
+            tokens.append(f"text:{sha256_text(' '.join(text.casefold().split()))}")
+        former = (item.get("migrated_from") or {}).get("detection_eval") or {}
+        if former.get("image"):
+            stem = Path(former["image"]).stem
+            tokens.append(f"family:{filename_family(former['image'])}")
+            if stem in CONTROL_BY_STEM:
+                tokens.append(f"control:{CONTROL_BY_STEM[stem]}")
         entries.append(
             {
-                "key": f"ocr_eval:{identifier}",
-                "stratum": f"ocr_eval:{item['category']}",
+                "key": identifier,
+                "stratum": f"{item['label']}:{item['content']}",
                 "image_sha256": image_sha256,
-                "words": text_words(item["text"]),
-                "tokens": [f"image:{image_sha256}"]
-                + (
-                    [f"ocr_content:{item['source']['content_group_id']}"]
-                    if item.get("source", {}).get("content_group_id")
-                    else []
-                ),
-            }
-        )
-    for identifier, item in detection.items.items():
-        image_sha256 = digest(detection.path(identifier))
-        entries.append(
-            {
-                "key": f"detection_eval:{identifier}",
-                "stratum": f"detection_eval:{item['category']}",
-                "image_sha256": image_sha256,
-                "words": text_words(item["text"]),
-                "tokens": [
-                    f"image:{image_sha256}",
-                    f"payload:{sha256_text(item['text'])}",
-                    f"family:{filename_family(item['image'], obfuscation_tokens)}",
-                ]
-                + (
-                    [f"control:{CONTROL_BY_STEM[Path(item['image']).stem]}"]
-                    if Path(item["image"]).stem in CONTROL_BY_STEM
-                    else []
-                ),
+                "words": text_words(text),
+                "tokens": tokens,
             }
         )
     return similar_text_tokens(entries)
@@ -196,7 +188,7 @@ def assign(entries, seed=SEED, test_fraction=TEST_FRACTION):
 
 
 def build(root=ROOT, seed=SEED, test_fraction=TEST_FRACTION):
-    """Build the complete split document for the pinned catalogs."""
+    """Build the complete split document for the dataset."""
     root = Path(root)
     entries = collect_entries(root)
     assignments = assign(entries, seed, test_fraction)
@@ -209,23 +201,20 @@ def build(root=ROOT, seed=SEED, test_fraction=TEST_FRACTION):
     return {
         "version": 1,
         "dataset": json.loads((root / "research/dataset.json").read_text()),
-        "catalog_sha256": {
-            "ocr_eval": digest(root / "research/ocr_eval/catalog.json"),
-            "detection_eval": digest(root / "research/detection_eval/cases.json"),
-        },
+        "catalog_sha256": digest(dataset_directory(root) / CATALOG_NAME),
         "policy": {
             "algorithm": ALGORITHM,
             "seed": seed,
             "test_fraction": test_fraction,
             "grouping": [
-                "identical_image_sha256_across_catalogs",
-                "ocr_source_content_group_id",
-                "detection_identical_payload_sha256",
-                "detection_filename_family_without_obfuscation_suffix",
-                "detection_matched_control_pairs",
+                "identical_image_sha256",
+                "source_content_group_id",
+                "identical_visible_text",
                 f"text_word_jaccard_at_least_{TEXT_SIMILARITY}_min_{TEXT_MIN_WORDS}_words",
+                "former_detection_filename_family_without_obfuscation_suffix",
+                "matched_control_pairs",
             ],
-            "stratification": "catalog category (OCR) or label category (detection)",
+            "stratification": "label x content",
             "usage": "Development for every comparison; test only for a one-time "
             "confirmation before a default, profile or threshold changes.",
         },
@@ -259,7 +248,7 @@ def write(root=ROOT):
 
 
 def check(root=ROOT):
-    """Return True when the committed split matches the current catalogs."""
+    """Return True when the committed split matches the current dataset."""
     path = Path(root) / SPLITS_PATH
     return path.is_file() and path.read_text(encoding="utf-8") == serialize(build(root))
 

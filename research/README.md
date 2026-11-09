@@ -32,22 +32,10 @@ uv sync --extra research
 uv run python -m research.download
 ```
 
-Download just one suite:
-
-```bash
-uv run python -m research.download detection_eval
-uv run python -m research.download ocr_eval
-```
-
 Public downloads require no Hugging Face account or token. The command uses
-the full commit SHA in [`dataset.json`](dataset.json) and places files here:
-
-| Suite | Local catalog | Local images |
-| --- | --- | --- |
-| Detection | `research/detection_eval/cases.json` | `research/detection_eval/images/` |
-| OCR | `research/ocr_eval/catalog.json` | `research/ocr_eval/images/` |
-
-These copies are ignored by Git. Existing downloaded files can be reused and
+the full commit SHA in [`dataset.json`](dataset.json) and places the dataset
+in `research/dataset/`: `catalog.json`, `vocabulary.json` and `images/`
+(ADR 0053). These copies are ignored by Git. Existing downloaded files can be reused and
 remain available offline. Downloading can overwrite local catalog edits; use a
 separate submission directory when preparing contributions.
 

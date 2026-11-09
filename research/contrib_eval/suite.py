@@ -1,7 +1,7 @@
 """Identify an evaluation path's frozen suite and check baseline freshness.
 
 A manifest has two parts. ``suite`` covers what is evaluated: dataset revision,
-catalogs, split file, the selected cases with their image/reference hashes, and
+catalog, split file, the selected cases with their image/reference hashes, and
 the metric sources. ``configuration`` covers how the path runs: the benchmark
 configuration and the declared model identity. Implementation provenance is
 deliberately excluded: a candidate differs from its baseline by design.
@@ -11,6 +11,7 @@ import hashlib
 import json
 from pathlib import Path
 
+from research.catalog import CATALOG_NAME
 from research.ocr_eval import benchmark
 from vipi import config
 
@@ -97,12 +98,9 @@ def manifest(name, split="development", root=benchmark.ROOT):
         "split": split,
         "suite": {
             "dataset": json.loads((root / "research/dataset.json").read_text()),
-            "catalog_sha256": {
-                "ocr_eval": benchmark.digest(root / "research/ocr_eval/catalog.json"),
-                "detection_eval": benchmark.digest(
-                    root / "research/detection_eval/cases.json"
-                ),
-            },
+            "catalog_sha256": benchmark.digest(
+                benchmark.dataset_directory(root) / CATALOG_NAME
+            ),
             "splits_sha256": benchmark.digest(root / splits.SPLITS_PATH),
             "entries": len(selection),
             "selection_sha256": json_sha256(selection),

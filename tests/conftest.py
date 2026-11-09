@@ -76,3 +76,46 @@ def dataset_repository(tmp_path):
         )
     (directory / "catalog.json").write_text(json.dumps(records))
     return tmp_path
+
+
+@pytest.fixture
+def evaluation_dataset(tmp_path):
+    """A repository root with a three-entry dataset in research/dataset/."""
+    import hashlib
+
+    directory = tmp_path / "research/dataset"
+    (directory / "images").mkdir(parents=True)
+    entries = []
+    rows = [
+        ("Required", "injection", "web_page", ["low_contrast"]),
+        ("Missing target", "benign", "web_page", []),
+        ("Failure target", "jailbreak", "text_image", []),
+    ]
+    for index, (text, label, content, obfuscation) in enumerate(rows):
+        path = directory / f"images/{index}.png"
+        Image.new("RGB", (16, 12), "white").save(path)
+        entries.append(
+            {
+                "id": str(index),
+                "image": f"images/{index}.png",
+                "image_sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
+                "label": label,
+                "techniques": [] if label == "benign" else ["task_redirection"],
+                "goal": [],
+                "obfuscation": obfuscation,
+                "evidence": [],
+                "content": content,
+                "payload": None,
+                "cases": [],
+                "ocr_reference": {
+                    "text": text,
+                    "scope": "source_declared_text",
+                    "quality": "silver",
+                    "reading_order_known": True,
+                    "regions": None,
+                },
+                "source": {"dataset": "fixture"},
+            }
+        )
+    (directory / "catalog.json").write_text(json.dumps(entries))
+    return tmp_path

@@ -10,7 +10,7 @@ from statistics import mean, median
 import time
 
 from vipi.ocr.costs import cost_for_result, decisions_estimated_usd, DECISIONS_PRICING
-from .benchmark import catalogs, digest, selection, utc_now
+from .benchmark import catalog, digest, selection, utc_now
 from .evaluation.metrics import compare_words, final_observations
 
 
@@ -200,17 +200,15 @@ def retained_usage(directory, model):
 
 
 def grouped(rows):
-    """Category rows partition the catalogs; other facets overlap and must not be summed."""
+    """Content rows partition the dataset; other facets overlap and must not be summed."""
     groups = defaultdict(list)
     for row in rows:
-        groups[("category", f"{row['suite']}/{row['category']}")].append(row)
-        groups[("suite", row["suite"])].append(row)
+        groups[("content", row["content"])].append(row)
+        groups[("label", row["label"])].append(row)
         groups[("scope", row["scope"])].append(row)
         for facet in ("techniques", "obfuscation"):
-            for label in row[facet]:
-                groups[(facet, label)].append(row)
-        if row["family"]:
-            groups[("family", row["family"])].append(row)
+            for value in row[facet]:
+                groups[(facet, value)].append(row)
     return [
         {"facet": facet, "label": label, **summarize(items)}
         for (facet, label), items in sorted(groups.items())
@@ -268,7 +266,7 @@ def report(directory, cloud_directory=None):
                 raise ValueError(
                     "Confidence split does not match selected image hashes."
                 )
-    loaded_catalogs = catalogs()
+    dataset = catalog()
     configurations = {}
     sources = {}
     started = time.perf_counter()
@@ -325,7 +323,7 @@ def report(directory, cloud_directory=None):
                 if digest(result_path) != row["result_sha256"]:
                     raise ValueError(f"Saved output changed: {row['key']}")
                 result = json.loads(result_path.read_text())
-                reference = loaded_catalogs[row["suite"]].reference(row["id"])
+                reference = dataset.reference(row["id"])
                 row["score"] = score_result(reference, result)
                 if row["score"] is None:
                     row["unscored_reason"] = (
@@ -477,7 +475,7 @@ def markdown(data):
             )
         lines += [
             "",
-            f"Category rows partition the {image_count:,} selected image entries. Suite, scope, technique, obfuscation and family rows overlap; do not add them together. Coverage averages use scored images; image success rates use every planned image in the row, including failures and unscored outputs. Durations are measured OCR call durations, including lazy model loading, but excluding worker startup/teardown and offline scoring.",
+            f"Content rows partition the {image_count:,} selected image entries. Label, scope, technique and obfuscation rows overlap; do not add them together. Coverage averages use scored images; image success rates use every planned image in the row, including failures and unscored outputs. Durations are measured OCR call durations, including lazy model loading, but excluding worker startup/teardown and offline scoring.",
             "",
         ]
         wall = values["summary"]["time"]["invocation_wall_seconds"]

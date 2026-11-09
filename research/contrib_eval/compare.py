@@ -1,4 +1,4 @@
-"""Compare a candidate run with its baseline: aggregates, categories and cases.
+"""Compare a candidate run with its baseline: aggregates, content types and cases.
 
 Inputs are the committed run summaries plus the local ``report.json`` of both
 runs (needed for per-case changes). The comparison reports values, deltas and
@@ -103,10 +103,10 @@ def aggregate_rows(baseline, candidate):
     return [{**row, "delta": delta(row["baseline"], row["candidate"])} for row in rows]
 
 
-def category_rows(baseline_groups, candidate_groups):
+def content_rows(baseline_groups, candidate_groups):
     def by_label(groups):
         return {
-            group["label"]: group for group in groups if group["facet"] == "category"
+            group["label"]: group for group in groups if group["facet"] == "content"
         }
 
     first, second = by_label(baseline_groups), by_label(candidate_groups)
@@ -122,7 +122,7 @@ def category_rows(baseline_groups, candidate_groups):
         ]
         rows.append(
             {
-                "category": label,
+                "content": label,
                 "images": lookup(first.get(label) or second.get(label), ("images",)),
                 "baseline_coverage": values[0],
                 "candidate_coverage": values[1],
@@ -244,7 +244,7 @@ def compare(baseline_id, candidate_id, root=benchmark.ROOT):
         "mismatch_reason": candidate["comparison"].get("mismatch_reason"),
         "host_differs": baseline["host"] != candidate["host"],
         "aggregates": aggregate_rows(baseline, candidate),
-        "categories": category_rows(first["groups"], second["groups"]),
+        "contents": content_rows(first["groups"], second["groups"]),
         "case_counts": {name: len(items) for name, items in changes.items()},
         "cases": changes,
         "code_surface": code_surface(baseline, candidate, root),
@@ -322,12 +322,12 @@ def markdown(data):
         "",
         "## Categories (tolerant word coverage)",
         "",
-        "| Category | Images | Baseline | Candidate | Delta | Failed (b → c) |",
+        "| Content | Images | Baseline | Candidate | Delta | Failed (b → c) |",
         "| --- | --- | --- | --- | --- | --- |",
     ]
-    for row in data["categories"]:
+    for row in data["contents"]:
         lines.append(
-            f"| {row['category']} | {number(row['images'])} | "
+            f"| {row['content']} | {number(row['images'])} | "
             f"{number(row['baseline_coverage'], 'coverage')} | "
             f"{number(row['candidate_coverage'], 'coverage')} | "
             f"{signed(row['delta'], 'coverage')} | "

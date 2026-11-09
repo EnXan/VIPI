@@ -15,12 +15,12 @@ def build_parser():
     )
     commands = parser.add_subparsers(dest="command", required=True)
     split = commands.add_parser(
-        "split", help="Write research/splits.json from the pinned catalogs."
+        "split", help="Write research/splits.json from the dataset."
     )
     split.add_argument(
         "--check",
         action="store_true",
-        help="Only verify that the committed split matches the catalogs.",
+        help="Only verify that the committed split matches the dataset.",
     )
     for command, description in (
         ("manifest", "Print the suite/configuration identity of a path."),

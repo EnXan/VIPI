@@ -7,7 +7,7 @@ the single `catalog.json` index. Both are downloaded from the pinned
 and ignored by Git. From the repository root:
 
 ```bash
-uv run python -m research.download ocr_eval
+uv run python -m research.download
 ```
 
 `evaluation/` owns catalog loading, metrics and the workbench adapter.

@@ -1,24 +1,23 @@
 # Contribution evaluation
 
 Tools that make a contribution's evaluation comparable: one frozen split of
-both pinned catalogs, a freshness check for the latest committed baseline, and
+the pinned dataset, a freshness check for the latest committed baseline, and
 scoped baseline/candidate runs and a comparison report. The contributor
 workflow is in [CONTRIBUTING.md](../../CONTRIBUTING.md#evaluating-improvements);
 the design is recorded in [ADR 0050](../../adr-code/0050-contribution-evaluation-pipeline.md).
 
 ## Splits
 
-[`../splits.json`](../splits.json) assigns all 1,113 entries of the OCR and
-detection catalogs to two disjoint splits, 80% `development` and 20%
-`test`. Entries sharing content stay together: OCR entries with the same
-source `content_group_id`, detection images with the same payload or the same
-filename family (stem without trailing obfuscation tokens such as
-`_low-contrast` or `_none`), listed matched benign controls with their attacks
-(`CONTROL_GROUPS` in `splits.py`), byte-identical images, and texts sharing at
-least 80% of their words (template variants that differ in a slot word). The
-last two apply across catalogs. Groups are ranked by seeded SHA-256 per stratum (OCR
-category, detection label category) and the test split is filled up to 20% of
-each stratum.
+[`../splits.json`](../splits.json) assigns all 554 dataset entries to two
+disjoint splits: 450 `development` and 104 `test`. Entries sharing content
+stay together: byte-identical images, the same source `content_group_id`, the
+same visible text, texts sharing at least 80% of their words (template
+variants that differ in a slot word), the same scenario family of former
+detection fixtures (filename stem without obfuscation suffixes such as
+`_low-contrast` or `_none`) and listed matched benign controls
+(`CONTROL_GROUPS` in `splits.py`). Groups are ranked by seeded SHA-256 per
+label × content stratum and the test split is filled up to 20% of each
+stratum.
 
 - Use `development` for every baseline/candidate comparison.
 - Use `test` only once, to confirm a candidate before a default, profile or

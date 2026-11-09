@@ -25,7 +25,8 @@ measure resources with `psutil`.
 `research/contrib_eval/` wraps existing research tooling instead of replacing
 it; product code is unchanged.
 
-- **Split.** One deterministic splitter writes `research/splits.json`. Entries
+- **Split.** Revised by [ADR 0053](0053-one-evaluation-dataset.md) (one dataset,
+  algorithm v3). One deterministic splitter writes `research/splits.json`. Entries
   are grouped by OCR source `content_group_id`, by identical detection payload,
   by detection filename family (stem without trailing obfuscation tokens) and
   by listed matched-control pairs (benign controls stay with their attacks), by

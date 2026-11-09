@@ -1,4 +1,4 @@
-"""Download a pinned evaluation dataset into the local research workspace."""
+"""Download the pinned evaluation dataset into research/dataset/."""
 
 import argparse
 import json
@@ -6,37 +6,28 @@ from pathlib import Path
 
 from huggingface_hub import snapshot_download
 
+PATTERNS = ["catalog.json", "vocabulary.json", "images/*"]
+
 
 def build_parser():
     """Build the CLI contract without starting inference or model downloads."""
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument(
-        "suite", choices=("all", "detection_eval", "ocr_eval"), nargs="?", default="all"
-    )
-    return parser
+    return argparse.ArgumentParser(description=__doc__)
 
 
 def main(argv=None):
-    parser = build_parser()
-    args = parser.parse_args(argv)
+    build_parser().parse_args(argv)
     root = Path(__file__).resolve().parent
     dataset = json.loads((root / "dataset.json").read_text(encoding="utf-8"))
-    patterns = {
-        "detection_eval": ["detection_eval/cases.json", "detection_eval/images/*"],
-        "ocr_eval": ["ocr_eval/catalog.json", "ocr_eval/images/*"],
-    }
-    selected = patterns if args.suite == "all" else {args.suite: patterns[args.suite]}
+    target = root / "dataset"
     snapshot_download(
         repo_id=dataset["repo_id"],
         repo_type="dataset",
         revision=dataset["revision"],
-        allow_patterns=[
-            pattern for entries in selected.values() for pattern in entries
-        ],
-        local_dir=root,
+        allow_patterns=PATTERNS,
+        local_dir=target,
         token=False,
     )
-    print(f"Downloaded {', '.join(selected)} at {dataset['revision']} into {root}.")
+    print(f"Downloaded the evaluation dataset at {dataset['revision']} into {target}.")
 
 
 if __name__ == "__main__":

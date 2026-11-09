@@ -1,4 +1,4 @@
-"""Run the product OCR session over both pinned catalogs, retaining every attempt."""
+"""Run the product OCR session over the evaluation dataset, retaining every attempt."""
 
 import argparse
 from datetime import datetime, timezone
@@ -17,8 +17,7 @@ from vipi.config import cache_directory
 from vipi.ocr.session import OcrSession
 from vipi.storage.files import write_json
 
-from research.detection_eval.evaluation.catalog import Catalog as DetectionCatalog
-from .evaluation.catalog import Catalog as OcrCatalog
+from research.catalog import CATALOG_NAME, Catalog
 from .evaluation.metrics import evaluation_policy
 from .evaluation.words import words
 
@@ -38,38 +37,40 @@ def digest(path):
         return hashlib.file_digest(file, "sha256").hexdigest()
 
 
-def catalogs(root=ROOT):
-    return {"ocr_eval": OcrCatalog(root), "detection_eval": DetectionCatalog(root)}
+def dataset_directory(root=None):
+    return Path(root or ROOT) / "research/dataset"
+
+
+def catalog(root=ROOT):
+    return Catalog(dataset_directory(root))
 
 
 def selection(root=ROOT):
-    """Freeze order, image/reference hashes and existing category annotations."""
+    """Freeze order, image/reference hashes and labels of every entry that has
+    reference text; entries without one cannot be scored for OCR."""
     rows = []
-    for suite, catalog in catalogs(root).items():
-        for identifier, item in catalog.items.items():
-            reference = catalog.reference(identifier)
-            reference_json = json.dumps(reference, sort_keys=True, ensure_ascii=False)
-            rows.append(
-                {
-                    "key": f"{suite}:{identifier}",
-                    "suite": suite,
-                    "id": identifier,
-                    "image": item["image"],
-                    "image_sha256": digest(catalog.path(identifier)),
-                    "reference_sha256": hashlib.sha256(
-                        reference_json.encode()
-                    ).hexdigest(),
-                    "reference_words": len(words(reference["text"])),
-                    "scope": reference["scope"],
-                    "quality": reference["quality"],
-                    "category": item["category"],
-                    "techniques": item.get("techniques", []),
-                    "obfuscation": item.get("obfuscation", []),
-                    "family": "anamorpher"
-                    if Path(item["image"]).name.startswith("anamorpher_")
-                    else None,
-                }
-            )
+    dataset = catalog(root)
+    for identifier, item in dataset.items.items():
+        reference = dataset.reference(identifier)
+        if reference is None:
+            continue
+        reference_json = json.dumps(reference, sort_keys=True, ensure_ascii=False)
+        rows.append(
+            {
+                "key": identifier,
+                "id": identifier,
+                "image": item["image"],
+                "image_sha256": digest(dataset.path(identifier)),
+                "reference_sha256": hashlib.sha256(reference_json.encode()).hexdigest(),
+                "reference_words": len(words(reference["text"])),
+                "scope": reference["scope"],
+                "quality": reference["quality"],
+                "label": item["label"],
+                "content": item["content"],
+                "techniques": item["techniques"],
+                "obfuscation": item["obfuscation"],
+            }
+        )
     return rows
 
 
@@ -131,7 +132,7 @@ def provenance(root=ROOT):
             *root.glob("src/vipi/**/*.py"),
             *root.glob("src/vipi/**/*.json"),
             *root.glob("research/ocr_eval/evaluation/*.py"),
-            root / "research/detection_eval/evaluation/catalog.py",
+            root / "research/catalog.py",
             root / "research/ocr_eval/benchmark.py",
             root / "uv.lock",
         ]
@@ -185,13 +186,7 @@ def provenance(root=ROOT):
             json.dumps(hashes, sort_keys=True).encode()
         ).hexdigest(),
         "dataset": json.loads((root / "research/dataset.json").read_text()),
-        "catalog_hashes": {
-            suite: digest(root / f"research/{suite}" / filename)
-            for suite, filename in (
-                ("ocr_eval", "catalog.json"),
-                ("detection_eval", "cases.json"),
-            )
-        },
+        "catalog_sha256": digest(dataset_directory(root) / CATALOG_NAME),
         "platform": platform.platform(),
         "python": platform.python_version(),
         "hardware": hardware,
@@ -215,7 +210,7 @@ def worker(directory, configuration, rows):
     with OcrSession(**CONFIGURATIONS[configuration]) as session:
         write_json(directory / "session.json", session.metadata)
         for row in rows:
-            path = ROOT / "research" / row["suite"] / row["image"]
+            path = dataset_directory() / row["image"]
             if digest(path) != row["image_sha256"]:
                 raise ValueError(f"Image changed after selection: {row['key']}")
             record = {"key": row["key"], "status": "running", "started_at": utc_now()}
@@ -371,7 +366,7 @@ def build_parser():
     parser.add_argument(
         "--selection-file",
         type=Path,
-        help="JSON file freezing an ordered subset of keys from the active catalogs",
+        help="JSON file freezing an ordered subset of entry ids from the dataset",
     )
     return parser
 

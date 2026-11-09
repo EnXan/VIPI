@@ -1,7 +1,8 @@
 # 0053 — One evaluation dataset
 
 Status: accepted for review, 2026-11-09. The layout is staged in Hugging Face
-PR #2; VIPI switches its pin and loaders in a later change.
+PR #2; the OCR benchmark, contribution evaluation and download already read
+it; the workbench scan follows.
 
 ## Context and sources
 
@@ -29,9 +30,19 @@ separate draft location and a second image layout no longer serve a purpose.
 - Locally the dataset lives in `research/dataset/` (ignored by Git) with the
   same layout. The curation CLI, the generator (`images/<id>.png`) and the
   Label tab use it by default.
-- VIPI keeps its current pin until the loaders (OCR benchmark, contribution
-  evaluation, workbench scan) read this layout; the pin and
-  `research.download` change together with them.
+- `research/catalog.py` is the one reader. The OCR benchmark selects every
+  entry with reference text (536); report groups are content (a partition),
+  label, scope, technique and obfuscation; benchmark keys are entry ids.
+- The split (ADR 0050) is rebuilt on the dataset (algorithm v3). ADR 0050
+  grouped OCR entries by content group and detection entries by payload,
+  filename family and control pairs, stratified by catalog category. It now
+  groups by identical image, content group, identical visible text, similar
+  text, the former detection filename family and control pairs, stratified
+  by label × content: 450 development and 104 test entries.
+- `research.download` fetches `catalog.json`, `vocabulary.json` and
+  `images/` into `research/dataset/`. Until Hugging Face PR #2 is merged,
+  `research/dataset.json` pins that PR's commit (24347161); after the merge it
+  must pin the merge commit on `main`.
 
 ## Alternatives
 
@@ -54,7 +65,8 @@ folder moves from `.local-assets/dataset-submission/` to `research/dataset/`.
 ## Validation boundary
 
 The Hugging Face PR revision holds exactly the 554 kept images; every hash
-matches its entry. Curation validation reports 0 errors (175 unknown-license
-warnings); research tests pass. The benchmark, contribution evaluation and
-workbench scan still read the old pinned catalogs and are not yet verified
-against this layout.
+matches its entry, and an anonymous download of that revision reproduces the
+local catalog byte for byte. Curation validation reports 0 errors (175
+unknown-license warnings); research tests pass; the committed split matches
+the dataset. No live OCR benchmark or contribution run has been executed on
+this layout. The workbench scan still reads the old catalogs.

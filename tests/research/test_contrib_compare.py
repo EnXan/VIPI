@@ -41,8 +41,8 @@ def write_run(
                 "rows": rows,
                 "groups": [
                     {
-                        "facet": "category",
-                        "label": "ocr_eval/textocr",
+                        "facet": "content",
+                        "label": "web_page",
                         "images": len(rows),
                         "word_weighted_coverage": coverage,
                         "failed": sum(r["status"] == "failed" for r in rows),
@@ -124,7 +124,7 @@ def test_cases_are_classified_and_sorted_by_change_size(runs_root):
         r for r in data["aggregates"] if r["metric"] == "word coverage (tolerant)"
     )
     assert coverage["delta"] == pytest.approx(0.05)
-    assert data["categories"][0]["delta"] == pytest.approx(0.05)
+    assert data["contents"][0]["delta"] == pytest.approx(0.05)
 
 
 def test_markdown_shows_rates_deltas_and_case_sections(runs_root):

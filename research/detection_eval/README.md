@@ -6,7 +6,7 @@ downloaded from the pinned
 and ignored by Git. From the repository root:
 
 ```bash
-uv run python -m research.download detection_eval
+uv run python -m research.download
 ```
 
 Submit new images and label changes together through a pull request on the

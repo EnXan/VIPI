@@ -1,7 +1,9 @@
 # Product OCR benchmark protocol
 
-This benchmark runs the production `OcrSession` over both pinned catalogs:
-1,000 OCR entries and 113 scanner-evaluation entries. The requested comparison
+This benchmark runs the production `OcrSession` over every entry of the pinned
+dataset that has reference text (536 of 554; ADR 0053). The measured run below
+used the earlier two catalogs: 1,000 OCR entries and 113 scanner-evaluation
+entries. The requested comparison
 is local **speed** (PP-OCRv6 Tiny + LiquidAI d1) against **cloud defaults**
 (Google Cloud Vision Document Text Detection + OpenAI Decisions, GPT-6 Luna).
 It measures OCR recovery, including visual decisions and image transformations.
@@ -57,7 +59,7 @@ Decisions request used 49,461 input tokens.
 
 ## Run and reproduce
 
-Use the [development setup](development.md), download both catalogs, and prepare
+Use the [development setup](development.md), download the dataset, and prepare
 local speed models and cloud credentials as described in the [CLI guide](cli.md).
 From the repository root:
 

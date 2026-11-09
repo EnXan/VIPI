@@ -9,12 +9,11 @@ Run these commands from a source checkout after the
 
 ```bash
 uv run python -m research.download
-uv run python -m research.download ocr_eval
-uv run python -m research.download detection_eval
 ```
 
-The optional positional `suite` defaults to `all`. Files come from the immutable
-revision in `research/dataset.json`; public downloads use no token. See
+It fetches `catalog.json`, `vocabulary.json` and `images/` into
+`research/dataset/` from the immutable revision in `research/dataset.json`;
+public downloads use no token. See
 [dataset paths and contributions](../research/README.md#download-images).
 
 ## OCR workbench

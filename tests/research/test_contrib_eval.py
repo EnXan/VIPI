@@ -14,20 +14,28 @@ def entry(key, stratum, *tokens):
 
 
 def test_filename_family_strips_only_trailing_obfuscation_tokens():
-    tokens = {"none", "low-contrast", "base64", "mirrored-text", "rotated-text"}
-    assert splits.filename_family("images/a_b_task_low-contrast.png", tokens) == (
-        "a_b_task"
+    family = splits.filename_family
+    assert family("images/a_b_task_low-contrast.png") == "a_b_task"
+    assert family("images/a_b_task_none.png") == "a_b_task"
+    assert family("images/p_121_benign_rotated-text_mirrored-text.png") == (
+        "p_121_benign"
     )
-    assert splits.filename_family("images/a_b_task_none.png", tokens) == "a_b_task"
-    assert (
-        splits.filename_family(
-            "images/p_121_benign_rotated-text_mirrored-text.png", tokens
-        )
-        == "p_121_benign"
-    )
-    assert splits.filename_family("images/release_notes.png", tokens) == (
-        "release_notes"
-    )
+    assert family("images/release_notes.png") == "release_notes"
+
+
+def test_dataset_entries_group_by_text_former_family_and_controls(draft_dir):
+    root = draft_dir.parent
+    (root / "research").mkdir(exist_ok=True)
+    dataset = root / "research/dataset"
+    dataset.symlink_to(draft_dir)
+    entries = {entry["key"]: entry for entry in splits.collect_entries(root)}
+    assert len(entries) == 3 and {"typo", "photo"} <= set(entries)
+    typo = entries["typo"]
+    assert typo["stratum"] == "injection:text_image"
+    assert any(token.startswith("text:") for token in typo["tokens"])
+    assert any(token.startswith("content:") for token in typo["tokens"])
+    sting = next(e for k, e in entries.items() if k not in {"typo", "photo"})
+    assert "family:sting_note" in sting["tokens"]
 
 
 def test_shared_tokens_merge_groups_transitively_across_catalogs():
@@ -124,8 +132,7 @@ def test_duplicate_keys_are_rejected():
 def manifest_root(tmp_path, monkeypatch):
     for source in (
         "research/dataset.json",
-        "research/ocr_eval/catalog.json",
-        "research/detection_eval/cases.json",
+        "research/dataset/catalog.json",
         "research/splits.json",
         *suite.PATHS["ocr/cloud-default"]["metric_sources"],
         *suite.MODEL_REGISTRIES,

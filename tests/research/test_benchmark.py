@@ -18,13 +18,12 @@ def test_worker_uses_selected_product_configuration_and_keeps_failures(
 ):
     rows = []
     for index in range(2):
-        path = tmp_path / f"research/ocr_eval/images/{index}.png"
+        path = tmp_path / f"research/dataset/images/{index}.png"
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_bytes(b"fixture")
         rows.append(
             {
-                "key": f"ocr_eval:{index}",
-                "suite": "ocr_eval",
+                "key": str(index),
                 "image": f"images/{index}.png",
                 "image_sha256": benchmark.digest(path),
             }
@@ -72,30 +71,32 @@ def test_worker_uses_selected_product_configuration_and_keeps_failures(
     assert not (output / "current.json").exists()
 
 
-def test_selection_retains_reference_scope_and_unique_suite_keys(
-    dataset_repository, monkeypatch
-):
-    monkeypatch.setattr(
-        benchmark, "catalogs", lambda root: {"ocr_eval": benchmark.OcrCatalog(root)}
-    )
-    rows = benchmark.selection(dataset_repository)
-    assert len(rows) == 3
-    assert len({row["key"] for row in rows}) == 3
+def test_selection_retains_reference_scope_labels_and_unique_keys(evaluation_dataset):
+    rows = benchmark.selection(evaluation_dataset)
+    assert [row["key"] for row in rows] == ["0", "1", "2"]
     assert rows[0]["reference_words"] == 1
     assert rows[1]["reference_words"] == 2
     assert rows[0]["scope"] == "source_declared_text"
+    assert (rows[0]["label"], rows[0]["content"]) == ("injection", "web_page")
+    assert rows[0]["obfuscation"] == ["low_contrast"]
     assert all(len(row["image_sha256"]) == 64 for row in rows)
     assert "text" not in rows[0]
 
 
+def test_selection_skips_entries_without_reference_text(evaluation_dataset):
+    path = evaluation_dataset / "research/dataset/catalog.json"
+    entries = json.loads(path.read_text())
+    entries[1]["ocr_reference"] = None
+    path.write_text(json.dumps(entries))
+    assert [row["key"] for row in benchmark.selection(evaluation_dataset)] == ["0", "2"]
+
+
 def test_selection_file_freezes_order_and_image_hash_splits(
-    tmp_path, dataset_repository, monkeypatch
+    tmp_path, evaluation_dataset
 ):
-    monkeypatch.setattr(
-        benchmark, "catalogs", lambda root: {"ocr_eval": benchmark.OcrCatalog(root)}
-    )
+    dataset_repository = evaluation_dataset
     Image.new("RGB", (16, 12), "black").save(
-        dataset_repository / "research/ocr_eval/images/1.png"
+        dataset_repository / "research/dataset/images/1.png"
     )
     rows = benchmark.selection(dataset_repository)
     selected = [
@@ -238,20 +239,19 @@ def test_success_threshold_does_not_round_coverage_up_to_80():
     assert summary["counts"]["at_least_80"] == 0
 
 
-def test_grouped_facets_overlap_without_duplicating_category_denominator():
+def test_grouped_facets_overlap_without_duplicating_content_denominator():
     row = {
         **scored_row(1, 1),
-        "suite": "detection_eval",
-        "category": "benign",
+        "label": "benign",
+        "content": "web_page",
         "scope": "primary_visible_payload",
         "techniques": [],
         "obfuscation": ["small_font", "blur"],
-        "family": "anamorpher",
     }
     groups = grouped([row])
-    assert sum(g["images"] for g in groups if g["facet"] == "category") == 1
+    assert sum(g["images"] for g in groups if g["facet"] == "content") == 1
     assert sum(g["images"] for g in groups if g["facet"] == "obfuscation") == 2
-    assert next(g for g in groups if g["facet"] == "family")["images"] == 1
+    assert next(g for g in groups if g["facet"] == "label")["images"] == 1
 
 
 def test_final_score_matches_existing_evaluator_and_leaves_unlocated_text_unscored():
@@ -302,15 +302,14 @@ def test_report_verifies_output_hash_and_excludes_private_artifact_paths(
     tmp_path, monkeypatch
 ):
     selected = {
-        "key": "ocr_eval:fixture",
+        "key": "fixture",
         "id": "fixture",
-        "suite": "ocr_eval",
-        "category": "fixture",
+        "label": "benign",
+        "content": "web_page",
         "scope": "source_declared_text",
         "reference_words": 1,
         "techniques": [],
         "obfuscation": [],
-        "family": None,
     }
     manifest = {
         "selection": [selected],
@@ -331,7 +330,7 @@ def test_report_verifies_output_hash_and_excludes_private_artifact_paths(
     result_path = artifact / "result.json"
     benchmark.write_json(result_path, {"text": "Alpha", "regions": [], "variants": []})
     benchmark.write_json(
-        tmp_path / "cloud-default/rows/ocr_eval-fixture.json",
+        tmp_path / "cloud-default/rows/fixture.json",
         {
             "status": "completed",
             "artifacts": str(artifact),
@@ -340,20 +339,18 @@ def test_report_verifies_output_hash_and_excludes_private_artifact_paths(
             "cost": {"estimated_usd": 0.01},
         },
     )
-    excluded = {**selected, "key": "ocr_eval:excluded", "id": "excluded"}
+    excluded = {**selected, "key": "excluded", "id": "excluded"}
     monkeypatch.setattr(benchmark_report, "selection", lambda: [selected, excluded])
     monkeypatch.setattr(
         benchmark_report,
-        "catalogs",
-        lambda: {
-            "ocr_eval": SimpleNamespace(
-                reference=lambda identifier: {
-                    "text": "Alpha",
-                    "regions": [],
-                    "reading_order_known": True,
-                }
-            )
-        },
+        "catalog",
+        lambda: SimpleNamespace(
+            reference=lambda identifier: {
+                "text": "Alpha",
+                "regions": [],
+                "reading_order_known": True,
+            }
+        ),
     )
     data = benchmark_report.report(tmp_path)
     row = data["configurations"]["cloud-default"]["rows"][0]
@@ -368,9 +365,9 @@ def test_report_verifies_output_hash_and_excludes_private_artifact_paths(
     benchmark.write_json(
         separate / "manifest.json", {**manifest, "protocol": "separate cloud trial"}
     )
-    original_row = tmp_path / "cloud-default/rows/ocr_eval-fixture.json"
+    original_row = tmp_path / "cloud-default/rows/fixture.json"
     benchmark.write_json(
-        separate / "cloud-default/rows/ocr_eval-fixture.json",
+        separate / "cloud-default/rows/fixture.json",
         json.loads(original_row.read_text()),
     )
     paired = benchmark_report.report(tmp_path, separate)
