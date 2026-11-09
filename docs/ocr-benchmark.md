@@ -111,13 +111,15 @@ held-out evaluation entries. This is a first cloud-only experiment; it does not
 rerun local inference or represent every difficult entry.
 
 From the repository root, run only the cloud configuration and then score the
-retained OCR and native decision outputs:
+retained OCR outputs:
 
 ```bash
 uv run python -m research.ocr_eval.benchmark runs/benchmarks/decision-confidence-hard-100 --configuration cloud-default --selection-file research/ocr_eval/experiments/DECISION_CONFIDENCE_HARD_100.json
 uv run python -m research.ocr_eval.benchmark_report runs/benchmarks/decision-confidence-hard-100 --output runs/benchmarks/decision-confidence-hard-100/benchmark-report.json
-uv run python -m research.ocr_eval.experiments.decision_confidence runs/benchmarks/decision-confidence-hard-100 --baseline-report research/ocr_eval/reports/PRODUCT_OCR_1113_2026-11-02.json --output runs/benchmarks/decision-confidence-hard-100/decision-confidence.json
 ```
+
+The confidence-validation script (`research/ocr_eval/experiments/decision_confidence.py`)
+was removed on 2026-11-09 after the trial; it remains in the Git history.
 
 The confidence report groups native values by provider, model, question and
 split. It evaluates the initial OCR completeness choice against both 80%

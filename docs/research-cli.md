@@ -113,26 +113,6 @@ inspect report failure/unscored counts. Invalid inputs or unrecoverable worker
 startup errors exit nonzero. See the [benchmark protocol](ocr-benchmark.md) for
 metrics, timing, fees, artifacts and claim boundaries.
 
-## Luna-only diagnostic
-
-This small research trial sends full images directly to GPT-6 Luna through the
-existing transcription adapter. It requires `OPENAI_API_KEY` and the pinned
-dataset plus retained local/cloud benchmark outputs for its controls.
-
-```bash
-uv run python -m research.ocr_eval.experiments.luna_only runs/experiments/luna-new --prepare-only
-uv run python -m research.ocr_eval.experiments.luna_only runs/experiments/luna-new
-```
-
-The positional directory retains the frozen selection, source snapshots,
-references and per-image attempts. `--prepare-only` freezes inputs without API
-calls; omit it to make paid transcription requests. `--help` describes the
-command. Existing records, including interrupted `started` attempts, are skipped
-without retry. Inspect interrupted records before manually continuing; use a
-fresh directory for a separate trial. Source/image hashes must match the frozen
-manifest. The [33-image report](../research/ocr_eval/reports/LUNA_ONLY_33_2026-11-07.md)
-explains selection, raw artifacts, text-only scoring and limitations.
-
 ## Separate model environments
 
 `VIPI_OCR_PYTHON` selects the standard OCR interpreter; `VIPI_OCR_VLM_PYTHON`

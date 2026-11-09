@@ -8,6 +8,8 @@ Focused case analysis: [book-spine OCR diagnosis](BOOK_SPINE_DIAGNOSIS_2026-11-0
 
 Direct model diagnostic: [33-image Luna-only comparison](LUNA_ONLY_33_2026-11-07.md)
 and [raw responses, references and comparable text-only scores](LUNA_ONLY_33_2026-11-07.json).
+Its script and the confidence-validation script were removed on 2026-11-09
+after the trials; both remain in the Git history.
 
 Research review: [decision models and proposed recovery experiments](DECISION_MODEL_REVIEW_2026-11-07.md).
 These proposals have not changed production behavior or established a quality gain.
