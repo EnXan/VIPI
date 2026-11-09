@@ -150,6 +150,7 @@ runs/
 /research/ocr_eval/catalog.json
 /research/detection_eval/cases.json
 /research/generated/
+/research/dataset/
 env/
 venv/
 ENV/

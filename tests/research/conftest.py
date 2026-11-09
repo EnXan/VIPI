@@ -107,9 +107,8 @@ def draft_catalog(catalogs_root):
 
 @pytest.fixture
 def draft_dir(catalogs_root, draft_catalog):
-    """A draft directory holding ``draft_catalog`` and its vocabulary."""
-    directory = catalogs_root / "draft"
-    directory.mkdir()
+    """A dataset folder holding ``draft_catalog``, its vocabulary and images."""
+    directory = catalogs_root / "research"
     for name, value in zip((CATALOG_NAME, VOCABULARY_NAME), draft_catalog):
         (directory / name).write_text(json.dumps(value, indent=2), encoding="utf-8")
     return directory

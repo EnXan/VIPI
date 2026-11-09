@@ -37,6 +37,7 @@ Temporary planning and review queues belong in `.llm-plans/`.
 | [0050](0050-contribution-evaluation-pipeline.md) | Matched contribution evaluation on a grouped development/test split |
 | [0051](0051-combined-evaluation-catalog.md) | One combined evaluation catalog with an editable vocabulary (draft tooling) |
 | [0052](0052-reproducible-enterprise-attack-images.md) | Reproducible product-view attack screenshots and screenshot-backed Anamorpher scaling |
+| [0053](0053-one-evaluation-dataset.md) | One dataset layout (`catalog.json`, `vocabulary.json`, `images/`) replacing the two catalogs |
 
 When revising an agreed decision, write its replacement with a summary of the
 old ADR (identifier, decision, rationale and reason for revision), then delete

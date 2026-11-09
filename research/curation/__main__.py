@@ -5,8 +5,6 @@ import json
 from pathlib import Path
 import sys
 
-from research.ocr_eval.benchmark import ROOT
-
 from . import generate, schema
 from .store import CATALOG_NAME, DEFAULT_DIRECTORY, VOCABULARY_NAME, write_json
 
@@ -62,17 +60,16 @@ def build_parser():
         help="Spec JSON, e.g. research/curation/generated/benign_text.json",
     )
     generated.add_argument("--dir", type=Path, default=DEFAULT_DIRECTORY)
-    generated.add_argument("--images-root", type=Path, default=ROOT / "research")
+    generated.add_argument(
+        "--images-root", type=Path, help="Image folder root; default: --dir"
+    )
     commands.choices["summary"].add_argument(
         "--table",
         action="store_true",
         help="Print the label balance per content as a table instead of JSON",
     )
     commands.choices["validate"].add_argument(
-        "--images-root",
-        type=Path,
-        default=ROOT / "research",
-        help="Directory holding ocr_eval/ and detection_eval/ images",
+        "--images-root", type=Path, help="Image folder root; default: --dir"
     )
     return parser
 
@@ -84,6 +81,7 @@ def main(argv=None):
     except (ValueError, OSError) as error:
         print(f"error: {error}", file=sys.stderr)
         return 2
+    args.images_root = getattr(args, "images_root", None) or args.dir
     if args.command == "generate":
         return add_generated(args, catalog, vocabulary)
     if args.command == "validate":

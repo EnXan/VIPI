@@ -58,7 +58,7 @@ def create_app(
 
     detection = DetectionService(root, detector_models_dir, detector_provider_factory)
     register_routes(app, detection)
-    from research.curation.store import CurationStore
+    from research.curation.store import DEFAULT_DIRECTORY, CurationStore
     from research.workbench.curation_routes import (
         register_routes as register_curation_routes,
     )
@@ -66,10 +66,7 @@ def create_app(
     register_curation_routes(
         app,
         CurationStore(
-            Path(curation_dir)
-            if curation_dir
-            else repository / ".local-assets/dataset-submission",
-            repository / "research",
+            Path(curation_dir) if curation_dir else repository / DEFAULT_DIRECTORY
         ),
     )
 

@@ -31,9 +31,9 @@ same session.
 - **Vocabulary.** Allowed values live in `vocabulary.json` beside the catalog,
   seeded from the agreed taxonomy and editable later (add missing values,
   remove unused ones). Values are normalized to lowercase with underscores.
-- **Storage.** Drafts are written to `.local-assets/dataset-submission/` and
-  published as a Hugging Face dataset PR; VIPI adopts them by pinning the new
-  revision.
+- **Storage.** Revised by [ADR 0053](0053-one-evaluation-dataset.md): the
+  catalog is the dataset (`catalog.json`, `vocabulary.json`, `images/`),
+  locally in `research/dataset/`; VIPI adopts it by pinning the new revision.
 - **Composition rules.** The catalog is an evaluation basis, possibly later
   training data. Balancing every field jointly is impossible (thousands of
   combinations), so each dimension gets the strictest rule it needs:

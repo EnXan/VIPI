@@ -7,21 +7,17 @@ reference. The design is recorded in
 [ADR 0051](../../adr-code/0051-combined-evaluation-catalog.md); the agreed
 taxonomy is in `vocabulary.py`.
 
-The combined catalog is a draft. VIPI still evaluates the two pinned catalogs
-until the rebuilt catalog is merged into the dataset and loaders are adapted.
+The combined catalog is the evaluation dataset (ADR 0053). VIPI's benchmark
+and scan still read the two pinned catalogs until their loaders are switched.
 
-## Get the draft
+## The dataset folder
 
-The draft lives in `.local-assets/dataset-submission/` (ignored by Git) as
-`catalog.json` and `vocabulary.json`. It was built once from the two pinned
-catalogs and has been curated since; it is published in the evaluation dataset
-under `combined/`. To work on it, copy both files from there into that
-directory. The one-time `migrate` command that built it was removed on
-2026-11-09; it remains in the Git history.
-
-Image paths keep their dataset locations (`ocr_eval/images/…`,
-`detection_eval/images/…`, `generated/…`), relative to `research/`. Every
-entry keeps where it came from in `migrated_from` and `source`.
+The dataset lives in `research/dataset/` (ignored by Git): `catalog.json`,
+`vocabulary.json` and `images/<id>.<ext>`, with image paths relative to that
+folder. It is published unchanged on Hugging Face. The one-time `migrate`
+command that built the first draft from the two old catalogs was removed on
+2026-11-09; it remains in the Git history. Every entry keeps its origin in
+`migrated_from` and `source`.
 
 ## Check the draft
 
@@ -60,8 +56,7 @@ on white; kept for a few examples only); `varied` picks font, size, colours
 checker, noise), canvas and alignment from a fixed palette, seeded by the
 text. `typographic_rerender.json` re-renders typographic attack texts in the
 varied style. Images go to
-`research/generated/incoming/<id>.png` (ignored by Git; the id is the start of
-the PNG hash), so running a spec again adds nothing. Each entry gets source
+`research/dataset/images/<id>.png` (the id is the start of the PNG hash), so running a spec again adds nothing. Each entry gets source
 `vipi_generated`, license Apache-2.0 and the readable text as a gold OCR
 reference (homoglyph characters stay in `payload`).
 
@@ -143,7 +138,7 @@ The running workbench reloads the draft when the file changes.
 ## Label in the workbench
 
 Start the workbench (`uv run python -m research.workbench serve`) and open the
-**Label** tab. It edits the draft in `.local-assets/dataset-submission/`.
+**Label** tab. It edits `research/dataset/catalog.json`.
 
 - Filter by status (unreviewed first), any field value, source or text.
 - **Group similar** (on by default) lists entries with nearly the same image

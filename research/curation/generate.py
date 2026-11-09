@@ -1,7 +1,7 @@
 """Render a generated-image spec and turn it into catalog entries.
 
 Rendering lives in ``render.py``. Images are written to
-``<images root>/generated/incoming/<id>.png``; the id is the start of the PNG's
+``<images root>/images/<id>.png``; the id is the start of the PNG's
 SHA-256, so rendering the same spec again adds nothing. A spec sets ``label``,
 ``content`` and optionally ``style``; each item sets ``text``, ``kind`` and
 ``obfuscation`` and may set ``style``, ``content``, ``label``, ``techniques``,
@@ -33,7 +33,7 @@ from PIL import Image
 from . import screens
 from .render import finish, overlay, overlay_regions, reading_text, render, visible_text
 
-IMAGE_FOLDER = "generated/incoming"
+IMAGE_FOLDER = "images"
 RENDER_WORKERS = min(6, os.cpu_count() or 1)
 DERIVED = {"blur", "distorted_text", "mirrored_text", "rotated_text"}
 DERIVED_BACKGROUND = (255, 255, 255)

@@ -90,7 +90,7 @@ def test_existing_value_cannot_be_added_twice(store):
 def test_missing_draft_is_reported(tmp_path):
     status = CurationStore(tmp_path / "none", tmp_path).status()
     assert status["available"] is False
-    assert "combined/catalog.json" in status["message"]
+    assert "research.download" in status["message"]
 
 
 @pytest.fixture

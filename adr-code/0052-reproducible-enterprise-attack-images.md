@@ -21,7 +21,7 @@ Official interface references:
 
 Store ten-item specs under `research/curation/generated/`. Render their
 synthetic product views through the existing HTML screenshot pipeline and keep
-their PNGs in `research/generated/incoming/`. The first nine scaling screenshots use
+their PNGs in the dataset's `images/` folder (`research/dataset/images/`, ADR 0053). The first nine scaling screenshots use
 Trail of Bits Anamorpher: an empty target panel appears in the native-size
 decoy; its instruction appears in the same panel after 4:1 nearest-neighbour
 downscaling. Keep decoy and target layout dimensions fixed so other UI elements

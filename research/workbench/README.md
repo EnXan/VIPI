@@ -52,7 +52,7 @@ text and usage remain available.
 ## Label
 
 The **Label** tab edits the combined catalog draft in
-`.local-assets/dataset-submission/`. See the
+`research/dataset/`. See the
 [curation guide](../curation/README.md#label-in-the-workbench).
 
 ## Dataset batches

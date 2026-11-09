@@ -62,34 +62,26 @@ also describes that workflow.
 
 For a CLI submission from this source checkout:
 
-1. Fetch the latest accepted catalog from `main` into a separate directory.
-   `.local-assets/` is ignored by this code repository, so submission files stay
-   out of GitHub commits.
+1. Work in the local dataset folder `research/dataset/` (ignored by Git): add
+   images as `images/<id>.png` and their entries in `catalog.json`, label them
+   in the workbench **Label** tab or by hand following the
+   [labeling guide](curation/LABELING_GUIDE.md), and keep each content type
+   at 50 % benign. Describe the source or generation method and the image
+   license in each entry's `source`.
+
+2. Check the folder:
 
    ```bash
-   uv run hf download EnXan/VIPI-evaluation detection_eval/cases.json --repo-type dataset --revision main --local-dir .local-assets/dataset-submission
+   uv run python -m research.curation validate
+   uv run python -m research.curation summary --table
    ```
 
-2. Create `.local-assets/dataset-submission/detection_eval/images/`, put the new
-   images there, and edit the downloaded `detection_eval/cases.json`. Use
-   unique filenames and the [detection entry format](detection_eval/README.md).
-   Record the exact visible payload, the expected label, attack techniques and
-   obfuscation. Group caller-context variants under the same image entry.
-   Describe the source or synthetic generation method and applicable image
-   license in the PR description.
-
-3. Log in and upload the submission as a PR:
+3. Log in and upload the catalog and new images as a PR:
 
    ```bash
    uv run hf auth login
-   uv run hf upload EnXan/VIPI-evaluation .local-assets/dataset-submission . --repo-type dataset --create-pr --include 'detection_eval/cases.json' --include 'detection_eval/images/*' --commit-message 'Add detection evaluation images'
+   uv run hf upload EnXan/VIPI-evaluation research/dataset . --repo-type dataset --create-pr --include 'catalog.json' --include 'images/*' --commit-message 'Add evaluation images'
    ```
-
-For OCR submissions, use `ocr_eval/catalog.json` and `ocr_eval/images/` in the
-same commands and directory layout. Follow the existing
-[OCR record format](ocr_eval/README.md), preserving exact transcripts,
-reference scope, word regions and source provenance. Keep existing record IDs
-unchanged.
 
 Only the owner or authorized maintainers merge submissions. Images in a public
 PR can be visible before review; do not submit confidential material or real

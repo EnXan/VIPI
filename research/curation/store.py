@@ -14,7 +14,7 @@ import threading
 from . import schema, similarity
 from .vocabulary import FIELDS, allowed, near_duplicates, normalize
 
-DEFAULT_DIRECTORY = Path(".local-assets/dataset-submission")
+DEFAULT_DIRECTORY = Path("research/dataset")
 CATALOG_NAME = "catalog.json"
 VOCABULARY_NAME = "vocabulary.json"
 CURATION_KEYS = ("reviewed", "decision", "reason", "duplicate_of")
@@ -39,9 +39,10 @@ def write_json(path, value):
 
 
 class CurationStore:
-    def __init__(self, directory, images_root):
+    def __init__(self, directory, images_root=None):
         self.directory = Path(directory)
-        self.images_root = Path(images_root).resolve()
+        # image paths are relative to the dataset folder unless told otherwise
+        self.images_root = Path(images_root or directory).resolve()
         self.lock = threading.Lock()
         self.catalog = None
         self.vocabulary = None
@@ -65,8 +66,8 @@ class CurationStore:
         if self.catalog is None:
             if not self.catalog_path.is_file() or not self.vocabulary_path.is_file():
                 raise DraftMissing(
-                    f"No catalog draft found in {self.directory}. Copy combined/catalog.json "
-                    "and combined/vocabulary.json from the evaluation dataset there."
+                    f"No dataset found in {self.directory}. Run: uv run python -m "
+                    "research.download"
                 )
             self.catalog = json.loads(self.catalog_path.read_text(encoding="utf-8"))
             self.vocabulary = json.loads(
