@@ -188,7 +188,8 @@
         </details>
         <div class="label-grid">
           <ol id="label-list" class="label-list" aria-label="Catalog entries"></ol>
-          <section class="label-detail" aria-live="polite">
+          <section id="label-empty" class="label-empty" hidden aria-live="polite"><h2 id="label-empty-title"></h2><p id="label-empty-text" class="muted"></p></section>
+          <section id="label-detail" class="label-detail" aria-live="polite">
             <div class="label-nav">
               <button id="label-prev" class="small" type="button" title="Previous (←)">← Previous</button>
               <span id="label-position" class="mono muted"></span>
@@ -197,23 +198,28 @@
             <a id="label-image-link" class="label-image" target="_blank" rel="noopener"><img id="label-image" alt="Selected catalog image"></a>
             <dl id="label-meta" class="label-meta"></dl>
             <form id="label-texts" class="label-texts">
-              <label>Payload <span class="muted">— the main visible text the label is about</span><textarea id="label-payload" rows="3"></textarea></label>
-              <label>OCR reference <span class="muted">— exactly what a reader sees, for scoring OCR; leave empty if there is no text</span><textarea id="label-reference" rows="4"></textarea></label>
-              <p id="label-reference-note" class="muted"></p>
-              <fieldset class="label-source"><legend>Source</legend>
-                <label>Name <input id="label-source-dataset" type="text" placeholder="e.g. my_screenshots"></label>
-                <label>License <input id="label-source-license" type="text" placeholder="e.g. CC-BY-4.0"></label>
-                <label class="wide">Provenance <input id="label-source-provenance" type="text" placeholder="How the image was made or where it was found"></label>
-                <label class="wide">Repository <input id="label-source-repository" type="url" placeholder="URL, optional"></label>
+              <fieldset><legend>Text in the image</legend>
+                <label>Everything readable <span class="muted">Type exactly what a person reads in the image, in reading order. Evaluations score OCR against this text. Leave empty if the image has no text.</span><textarea id="label-reference" rows="4"></textarea></label>
+                <p id="label-reference-note" class="muted"></p>
+                <label>Text the label is about <span class="muted">The part that decides the label, for an attack the instruction itself; for a benign image its main message. Used to search and to group similar images.</span><textarea id="label-payload" rows="3"></textarea></label>
               </fieldset>
-              <fieldset class="label-contexts"><legend>Caller context cases <span class="muted">— optional: the verdict expected when an application describes itself this way</span></legend>
+              <fieldset class="label-source"><legend>Where the image comes from <span class="muted">— needed to publish it</span></legend>
+                <label>Source name <span class="muted">One short name for all images of one origin</span><input id="label-source-dataset" type="text" placeholder="e.g. my_screenshots"></label>
+                <label>License <span class="muted">Must allow publishing the image</span><input id="label-source-license" type="text" placeholder="e.g. CC-BY-4.0"></label>
+                <label class="wide">Provenance <span class="muted">How the image was made or where it was found</span><input id="label-source-provenance" type="text" placeholder="e.g. Screenshot of my demo shop, March 2026"></label>
+                <label class="wide">Repository <span class="muted">Link to the source, optional</span><input id="label-source-repository" type="url" placeholder="https://…"></label>
+              </fieldset>
+              <details id="label-contexts" class="label-contexts"><summary>Expected verdict in a given context <span class="muted">— optional, rarely needed</span></summary>
+                <p class="muted">Some images are judged differently depending on the application, for example a phishing page is harmless inside a phishing-training tool. Describe how such an application introduces itself and the verdict expected then. Evaluations do not use these cases yet.</p>
                 <div id="label-cases"></div>
-                <button id="label-add-case" class="small" type="button">+ Context case</button>
-              </fieldset>
+                <button id="label-add-case" class="small" type="button">+ Add a context</button>
+              </details>
               <div class="label-text-actions"><button id="label-save-texts" class="small" type="submit">Save text and source</button><span id="label-texts-status" class="mono muted" role="status"></span></div>
             </form>
           </section>
-          <section class="label-fields" aria-label="Labels">
+          <section id="label-fields" class="label-fields" aria-label="Classification">
+            <h2 class="card-title">Classification</h2>
+            <p class="muted label-fields-intro">Click the values that apply; each click is saved. Hover a value for its meaning, and the rules are in <code>research/curation/LABELING_GUIDE.md</code>.</p>
             <div id="label-field-groups"></div>
             <div class="label-actions">
               <button id="label-reviewed" class="small" type="button" aria-pressed="false" title="Toggle reviewed (R)">Mark reviewed</button>

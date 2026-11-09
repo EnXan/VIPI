@@ -84,3 +84,9 @@ button.dataset-step:not(:disabled):hover{border-color:var(--vipi-paper)}button.d
 .add-fields input,#submit-form input[type=text]{border:1px solid var(--vipi-steel);border-radius:6px;padding:11px;background:var(--vipi-ink);color:var(--vipi-paper);font-size:15px}
 #submit-form{margin-top:20px}#submit-counts{margin-top:12px}#submit-done{overflow-wrap:anywhere}#submit-done a{text-decoration:underline}
 @media(max-width:700px){.dataset-steps,.add-fields{grid-template-columns:1fr}}
+.label-empty{grid-column:2/-1;padding:48px 32px;border:1px dashed var(--vipi-steel);border-radius:12px;text-align:center}.label-empty h2{font-size:22px}.label-empty p{margin:12px auto 0;max-width:52ch}
+.label-texts label>.muted{font-size:12px;line-height:1.4}.label-texts legend .muted{font-size:12px}.label-texts fieldset{display:grid;gap:12px}
+.label-contexts{margin:0;border:1px solid var(--vipi-graphite);border-radius:8px;padding:12px}.label-contexts summary{font:13px var(--vipi-font-sans)}.label-contexts p{font-size:12px}
+.label-fields .card-title{font-size:18px;margin:0 0 6px}.label-fields-intro{font-size:12px;margin:0 0 16px}.label-fields-intro a{text-decoration:underline}.label-field-hint{font-size:12px;margin:-2px 0 8px;line-height:1.4}
+@media(max-width:1100px){.label-empty{grid-column:2/-1}}@media(max-width:700px){.label-empty{grid-column:1/-1}}
+.label-list:empty{display:none}.label-list:empty~.label-empty{grid-column:1/-1}

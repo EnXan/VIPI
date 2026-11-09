@@ -197,8 +197,13 @@ after a preview and a confirmation); see [Add images](../README.md#add-images).
   several. Fields that do not apply to the chosen label are disabled.
 - Every click is validated and saved immediately; rejected changes show the
   reason and leave the file unchanged.
-- **Payload**, **OCR reference**, **Source** and **Caller context cases** are
-  edited in the form below the image and saved with **Save text and source**.
+- The form below the image edits **Text in the image** (*Everything readable*
+  is the OCR reference, *Text the label is about* the payload), **Where the
+  image comes from** (source) and, folded away, **Expected verdict in a given
+  context** (caller context cases); **Save text and source** saves them.
+- When no entry matches, the page says why (for example, everything is
+  reviewed) instead of showing an empty form. Status starts at *All* when no
+  entry is unreviewed.
   A reference typed here covers the main visible text (scope
   `primary_visible_payload`, quality `reviewed_payload`). A reference with
   word regions keeps its text; change text and regions together in

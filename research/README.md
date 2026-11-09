@@ -67,10 +67,10 @@ Everything below works on the workbench **Dataset** page
    [image generators](curation/README.md#generated-images).
 
 2. **Label them** on the Dataset page: after adding, **Only my changes** is
-   ticked and the new entries are listed;
-   set the labels following the [labeling guide](curation/LABELING_GUIDE.md),
-   type the payload and the OCR reference (exactly the text a reader sees),
-   check source and license, and mark each entry reviewed. **Balance per
+   ticked and the new entries are listed. Set the classification following
+   the [labeling guide](curation/LABELING_GUIDE.md), type everything readable
+   in the image (the OCR reference) and the text the label is about (the
+   payload), check source and license, and mark each entry reviewed. **Balance per
    content type** shows where benign or attack images are missing; keep each
    content type at 50 % benign.
 

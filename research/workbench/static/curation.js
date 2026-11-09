@@ -42,6 +42,7 @@
       node('label-workspace').hidden = !status.available;
       if (!status.available) return;
       state.vocabulary = status.vocabulary; state.fields = status.fields; state.loaded = true;
+      if (status.reviewed === status.entries) node('label-status').value = 'all';
       options(node('label-field'), state.fields.map(field => [field, field]));
       for (const field of ['label', 'content']) {
         options(node(`add-${field}`), spec(field).values.map(item =>
@@ -147,9 +148,10 @@
 
   function renderEntry() {
     const entry = state.entry;
-    node('label-detail-empty')?.remove();
-    for (const id of ['label-image', 'label-image-link']) node(id).hidden = !entry;
-    if (!entry) { node('label-field-groups').replaceChildren(); return; }
+    node('label-empty').hidden = Boolean(entry);
+    node('label-detail').hidden = !entry;
+    node('label-fields').hidden = !entry;
+    if (!entry) { renderEmpty(); return; }
     const imageUrl = `${entryUrl(entry.id)}/image`;
     node('label-image').src = imageUrl; node('label-image-link').href = imageUrl;
     const source = entry.source || {};
@@ -162,15 +164,42 @@
     renderCuration();
   }
 
+  async function renderEmpty() {
+    const status = await request('/api/curation');
+    const filtered = node('label-field').value || node('label-source').value
+      || node('label-query').value.trim() || node('label-changed').checked;
+    let title = 'No entries match these filters.';
+    let text = 'Change or clear the filters above.';
+    if (node('label-changed').checked && !node('label-query').value.trim()) {
+      title = 'You have no changes yet.';
+      text = 'Add images with step 1, or untick "Only my changes" to correct an existing entry.';
+    } else if (node('label-status').value === 'unreviewed' && !filtered && status.reviewed === status.entries) {
+      title = `All ${status.entries} entries are reviewed.`;
+      text = 'To contribute, add images with step 1. To correct an existing entry, set Status to "All".';
+    }
+    node('label-empty-title').textContent = title;
+    node('label-empty-text').textContent = text;
+  }
+
   function applies(field) {
     return !state.entry.label || spec(field).applies_to.includes(state.entry.label);
   }
+
+  const FIELD_HINTS = {
+    label: 'Is the image an attack? Judge it without any application context.',
+    techniques: 'How the text tries to steer the AI. Every one that applies.',
+    goal: 'What the attack wants the AI to do. Every one that applies.',
+    obfuscation: 'How the text is deliberately hidden. Empty if it is not hidden.',
+    evidence: 'Where the attack shows: readable text, the picture, encoded text or no text.',
+    content: 'What the image shows.',
+  };
 
   function renderFields() {
     node('label-field-groups').replaceChildren(...state.fields.map(field => {
       const group = element('fieldset', null, 'label-field');
       group.disabled = !applies(field);
       group.append(element('legend', `${field}${spec(field).multiple ? '' : ' · one value'}`, 'eyebrow'));
+      if (FIELD_HINTS[field]) group.append(element('p', FIELD_HINTS[field], 'muted label-field-hint'));
       const current = state.entry[field];
       const chosen = new Set(Array.isArray(current) ? current : current ? [current] : []);
       const chips = element('div', null, 'label-chips');
@@ -330,9 +359,7 @@
     node('label-reference').readOnly = locked;
     node('label-reference-note').textContent = locked
       ? 'This reference has word positions, so its text is edited together with them in catalog.json.'
-      : reference
-        ? `Scope: ${reference.scope.replaceAll('_', ' ')} · quality: ${reference.quality.replaceAll('_', ' ')}.`
-        : 'A reference typed here covers the main visible text (scope: primary visible payload).';
+      : '';
     const source = entry.source || {};
     for (const key of SOURCE_FIELDS) node(`label-source-${key}`).value = source[key] || '';
     renderCases(entry.cases);
@@ -356,6 +383,7 @@
   function renderCases(cases) {
     // Cases without context repeat the label and are kept as they are.
     node('label-cases').replaceChildren(...cases.filter(item => item.context).map(caseRow));
+    node('label-contexts').open = cases.some(item => item.context);
   }
   node('label-add-case').onclick = () => node('label-cases').append(caseRow({expected: 'benign'}));
 
