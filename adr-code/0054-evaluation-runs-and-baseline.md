@@ -11,7 +11,7 @@ the user chose (1) product scan options only, with no research knobs, and
 (2) one baseline mechanism for CLI and UI: run first, then save the run as the
 baseline; the comparison happens automatically.
 
-This replaces [ADR 0050](0050-contribution-evaluation-pipeline.md), removed in
+This replaces ADR 0050, removed in
 this change. Summary of ADR 0050: `research/contrib_eval/` wrapped the OCR
 benchmark for two OCR paths (`ocr/cloud-default`, `ocr/local-speed`) on a
 grouped, seeded 80/20 development/test split; a manifest (suite + configuration

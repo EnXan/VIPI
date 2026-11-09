@@ -1,13 +1,17 @@
 # Product OCR benchmark protocol
 
-This benchmark runs the production `OcrSession` over every entry of the pinned
-dataset that has reference text (536 of 554; ADR 0053). The measured run below
-used the earlier two catalogs: 1,000 OCR entries and 113 scanner-evaluation
-entries. The requested comparison
-is local **speed** (PP-OCRv6 Tiny + LiquidAI d1) against **cloud defaults**
-(Google Cloud Vision Document Text Detection + OpenAI Decisions, GPT-6 Luna).
-It measures OCR recovery, including visual decisions and image transformations.
-It does not run the final injection detector or measure scanner recall.
+This benchmark runs the product scan (`vipi.scanner.scan_image`: OCR, then
+the injection detector) over every entry of the pinned dataset (554; ADR 0053
+and [ADR 0054](../adr-code/0054-evaluation-runs-and-baseline.md)). OCR is scored
+on the 536 entries with reference text; detection on all entries.
+[Evaluation runs](../research/evaluate/README.md) use it on one split.
+
+The measured run below predates this: it ran only the OCR session
+(`OcrSession`) over the earlier two catalogs (1,000 OCR entries and 113
+scanner-evaluation entries) and compared local **speed** (PP-OCRv6 Tiny +
+LiquidAI d1) with **cloud defaults** (Google Cloud Vision Document Text
+Detection + OpenAI Decisions, GPT-6 Luna). It measured OCR recovery, including
+visual decisions and image transformations, not the injection detector.
 
 ## Measured run, 1–2 November 2026
 
@@ -158,11 +162,12 @@ Coverage averages use scored entries; JSON additionally reports conservative
 coverage lower bounds over all planned reference words/images, assigning zero
 credit to missing scores. Zero-word references never count as threshold successes.
 
-Category rows partition the catalogs. Suite, scope, technique, obfuscation and
-Anamorpher-family subsets overlap and must not be added together. Existing labels
-are preserved. Anamorpher is identified by the catalog's `anamorpher_` filenames,
-as documented in the [scanner catalog guide](../research/detection_eval/README.md#anamorpher-samples).
-Its three samples do not establish a broad Anamorpher success rate.
+In the measured run, category rows partitioned the two catalogs; suite,
+scope, technique, obfuscation and Anamorpher-family subsets overlapped and must
+not be added together. Anamorpher was identified by the catalog's `anamorpher_`
+filenames; its three samples do not establish a broad Anamorpher success rate.
+Current reports use content rows as the partition (label, scope, technique and
+obfuscation overlap).
 
 ## Time, fees and claim boundaries
 

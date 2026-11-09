@@ -19,7 +19,7 @@ command that built the first draft from the two old catalogs was removed on
 2026-11-09; it remains in the Git history. Every entry keeps its origin in
 `migrated_from` and `source`.
 
-## Check the draft
+## Check the dataset
 
 ```bash
 uv run python -m research.curation validate
@@ -49,7 +49,7 @@ uv run python -m research.curation generate research/curation/generated/benign_t
 ```
 
 renders a spec of texts and adds one unreviewed entry per new image to the
-draft (rendering in `render.py`, spec handling in `generate.py`). Two styles:
+dataset (rendering in `render.py`, spec handling in `generate.py`). Two styles:
 `typographic` reproduces the typographic source (512×256, Arial 19 px, black
 on white; kept for a few examples only); `varied` picks font, size, colours
 (no plain white), background pattern (solid, gradient, stripes, dots, grid,
@@ -114,7 +114,7 @@ desktop with a selected production environment, pending review gate and
 cursor-focused run control. It has `image_only` evidence and no OCR reference.
 Screenshot specs require Chrome; only `image_scaling` specs need the pinned
 Anamorpher checkout. PNG hashes can differ with another Chrome or font version.
-From a prepared draft, regenerate the five ten-image batches and final row with:
+From the downloaded dataset, regenerate the five ten-image batches and final row with:
 
 ```bash
 uv run python -m research.curation generate research/curation/generated/attack_product_batch_01.json
@@ -133,7 +133,7 @@ catalog entry id) apply `blur`, `distorted_text`, `mirrored_text` or
 `rotated_text` to that entry's image and copy its labels, text and source;
 `attack_screens_obfuscated.json` does this for 20 vpi_bench attack
 screenshots.
-The running workbench reloads the draft when the file changes.
+The running workbench reloads the dataset when the file changes.
 
 ## Label in the workbench
 

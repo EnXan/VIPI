@@ -1,6 +1,5 @@
 import pytest
 
-from vipi.config import OCR_MODEL_IDS
 from vipi.ocr.models import FILES, PUBLIC_MODEL_NAMES, REQUIRED
 
 
@@ -23,10 +22,9 @@ def test_ppocrv6_model_ids_have_pinned_detection_and_recognition_files(model, si
     assert FILES[recognizer]["sha256"]
 
 
-def test_mode_models_are_exposed_and_tesseract_is_not_a_cli_choice():
+def test_mode_models_are_exposed():
     assert set(PUBLIC_MODEL_NAMES) >= {
         "ppocr-v6-tiny",
         "ppocr-v6-small",
         "ppocr-v6",
     }
-    assert "tesseract" not in OCR_MODEL_IDS

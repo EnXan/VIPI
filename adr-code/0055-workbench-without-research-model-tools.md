@@ -64,8 +64,8 @@ longer apply. Their summaries:
   Not selected by the user.
 
 Consequences: comparing other OCR models or detectors needs new code; Git
-history has the removed adapters. The Tesseract engine stays in the product
-package but is no longer reachable from any command. Retained experiments under
+history has the removed adapters. The Tesseract engine, reachable only from
+the research commands, is removed from the product package as well. Retained experiments under
 `research/ocr_eval/experiments/` and historical reports are unchanged.
 
 ## Validation boundary

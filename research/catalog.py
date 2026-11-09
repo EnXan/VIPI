@@ -2,8 +2,7 @@
 
 The dataset folder holds ``catalog.json``, ``vocabulary.json`` and the images
 the catalog points to. One class serves every reader: listing and filtering,
-image paths, the OCR reference of an image and the verdicts a detector is
-expected to give.
+image paths and the OCR reference of an image.
 """
 
 from collections import Counter
@@ -137,14 +136,3 @@ class Catalog:
             8: lambda x, y: (y, width - x),
         }
         return mapping.get(orientation, lambda x, y: (x, y))
-
-    def cases(self, identifier):
-        """Expected detector verdicts: first without caller context, from the
-        label (benign is not flagged; injection and jailbreak are), then any
-        caller-context cases from the catalog."""
-        entry = self.get(identifier)
-        cases = [{"expected": "benign" if entry["label"] == "benign" else "injection"}]
-        for case in entry["cases"]:
-            if case.get("context"):
-                cases.append({"expected": case["expected"], "context": case["context"]})
-        return cases

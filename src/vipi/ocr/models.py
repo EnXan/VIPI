@@ -21,7 +21,6 @@ MODEL_NAMES = {
     "ppocr-v6-medium": "PP-OCRv6 · medium",
     "ppocr-v6-small": "PP-OCRv6 · small",
     "ppocr-v6-tiny": "PP-OCRv6 · tiny",
-    "tesseract": "Tesseract · English / best",
     MISTRAL_OCR_MODEL: "Mistral OCR 4.1 · API",
     GOOGLE_OCR_MODEL: "Google Cloud Vision · API",
     LUNA_OCR_MODEL: "GPT-6 Luna · OCR API",
@@ -30,7 +29,6 @@ PUBLIC_MODEL_NAMES = {
     "ppocr-v6": MODEL_NAMES["ppocr-v6"],
     "ppocr-v6-small": MODEL_NAMES["ppocr-v6-small"],
     "ppocr-v6-tiny": MODEL_NAMES["ppocr-v6-tiny"],
-    "tesseract": MODEL_NAMES["tesseract"],
     MISTRAL_OCR_MODEL: MODEL_NAMES[MISTRAL_OCR_MODEL],
     GOOGLE_OCR_MODEL: MODEL_NAMES[GOOGLE_OCR_MODEL],
     LUNA_OCR_MODEL: MODEL_NAMES[LUNA_OCR_MODEL],
@@ -58,7 +56,6 @@ REQUIRED = {
         "multi_PP-OCRv6_rec_tiny",
         "ch_PP-LCNet_x0_25_textline_ori_cls_mobile",
     ),
-    "tesseract": ("tesseract-eng",),
 }
 
 
@@ -70,22 +67,17 @@ def validate_model(model: str, directory: Path, *, verify=False):
         if not api_key(*names):
             raise ValueError(f"Set {names[0]} to use {MODEL_NAMES[model]}.")
         return
-    if model != "tesseract":
-        from importlib.util import find_spec
+    from importlib.util import find_spec
 
-        if any(find_spec(package) is None for package in ("rapidocr", "onnxruntime")):
-            raise ValueError(
-                "The RapidOCR/ONNX runtime is not installed. "
-                "Install the ocr extra to use PP-OCR models."
-            )
-    if model == "tesseract" and not shutil.which("tesseract"):
-        raise ValueError("Tesseract is not installed. Install Tesseract 5 separately.")
+    if any(find_spec(package) is None for package in ("rapidocr", "onnxruntime")):
+        raise ValueError(
+            "The RapidOCR/ONNX runtime is not installed. "
+            "Install the ocr extra to use PP-OCR models."
+        )
     for key in REQUIRED[model]:
         info = FILES[key]
         path = directory / info["file"]
         if not path.is_file():
-            if model == "tesseract":
-                raise ValueError(f"Model file missing: {path}.")
             raise ValueError(
                 f"Model files missing. Run: vipi setup --ocr-model {model}"
             )

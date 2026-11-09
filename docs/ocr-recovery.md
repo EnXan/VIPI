@@ -1,10 +1,10 @@
 # Product OCR recovery
 
-`vipi scan` and the workbench's `adaptive-jev` profile share
-`vipi.ocr.recovery`. It implements the selected research workflow behind the
-historical 95/113 result. See [CLI usage](cli.md) for setup, local/cloud modes
-and model selection, and [Architecture](architecture.md#ocr-implementation) for
-module ownership. The workbench still defaults to its native baseline profile.
+`vipi scan`, the workbench and the evaluation runs use `vipi.ocr.recovery`.
+It implements the selected research workflow behind the historical 95/113
+result. See [CLI usage](cli.md) for setup, local/cloud modes and model
+selection, and [Architecture](architecture.md#ocr-implementation) for module
+ownership.
 
 ## Recovery flow
 
@@ -42,8 +42,8 @@ module ownership. The workbench still defaults to its native baseline profile.
 References and benchmark scores enter only after output selection. They are
 never passed to model requests or used to select a candidate. Raw OCR variants,
 transforms, quality signals, decisions, insertion evidence and tile guards are
-saved with each run. The internal profile ID `adaptive-jev` remains compatible
-with historical research artifacts; actual provider/model identities are
+saved with each run. The recorded profile ID `adaptive-jev` is historical and
+does not select Jev; actual provider/model identities are
 recorded independently.
 
 The three assessment answers are recorded independently under

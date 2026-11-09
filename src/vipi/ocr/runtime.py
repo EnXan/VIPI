@@ -55,8 +55,6 @@ def prepare_backend(backend):
 def validate_backend(model, backend):
     if backend not in BACKENDS:
         raise ValueError("Choose the cpu, coreml or cuda backend.")
-    if model == "tesseract" and backend != "cpu":
-        raise ValueError("Tesseract supports only the CPU backend.")
     if model in CLOUD_OCR_MODELS and backend != "cpu":
         raise ValueError("Cloud OCR runs through its API. Select the CPU option.")
     if backend == "coreml":

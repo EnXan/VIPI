@@ -1,15 +1,15 @@
 # Research
 
 Research tools import `vipi`; product code must not import research or Flask.
-The research workspace now has five areas:
+The research workspace has these areas:
 
 | Directory | Purpose |
 | --- | --- |
-| [`curation/`](curation/README.md) | Draft of the combined catalog: migration, vocabulary, validation |
+| [`dataset/`](#download-images) | The evaluation dataset (downloaded, ignored by Git), read through `catalog.py` |
+| [`curation/`](curation/README.md) | Dataset validation, vocabulary, labeling store and image generators |
 | [`evaluate/`](evaluate/README.md) | Frozen development/test split, evaluation runs of scan configurations and the saved baseline |
-| [`detection_eval/`](detection_eval/README.md) | Reviewed image-based prompt-injection evaluation suite |
-| [`ocr_eval/`](ocr_eval/README.md) | OCR evaluation with one `catalog.json` and local `images/` |
-| [`workbench/`](workbench/README.md) | Local OCR and detection interface, CLI, saved runs and dataset browsing |
+| [`ocr_eval/`](ocr_eval/README.md) | OCR metrics, the dataset benchmark, retained experiments and historical reports |
+| [`workbench/`](workbench/README.md) | Local interface: scan an image, evaluate against the baseline, label the dataset |
 
 Start the workbench from the repository root:
 
@@ -36,8 +36,8 @@ Public downloads require no Hugging Face account or token. The command uses
 the full commit SHA in [`dataset.json`](dataset.json) and places the dataset
 in `research/dataset/`: `catalog.json`, `vocabulary.json` and `images/`
 (ADR 0053). These copies are ignored by Git. Existing downloaded files can be reused and
-remain available offline. Downloading can overwrite local catalog edits; use a
-separate submission directory when preparing contributions.
+remain available offline. Downloading again overwrites local catalog edits;
+submit them first (see [Add images](#add-images)).
 
 ## Add images
 
@@ -86,3 +86,14 @@ To use the updated dataset in VIPI, update `revision` in `research/dataset.json`
 to the full reviewed dataset commit SHA through a GitHub PR, then rerun
 `uv run python -m research.download`. A merge on Hugging Face does not
 automatically change this project's pinned evaluation inputs.
+
+New or changed entries change the split and make saved baselines stale.
+In the same PR, regenerate and review the split, then save fresh baselines:
+
+```bash
+uv run python -m research.evaluate split
+uv run python -m research.evaluate split --check
+```
+
+See the [evaluation guide](evaluate/README.md#splits) before committing a
+regenerated split.

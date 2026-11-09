@@ -1,10 +1,6 @@
 """OCR adapters returning text and boxes in the supplied raster's coordinates."""
 
-import csv
-import io
 import json
-import os
-import subprocess
 from pathlib import Path
 
 import cv2
@@ -21,76 +17,6 @@ from .runtime import (
     validate_backend,
     validate_session_providers,
 )
-
-
-class TesseractEngine:
-    def __init__(self, directory: Path, *, threads=1):
-        validate_model("tesseract", directory, verify=True)
-        self.directory = directory.resolve()
-        self.threads = threads
-
-    def recognize(self, image: Image.Image) -> dict:
-        encoded = io.BytesIO()
-        image.save(encoded, format="PNG")
-        result = subprocess.run(
-            [
-                "tesseract",
-                "stdin",
-                "stdout",
-                "--tessdata-dir",
-                str(self.directory),
-                "-l",
-                "eng",
-                "--oem",
-                "1",
-                "--psm",
-                "3",
-                "-c",
-                "tessedit_create_tsv=1",
-            ],
-            input=encoded.getvalue(),
-            capture_output=True,
-            check=False,
-            env={**os.environ, "OMP_THREAD_LIMIT": str(self.threads)},
-        )
-        if result.returncode:
-            detail = result.stderr.decode("utf-8", errors="replace").strip()
-            raise RuntimeError(
-                detail or f"Tesseract exited with code {result.returncode}."
-            )
-        regions, lines = [], {}
-        for row in csv.DictReader(
-            io.StringIO(result.stdout.decode("utf-8")),
-            delimiter="\t",
-            quoting=csv.QUOTE_NONE,
-        ):
-            text = row["text"].strip()
-            if row["level"] != "5" or not text:
-                continue
-            x, y, w, h = (int(row[key]) for key in ("left", "top", "width", "height"))
-            line = ":".join(
-                row[key] for key in ("page_num", "block_num", "par_num", "line_num")
-            )
-            regions.append(
-                box_region(
-                    text,
-                    [(x, y), (x + w, y), (x + w, y + h), (x, y + h)],
-                    float(row["conf"]) / 100,
-                    line_id=line,
-                )
-            )
-            lines.setdefault(line, []).append(text)
-        return {
-            "text": "\n".join(" ".join(words) for words in lines.values()),
-            "regions": regions,
-            "preprocessing": {
-                "detector_input": list(image.size),
-                "resize": "none",
-                "recognizer": "Tesseract LSTM, eng tessdata_best, OEM 1, PSM 3",
-                "backend": "cpu",
-                "threads_per_worker": self.threads,
-            },
-        }
 
 
 def load_rapid_models(ocr) -> dict[str, list[str]]:
@@ -317,8 +243,6 @@ def create_engine(
         from .cloud import MistralEngine
 
         return MistralEngine()
-    if model == "tesseract":
-        return TesseractEngine(directory, threads=threads)
     return RapidEngine(
         model,
         directory,

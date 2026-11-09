@@ -111,10 +111,10 @@ initializers and model metadata imports do not load inference frameworks.
 OCR and detector stores keep their distinct states. Shared atomic writes, hashes
 and event iteration are consolidated.
 Persisted JSON schemas and run directory layouts are shared across the product
-and research tools. OCR paths, source transcripts and local image data live
-under `research/ocr_eval/images/`, indexed by `research/ocr_eval/catalog.json`.
-The catalogs and image files are downloaded from the Hugging Face dataset at
-the commit pinned in `research/dataset.json`; GitHub tracks evaluation code.
+and research tools. The evaluation dataset (`catalog.json`, `vocabulary.json`,
+`images/`) lives in `research/dataset/`, downloaded from the Hugging Face
+dataset at the commit pinned in `research/dataset.json`; GitHub tracks the
+evaluation code ([ADR 0053](../adr-code/0053-one-evaluation-dataset.md)).
 
 ## Dependencies and tests
 

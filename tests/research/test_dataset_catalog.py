@@ -60,13 +60,3 @@ def test_reference_maps_regions_and_marks_payload_fragments(catalog):
 def test_entries_without_reference_text_have_no_reference(catalog):
     catalog.items["photo"]["ocr_reference"] = None
     assert catalog.reference("photo") is None
-
-
-def test_cases_take_the_verdict_from_the_label_and_keep_context(catalog):
-    assert catalog.cases("photo") == [{"expected": "benign"}]
-    assert catalog.cases("typo") == [{"expected": "injection"}]
-    sting = catalog.search(source="sting")[0]["id"]
-    assert catalog.cases(sting) == [
-        {"expected": "injection"},
-        {"expected": "benign", "context": "Fixture repo."},
-    ]
