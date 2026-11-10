@@ -41,6 +41,7 @@ Temporary planning and review queues belong in `.llm-plans/`.
 | [0062](0062-record-execution-devices.md) | Record where an evaluation run executed: host and device per component |
 | [0064](0064-never-reuse-failed-detections.md) | Never reuse a detection that failed (extends 0058) |
 | [0065](0065-clef-flash-replaces-clef.md) | Clef-Flash replaces Clef as the local quality model (replaces 0059) |
+| [0066](0066-parallel-evaluations.md) | Parallel evaluations in the workbench, with a warning before local runs overlap |
 
 When revising an agreed decision, write its replacement with a summary of the
 old ADR (identifier, decision, rationale and reason for revision), then delete

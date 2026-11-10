@@ -70,9 +70,14 @@ type. **Save as baseline** stores the run in `research/baselines/`; commit that
 file. **Report** and **Comparison** download the Markdown reports.
 
 The page runs the same steps as `python -m research.evaluate`; the
-[evaluation guide](../evaluate/README.md) defines the metrics. Only one scan or
-evaluation runs at a time. Keep the server and computer running for long runs;
-after a restart, open the run and resume it.
+[evaluation guide](../evaluate/README.md) defines the metrics. Several
+evaluations can run at once; one scan runs at a time. Before another local
+evaluation starts or resumes while a local one is running, the page warns that
+the runs compete for CPU, memory and GPU and asks to confirm; cloud runs start
+without a warning. A run that overlapped with others says so in its report and
+on the page, because its time and resource figures include their load
+([ADR 0066](../../adr-code/0066-parallel-evaluations.md)). Keep the server and
+computer running for long runs; after a restart, open the run and resume it.
 
 ## Dataset
 

@@ -258,6 +258,15 @@ function describeCost(item, work) {
     : [work.ocr && `OCR for ${work.ocr}`, work.detection && `detection for ${work.detection}`].filter(Boolean).join(', ');
   return `Paid API calls: ${calls} images${item.detector === 'jev' ? ' (Jev cost is not estimated)' : ''}`;
 }
+// Other local runs compete for CPU, memory and GPU (ADR 0066); cloud runs do not.
+let runningLocal = [];
+function describeConcurrency(item) {
+  if (!item || item.run_on !== 'local' || !runningLocal.length) return '';
+  const names = runningLocal.map(run => run.configuration).join(', ');
+  return `${runningLocal.length} local evaluation${runningLocal.length > 1 ? 's are' : ' is'} already running (${names}). `
+    + 'Another local run competes for CPU, memory and GPU and can overload this computer; '
+    + 'the time and resource figures of the overlapping runs are not comparable with runs alone.';
+}
 let setupRequest = 0;
 async function refreshEvaluationSetup() {
   if (!evaluationSettings) return;
@@ -280,6 +289,10 @@ async function refreshEvaluationSetup() {
     $('baseline-status').dataset.state = setup.baseline.state;
     $('baseline-detail').textContent = baseline.detail;
     $('baseline-detail').hidden = !baseline.detail;
+    runningLocal = (setup.running || []).filter(run => run.local);
+    const concurrency = describeConcurrency(item);
+    $('evaluation-concurrency').textContent = concurrency;
+    $('evaluation-concurrency').hidden = !concurrency;
     const work = describeWork(setup, $('reuse-ocr').checked);
     $('evaluation-work').textContent = work.text;
     $('evaluation-cost').textContent = describeCost(item, work);
@@ -299,10 +312,13 @@ $('evaluation-start').onclick = async () => {
   showError('');
   const item = configuration(evaluationSettings.value());
   if ($('evaluation-start').dataset.paid === 'true' && !window.confirm(`Start a paid cloud evaluation with ${item.label}?`)) return;
+  const concurrency = describeConcurrency(item);
+  if (concurrency && !window.confirm(`${concurrency}\n\nStart ${item.label} anyway?`)) return;
   try {
     const {run_id: runId} = await postJson('/api/evaluations', {configuration: item.id, split: selectedSplit(), confirm_test: $('test-confirm').checked, reuse_ocr: $('reuse-ocr').checked});
     openRun(runId);
     refreshRuns();
+    refreshEvaluationSetup();
   } catch (error) { showError(error.message); }
 };
 
@@ -341,7 +357,8 @@ function renderRun(run) {
   $('run-progress').max = run.progress.total || 1;
   $('run-progress').value = run.progress.done;
   $('run-progress-text').textContent = `${run.progress.done} of ${run.progress.total} images scanned${run.state === 'stopping' ? ' · stopping after the current image' : ''}`;
-  $('run-machine').textContent = describeExecution(run);
+  const overlap = run.overlapping_runs ? ` · ran alongside up to ${run.overlapping_runs} other evaluation${run.overlapping_runs > 1 ? 's' : ''}, so times and resources are not comparable` : '';
+  $('run-machine').textContent = describeExecution(run) + (describeExecution(run) ? overlap : '');
   $('run-error').hidden = !run.error;
   $('run-error').textContent = run.error || '';
   for (const [id, url] of [['run-report', run.report_url], ['run-comparison', run.comparison_url]]) {
@@ -411,7 +428,17 @@ function renderContents(contents) {
 
 $('run-stop').onclick = async () => { await postJson(`/api/evaluations/${state.runId}/stop`).catch(error => showError(error.message)); openRun(state.runId); };
 $('run-resume').onclick = async () => {
-  try { await postJson(`/api/evaluations/${state.runId}/resume`); openRun(state.runId); } catch (error) { showError(error.message); }
+  try {
+    const run = await request(`/api/evaluations/${state.runId}`);
+    const setup = await request(`/api/evaluations/setup?${new URLSearchParams({configuration: run.configuration, split: run.split})}`);
+    runningLocal = (setup.running || []).filter(other => other.local && other.run_id !== run.run_id);
+    const item = configuration(run.configuration);
+    const concurrency = describeConcurrency(item);
+    if (concurrency && !window.confirm(`${concurrency}\n\nResume ${item.label} anyway?`)) return;
+    await postJson(`/api/evaluations/${state.runId}/resume`);
+    openRun(state.runId);
+    refreshEvaluationSetup();
+  } catch (error) { showError(error.message); }
 };
 $('run-save-button').onclick = async () => {
   try {

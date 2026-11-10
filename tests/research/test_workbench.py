@@ -247,6 +247,7 @@ def test_evaluation_runs_lists_reports_and_saves_the_baseline(evaluation_client)
             "completed_at": None,
             "differences": [],
         },
+        "running": [],
     }
     started = client.post("/api/evaluations", json={"configuration": "local-speed"})
     assert started.status_code == 202
@@ -358,3 +359,25 @@ def test_evaluation_reuses_ocr_unless_the_checkbox_is_off(evaluation_client):
         assert request["reuse_ocr"] is reuse
     page = client.get("/").data
     assert b'id="reuse-ocr" type="checkbox" checked' in page
+
+
+def test_evaluations_run_in_parallel_and_list_running_local_runs(tmp_path, monkeypatch):
+    release = threading.Event()
+
+    def runner(configuration, split, root, *, run_id=None, dry_run=False, **_):
+        if dry_run:
+            return {"run_id": run_id or f"r-{configuration}", "entries": 3}
+        release.wait(5)
+        return {"state": "complete"}
+
+    monkeypatch.setattr(evaluations.runs, "run", runner)
+    service = evaluations.EvaluationService(tmp_path, runner=runner)
+    service.start("local-speed", "development", False)
+    service.start("cloud-google", "development", False)
+    assert sorted(
+        (item["configuration"], item["local"]) for item in service.running()
+    ) == [("cloud-google", False), ("local-speed", True)]
+    with pytest.raises(RuntimeError, match="already running"):
+        service.start("local-speed", "development", False)  # same run ID
+    release.set()
+    wait(lambda: service.running() == [])
