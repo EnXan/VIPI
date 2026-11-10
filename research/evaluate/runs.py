@@ -22,6 +22,9 @@ from . import compare, execution, splits, suite
 
 DEFAULT_RUNS_DIRECTORY = Path("runs/evaluations")
 SAMPLE_SECONDS = 0.5
+# Evaluations measured in this process; the workbench runs several at once.
+_measured = set()
+_measured_lock = threading.Lock()
 
 
 def utc_stamp():
@@ -64,6 +67,9 @@ class ResourceMonitor:
     Worker processes are sampled while alive, so their CPU time is a lower
     bound up to one sampling interval. GPU/MPS memory lives inside worker
     processes and is not observable here; it is reported as unavailable.
+    Evaluations running at the same time in this process share its children,
+    so their load is included; ``overlapping_runs`` records the most other
+    evaluations seen at once (ADR 0066).
     """
 
     def __init__(self, interval=SAMPLE_SECONDS):
@@ -74,6 +80,7 @@ class ResourceMonitor:
         self.process = psutil.Process()
         self.cpu = {}
         self.peak_rss = 0
+        self.overlapping = 0
         self.stop = threading.Event()
         self.thread = threading.Thread(target=self.loop, daemon=True)
 
@@ -95,12 +102,16 @@ class ResourceMonitor:
             except self.psutil.Error:
                 continue
         self.peak_rss = max(self.peak_rss, rss)
+        with _measured_lock:
+            self.overlapping = max(self.overlapping, len(_measured) - 1)
 
     def loop(self):
         while not self.stop.wait(self.interval):
             self.sample()
 
     def __enter__(self):
+        with _measured_lock:
+            _measured.add(self)
         self.started = time.perf_counter()
         self.started_at = datetime.now(timezone.utc).isoformat()
         self.sample()
@@ -111,12 +122,15 @@ class ResourceMonitor:
         self.stop.set()
         self.thread.join()
         self.sample()
+        with _measured_lock:
+            _measured.discard(self)
         self.result = {
             "started_at": self.started_at,
             "wall_seconds": time.perf_counter() - self.started,
             "cpu_seconds_lower_bound": sum(self.cpu.values()),
             "peak_rss_bytes": self.peak_rss,
             "sampling_seconds": self.interval,
+            "overlapping_runs": self.overlapping,
             "gpu": {
                 "available": False,
                 "reason": "GPU/MPS memory is allocated in worker processes and not "
@@ -124,6 +138,19 @@ class ResourceMonitor:
             },
         }
         return False
+
+
+def overlap_lines(operations):
+    """Report note when other evaluations ran in this process at the same time."""
+    overlapping = max(item.get("overlapping_runs", 0) for item in operations)
+    if not overlapping:
+        return []
+    return [
+        "",
+        f"Up to {overlapping} other evaluation(s) ran in the same process at the "
+        "same time. Their load is included in the run's time, CPU and memory "
+        "figures, which are therefore not comparable with runs alone (ADR 0066).",
+    ]
 
 
 def prepare(configuration, split, root, *, confirm_test=False):
@@ -187,6 +214,9 @@ def summary_document(request, report, operations):
                 item["cpu_seconds_lower_bound"] for item in operations
             ),
             "peak_rss_bytes": max(item["peak_rss_bytes"] for item in operations),
+            "overlapping_runs": max(
+                item.get("overlapping_runs", 0) for item in operations
+            ),
             "gpu": operations[-1]["gpu"],
         },
         "metrics": metrics,
@@ -300,7 +330,11 @@ def run(
         directory / "benchmark" / configuration, benchmark.is_local(configuration)
     )
     executed = execution.record(request["manifest"]["configuration"]["scan_options"])
-    extra = ocr_reuse.report_lines(reuse, len(rows)) + execution.report_lines(executed)
+    extra = (
+        ocr_reuse.report_lines(reuse, len(rows))
+        + execution.report_lines(executed)
+        + overlap_lines(operations)
+    )
     (directory / "report.md").write_text(
         benchmark_report.markdown(report).rstrip("\n")
         + "\n"

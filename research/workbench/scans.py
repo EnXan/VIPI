@@ -74,8 +74,8 @@ class ScanJob:
 
 
 class ScanService:
-    """Runs one scan at a time in a background thread; ``busy`` is shared with
-    evaluations so that only one model workload runs."""
+    """Runs one scan at a time in a background thread; evaluations run
+    independently (ADR 0066)."""
 
     def __init__(self, busy, scanner=None):
         self.busy = busy
@@ -85,7 +85,7 @@ class ScanService:
     def start(self, image, configuration, threshold):
         options = options_for(configuration, threshold)
         if not self.busy.acquire(blocking=False):
-            raise RuntimeError("A scan or evaluation is already running.")
+            raise RuntimeError("A scan is already running.")
         job = ScanJob(configuration, threshold)
         self.jobs[job.id] = job
         threading.Thread(

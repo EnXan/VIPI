@@ -64,12 +64,11 @@ def create_app(
     app = Flask(__name__)
     app.config["MAX_CONTENT_LENGTH"] = 128 * 1024 * 1024
     repository = Path(repository_root or benchmark.ROOT).resolve()
-    busy = threading.Lock()
-    scans = ScanService(busy, scanner)
+    scans = ScanService(threading.Lock(), scanner)
     evaluations = (
-        EvaluationService(busy, repository, evaluation_runner)
+        EvaluationService(repository, evaluation_runner)
         if evaluation_runner
-        else EvaluationService(busy, repository)
+        else EvaluationService(repository)
     )
 
     from research.curation.store import DEFAULT_DIRECTORY, CurationStore
@@ -173,6 +172,7 @@ def create_app(
             reusable_ocr=planned.get("reusable_ocr", 0),
             reusable_complete=planned.get("reusable_complete", 0),
             baseline=baseline,
+            running=evaluations.running(),
         )
 
     @app.post("/api/evaluations")

@@ -24,8 +24,9 @@ def read_json(path):
 
 
 class EvaluationService:
-    def __init__(self, busy, root=benchmark.ROOT, runner=runs.run):
-        self.busy = busy
+    """Runs evaluations in background threads, several at once (ADR 0066)."""
+
+    def __init__(self, root=benchmark.ROOT, runner=runs.run):
         self.root = Path(root)
         self.runner = runner
         self.active = {}  # run_id -> {"cancel": Event, "error": str | None}
@@ -68,8 +69,8 @@ class EvaluationService:
             confirm_test = split == "test"
         planned = self.plan(configuration, split, confirm_test)  # validates
         run_id = run_id or planned["run_id"]
-        if not self.busy.acquire(blocking=False):
-            raise RuntimeError("A scan or evaluation is already running.")
+        if run_id in self.running_ids():
+            raise RuntimeError("This evaluation is already running.")
         state = {
             "cancel": threading.Event(),
             "error": None,
@@ -96,10 +97,26 @@ class EvaluationService:
                 state["error"] = str(error) or type(error).__name__
             finally:
                 state["finished"] = True
-                self.busy.release()
 
         threading.Thread(target=work, daemon=True).start()
         return run_id
+
+    def running_ids(self):
+        return [
+            run_id for run_id, state in self.active.items() if not state.get("finished")
+        ]
+
+    def running(self):
+        """Unfinished evaluations, for the warning before another local run."""
+        return [
+            {
+                "run_id": run_id,
+                "configuration": name,
+                "local": benchmark.is_local(name),
+            }
+            for run_id in self.running_ids()
+            for name in [self.active[run_id]["manifest"]["configuration_name"]]
+        ]
 
     def stop(self, run_id):
         state = self.active.get(run_id)
@@ -143,6 +160,9 @@ class EvaluationService:
                 directory, configuration, manifest["suite"]["entries"]
             ),
             "metrics": summary["metrics"] if summary and details else None,
+            "overlapping_runs": (summary or {})
+            .get("operations", {})
+            .get("overlapping_runs", 0),
             "contents": self.contents(directory, configuration) if details else [],
             "comparison": read_json(directory / "comparison.json") if details else None,
             **ran_on(summary),

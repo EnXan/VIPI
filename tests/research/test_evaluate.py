@@ -584,3 +584,19 @@ def test_run_without_ocr_reuse_scans_everything_and_resume_keeps_the_choice(run_
     assert all("--reuse-ocr-from" not in call for call in calls)
     plan = runs.run("local-speed", root=root, run_id="full", dry_run=True)
     assert plan["reuse_ocr"] is False
+
+
+def test_resource_monitor_records_overlapping_evaluations():
+    with runs.ResourceMonitor(interval=60) as first:
+        with runs.ResourceMonitor(interval=60) as second:
+            first.sample()
+    with runs.ResourceMonitor(interval=60) as alone:
+        pass
+    assert first.result["overlapping_runs"] == 1
+    assert second.result["overlapping_runs"] == 1
+    assert alone.result["overlapping_runs"] == 0
+    assert runs.overlap_lines([alone.result]) == []
+    assert (
+        "Up to 1 other evaluation(s)"
+        in runs.overlap_lines([alone.result, first.result])[1]
+    )
