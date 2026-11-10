@@ -11,6 +11,8 @@ uv run vipi setup --ocr-mode balanced
 uv run vipi scan image.png --ocr-mode balanced --output report.json
 ```
 
+![Local mode installs the detector-local extra, downloads pinned models with vipi setup and scans without API calls; cloud mode downloads nothing, needs provider API keys and bills each request. Local and cloud cannot be mixed.](../assets/diagrams/vipi-modes.svg)
+
 ## Commands and options
 
 `vipi setup` explicitly prepares pinned OCR weights and the selected local
