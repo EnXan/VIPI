@@ -24,8 +24,9 @@ git push origin v0.1.3
 ```
 
 - Pushing the `v*` tag starts `.github/workflows/ci-release.yml`, which runs CI,
-  builds distributions, and publishes to PyPI. A merge to `main` alone does
-  not publish a release; verify the tag workflow and publication.
+  builds distributions, publishes to PyPI, and then creates the GitHub release
+  with generated notes. A merge to `main` alone does not publish a release;
+  verify the tag workflow, the PyPI publication, and the GitHub release.
 
 ## Working principles
 
