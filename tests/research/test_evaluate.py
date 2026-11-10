@@ -277,6 +277,14 @@ def test_only_used_registry_entries_make_a_baseline_stale(manifest_root):
     assert suite.status("cloud-google", root=root)["state"] == "fresh"
 
 
+def test_quality_prompt_guard_differs_from_clef_flash_only_by_detector():
+    # Explicit scan options, not the product default, so the OCR of runs
+    # recorded before Clef-Flash became the default is reused (ADR 0058).
+    guard = dict(suite.CONFIGURATIONS["local-quality-prompt-guard"])
+    assert guard.pop("detector") == "prompt-guard"
+    assert guard == suite.CONFIGURATIONS["local-quality-clef-flash"]
+
+
 def test_prompt_guard_configurations_change_only_the_detector(manifest_root):
     from vipi.config import PROMPT_GUARD_REVISION, ScanOptions
 
