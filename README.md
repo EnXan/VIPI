@@ -83,42 +83,50 @@ model IDs and pinned revisions are in [Models and hardware](https://github.com/E
 Measured with VIPI 0.7.0 on the development split of the
 [VIPI evaluation dataset](https://huggingface.co/datasets/EnXan/VIPI-evaluation):
 450 images, 227 with a prompt injection and 223 benign, at the default
-threshold of 80. *Text read* is the share of reference words the OCR
-recovered; *flagged* counts images that scored at or above the threshold.
+threshold of 80.
+
+- **Detection rate:** share of the 227 injection images VIPI reports as an
+  injection. Higher is better.
+- **False positive rate:** share of the 223 benign images VIPI wrongly reports
+  as an injection. Lower is better.
+- **OCR word accuracy:** share of the words in the images that the text
+  recognition read, tolerating a small typo per word. Higher is better.
 
 **Cloud** catches most injections. With Mistral OCR and Jev as the detector,
-VIPI flags four in five attacks and only 1 of 223 benign images.
+VIPI detects four in five injections and wrongly reports only 1 of 223 benign
+images.
 
-| Cloud · OCR + detector | Text read | Attacks flagged | Benign flagged |
+| Cloud · OCR + detector | Detection rate | False positive rate | OCR word accuracy |
 | :-- | --: | --: | --: |
-| Mistral + Jev | 83.2% | 81.5% (185) | 0.4% (1) |
-| Mistral + OpenAI | 83.2% | **85.0%** (193) | 4.5% (10) |
-| OpenAI + OpenAI | **94.5%** | 83.3% (189) | 4.5% (10) |
-| OpenAI + Jev | **94.5%** | 78.9% (179) | 1.3% (3) |
-| Google + OpenAI (default) | 87.4% | 78.4% (178) | 3.6% (8) |
-| Google + Jev | 87.4% | 74.0% (168) | 0.9% (2) |
+| Mistral + Jev | 81.5% (185) | **0.4%** (1) | 83.2% |
+| Mistral + OpenAI | **85.0%** (193) | 4.5% (10) | 83.2% |
+| OpenAI + OpenAI | 83.3% (189) | 4.5% (10) | **94.5%** |
+| OpenAI + Jev | 78.9% (179) | 1.3% (3) | **94.5%** |
+| Google + OpenAI (default) | 78.4% (178) | 3.6% (8) | 87.4% |
+| Google + Jev | 74.0% (168) | 0.9% (2) | 87.4% |
 
-Jev flags a few attacks fewer than OpenAI but raises a third to a tenth of the
-false alarms.
+Jev detects a few injections fewer than OpenAI but has a third to a tenth of
+the false positives.
 
-**Local** detection is not reliable yet: every local profile flags fewer than
-one in five injections. False alarms are rare, but a clean local result is
-weak evidence that an image is safe. Better OCR barely changes this (Speed to
-Quality: 15% to 17%), so the gap lies in the local detectors. Use cloud mode
-where catching injections matters.
+**Local** detection is not reliable yet: every local profile detects fewer
+than one in five injections. False positives are rare, but a clean local
+result is weak evidence that an image is safe. Better OCR barely changes this
+(Speed to Quality: 15% to 17%), so the gap lies in the local detectors. Use
+cloud mode where catching injections matters.
 
-| Local · OCR + detector | Text read | Attacks flagged | Benign flagged |
+| Local · OCR + detector | Detection rate | False positive rate | OCR word accuracy |
 | :-- | --: | --: | --: |
-| Quality + Clef-Flash (default) | 75.5% | 16.7% (38) | 0% (0) |
-| Quality + Prompt Guard 2 | 75.5% | 19.4% (44) | 1.8% (4) |
-| Balanced + d1 | 71.3% | 15.4% (35) | 0.4% (1) |
-| Balanced + Prompt Guard 2 | 71.3% | 16.7% (38) | 1.8% (4) |
-| Speed + d1 | 69.3% | 15.0% (34) | 0.4% (1) |
-| Speed + Prompt Guard 2 | 69.3% | 18.5% (42) | 2.2% (5) |
+| Quality + Clef-Flash (default) | 16.7% (38) | **0%** (0) | **75.5%** |
+| Quality + Prompt Guard 2 | **19.4%** (44) | 1.8% (4) | **75.5%** |
+| Balanced + d1 | 15.4% (35) | 0.4% (1) | 71.3% |
+| Balanced + Prompt Guard 2 | 16.7% (38) | 1.8% (4) | 71.3% |
+| Speed + d1 | 15.0% (34) | 0.4% (1) | 69.3% |
+| Speed + Prompt Guard 2 | 18.5% (42) | 2.2% (5) | 69.3% |
 
-These numbers come from one dataset; with 227 attacks, one percentage point is
-about two images, so differences of a few points are not meaningful. The runs
-are saved in [`research/baselines/`](https://github.com/EnXan/VIPI/tree/main/research/baselines);
+Numbers in parentheses are images. These results come from one dataset; with
+227 injection images, one percentage point is about two images, so
+differences of a few points are not meaningful. The runs are saved in
+[`research/baselines/`](https://github.com/EnXan/VIPI/tree/main/research/baselines);
 the [evaluation guide](https://github.com/EnXan/VIPI/blob/main/research/evaluate/README.md)
 defines the metrics and how to reproduce them.
 
