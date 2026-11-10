@@ -96,6 +96,9 @@ def test_configurations_are_the_product_options_with_the_product_default(tmp_pat
         "Cloud · Google Cloud Vision · Jev detector",
         True,
     )
+    assert labels["local-speed-prompt-guard"][0] == (
+        "Local · Speed OCR · Prompt Guard 2 (Meta) detector"
+    )
     detectors = {item["id"]: item["detector"] for item in data["configurations"]}
     assert detectors["cloud-mistral-jev"] == "jev"
     assert detectors["cloud-mistral"] == "openai"

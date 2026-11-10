@@ -16,13 +16,17 @@ product default (80); the detector stays `auto` unless the name ends in `-jev`.
 | `local-speed`, `local-balanced` | `--modus local --ocr-mode <mode>` | d1 |
 | `local-quality` | `--modus local --ocr-mode quality` | Clef |
 | `local-quality-clef-flash` | the same plus `--decision-provider clef-flash` | Clef-Flash (also reviews OCR) |
+| `local-speed-prompt-guard`, `local-balanced-prompt-guard`, `local-quality-prompt-guard` | the local configuration plus `--detector prompt-guard` | Prompt Guard 2 (OCR review stays d1 or Clef) |
 | `cloud-google`, `cloud-openai`, `cloud-mistral` | `--modus cloud --ocr-provider <provider>` | OpenAI Luna |
 | `cloud-google-jev`, `cloud-openai-jev`, `cloud-mistral-jev` | the same plus `--detector jev` | Jev |
 
 A `-jev` configuration and its counterpart without the suffix share OCR and
 OCR review; only the final detector differs, so comparing their runs compares
 the two detectors on the same text. Each has its own baseline. Jev needs
-`TYPESAFE_API_KEY`; its usage is recorded, but no cost is estimated.
+`TYPESAFE_API_KEY`; its usage is recorded, but no cost is estimated. The same
+holds for a `-prompt-guard` configuration and its local counterpart; Prompt
+Guard 2 needs accepted model terms on Hugging Face for `vipi setup --detector
+prompt-guard` and then runs offline.
 
 Local configurations run offline (network blocked) and need the models from
 `vipi setup`. Cloud configurations need the provider API keys and incur

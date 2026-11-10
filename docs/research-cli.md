@@ -55,7 +55,8 @@ uv run python -m research.evaluate split --check
 ```
 
 Configurations: `local-speed`, `local-balanced`, `local-quality`,
-`local-quality-clef-flash`,
+`local-quality-clef-flash`, `local-speed-prompt-guard`,
+`local-balanced-prompt-guard`, `local-quality-prompt-guard`,
 `cloud-google`, `cloud-openai`, `cloud-mistral`, `cloud-google-jev`,
 `cloud-openai-jev`, `cloud-mistral-jev` (product scan options).
 `run` accepts `--split development|test` (test requires
