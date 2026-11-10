@@ -41,6 +41,8 @@ submit them first (see [Add images](#add-images)).
 
 ## Add images
 
+![Download the pinned dataset, add and label images on the workbench Dataset page or with research.curation, submit your changes as a Hugging Face pull request; after the maintainer merges it, a GitHub pull request moves VIPI to the new dataset revision.](../assets/diagrams/vipi-dataset.svg)
+
 Submit each image and its catalog changes together as a pull request on the
 [dataset repository](https://huggingface.co/datasets/EnXan/VIPI-evaluation).
 You need a Hugging Face account to submit a contribution. Through its website,
