@@ -89,6 +89,10 @@ Development split of the
 - **Words recognized:** words in the images VIPI recognized, tolerating a
   small typo. Higher is better.
 
+<p align="center">
+  <img src="https://raw.githubusercontent.com/EnXan/VIPI/main/assets/diagrams/vipi-results.svg" alt="Bar charts of detection rate and false positive rate: cloud configurations detect 74 to 85 percent of injections with 0.4 to 4.5 percent false positives; local configurations detect 15 to 19 percent with 0 to 2.2 percent false positives. Exact values are in the tables below." width="900">
+</p>
+
 | Cloud OCR | Detector | Detection rate | False positive rate | Words recognized |
 | :-- | :-- | --: | --: | --: |
 | Mistral OCR 4.1 | TypeSafe Jev 1.14 | 81.5% | **0.4%** | 83.2% |
