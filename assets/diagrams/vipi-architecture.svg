@@ -1,0 +1,111 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1040 440" role="img" aria-labelledby="title desc">
+  <title id="title">VIPI package boundaries</title>
+  <desc id="desc">The product package vipi, the only part of the wheel, passes an image from the command line through inputs, the scanner, OCR and detection to the report and exit code; config, model setup, results, storage and the local decision models are shared. The research tools (workbench, evaluate, ocr_eval, curation, catalog) import vipi; vipi never imports research or Flask.</desc>
+  <defs>
+    <style>
+      .bg { fill: #FFFFFF; stroke: rgba(11,12,16,.12); }
+      .dot { fill: rgba(11,12,16,.10); }
+      .card { fill: #F2F3F5; stroke: rgba(11,12,16,.16); }
+      .group { fill: none; stroke: rgba(11,12,16,.28); stroke-dasharray: 5 4; }
+      .ink { fill: #0B0C10; }
+      .wire { fill: none; stroke: #5C616C; stroke-width: 1.5; }
+      .dash { fill: none; stroke: #5C616C; stroke-width: 1.5; stroke-dasharray: 5 4; }
+      .head { fill: #5C616C; }
+      .title { fill: #0B0C10; font: 500 17px "Geist", "Helvetica Neue", Arial, sans-serif; letter-spacing: -0.01em; }
+      .title-inv { fill: #F2F3F5; font: 500 17px "Geist", "Helvetica Neue", Arial, sans-serif; letter-spacing: -0.01em; }
+      .mono { fill: #5C616C; font: 500 10px "Geist Mono", ui-monospace, Menlo, Consolas, monospace; letter-spacing: .06em; }
+      .step { fill: #0B0C10; font: 500 10px "Geist Mono", ui-monospace, Menlo, Consolas, monospace; letter-spacing: .08em; }
+      .mono-inv { fill: #A3A8B2; font: 500 10px "Geist Mono", ui-monospace, Menlo, Consolas, monospace; letter-spacing: .06em; }
+      .step-inv { fill: #F2F3F5; font: 500 10px "Geist Mono", ui-monospace, Menlo, Consolas, monospace; letter-spacing: .08em; }
+      .clean { fill: #30A46C; }
+      .injection { fill: #E5484D; }
+      .review { fill: #F5A524; }
+      .steel { fill: #5C616C; }
+      @media (prefers-color-scheme: dark) {
+        .bg { fill: #121318; stroke: rgba(242,243,245,.12); }
+        .dot { fill: rgba(242,243,245,.09); }
+        .card { fill: #0B0C10; stroke: rgba(242,243,245,.16); }
+        .group { stroke: rgba(242,243,245,.28); }
+        .ink { fill: #F2F3F5; }
+        .wire, .dash { stroke: #A3A8B2; }
+        .head, .steel { fill: #A3A8B2; }
+        .title, .step { fill: #F2F3F5; }
+        .title-inv, .step-inv { fill: #0B0C10; }
+        .mono { fill: #A3A8B2; }
+        .mono-inv { fill: #5C616C; }
+      }
+    </style>
+    <pattern id="raster" width="24" height="24" patternUnits="userSpaceOnUse" x="12" y="12">
+      <circle class="dot" cx="12" cy="12" r="1.2"/>
+    </pattern>
+  </defs>
+
+  <rect class="bg" x="0.5" y="0.5" width="1039" height="439" rx="4"/>
+  <rect x="1" y="1" width="1038" height="438" rx="4" fill="url(#raster)"/>
+
+  <rect class="group" x="12.5" y="12.5" width="1016" height="258" rx="6"/>
+  <text class="step" x="28" y="34">PRODUCT · src/vipi · THE WHEEL</text>
+  <rect class="card" x="33.5" y="56.5" width="146" height="124" rx="4"/>
+  <text class="step" x="49" y="82">VIPI.CLI</text>
+  <text class="title" x="49" y="110">Command line</text>
+  <text class="mono" x="49" y="136">ARGUMENTS</text>
+  <text class="mono" x="49" y="152">EXIT CODE</text>
+  <rect class="card" x="201.5" y="56.5" width="146" height="124" rx="4"/>
+  <text class="step" x="217" y="82">VIPI.INPUTS</text>
+  <text class="title" x="217" y="110">Inputs</text>
+  <text class="mono" x="217" y="136">FILES · FOLDERS</text>
+  <text class="mono" x="217" y="152">GIT DIFF</text>
+  <path class="wire" d="M179 118H193"/>
+  <path class="head" d="M201 118l-9-5v10z"/>
+  <rect class="card" x="369.5" y="56.5" width="146" height="124" rx="4"/>
+  <text class="step" x="385" y="82">VIPI.SCANNER</text>
+  <text class="title" x="385" y="110">Scanner</text>
+  <text class="mono" x="385" y="136">SCAN_IMAGE()</text>
+  <text class="mono" x="385" y="152">PER IMAGE</text>
+  <path class="wire" d="M347 118H361"/>
+  <path class="head" d="M369 118l-9-5v10z"/>
+  <rect class="card" x="537.5" y="56.5" width="146" height="124" rx="4"/>
+  <text class="step" x="553" y="82">VIPI.OCR</text>
+  <text class="title" x="553" y="110">OCR</text>
+  <text class="mono" x="553" y="136">READ AND RECOVER</text>
+  <text class="mono" x="553" y="152">→ OCRRESULT</text>
+  <path class="wire" d="M515 118H529"/>
+  <path class="head" d="M537 118l-9-5v10z"/>
+  <rect class="card" x="705.5" y="56.5" width="146" height="124" rx="4"/>
+  <text class="step" x="721" y="82">VIPI.DETECTION</text>
+  <text class="title" x="721" y="110">Detection</text>
+  <text class="mono" x="721" y="136">SCORE · VERDICT</text>
+  <text class="mono" x="721" y="152">→ DETECTIONRESULT</text>
+  <path class="wire" d="M683 118H697"/>
+  <path class="head" d="M705 118l-9-5v10z"/>
+  <rect class="ink" x="873" y="56" width="147" height="125" rx="4"/>
+  <text class="step-inv" x="889" y="82">VIPI.REPORTING</text>
+  <text class="title-inv" x="889" y="110">Report</text>
+  <text class="mono-inv" x="889" y="136">JSON REPORT</text>
+  <text class="mono-inv" x="889" y="152">EXIT 0 · 1 · 2</text>
+  <path class="wire" d="M851 118H865"/>
+  <path class="head" d="M873 118l-9-5v10z"/>
+  <text class="step" x="33" y="214">SHARED BY ALL</text>
+  <text class="mono" x="33" y="236">CONFIG · MODEL_SETUP · RESULTS · STORAGE · LOCAL_DECISIONS</text>
+  <rect class="group" x="12.5" y="310.5" width="1016" height="118" rx="6"/>
+  <text class="step" x="28" y="332">RESEARCH · research/ · NOT IN THE WHEEL</text>
+  <rect class="card" x="33.5" y="342.5" width="180" height="72" rx="4"/>
+  <text class="step" x="49" y="368">LOCAL UI</text>
+  <text class="title" x="49" y="396">workbench</text>
+  <rect class="card" x="233.5" y="342.5" width="180" height="72" rx="4"/>
+  <text class="step" x="249" y="368">RUNS · BASELINES</text>
+  <text class="title" x="249" y="396">evaluate</text>
+  <rect class="card" x="433.5" y="342.5" width="180" height="72" rx="4"/>
+  <text class="step" x="449" y="368">OCR METRICS</text>
+  <text class="title" x="449" y="396">ocr_eval</text>
+  <rect class="card" x="633.5" y="342.5" width="180" height="72" rx="4"/>
+  <text class="step" x="649" y="368">DATASET TOOLS</text>
+  <text class="title" x="649" y="396">curation</text>
+  <rect class="card" x="833.5" y="342.5" width="180" height="72" rx="4"/>
+  <text class="step" x="849" y="368">DATASET READER</text>
+  <text class="title" x="849" y="396">catalog</text>
+  <path class="wire" d="M520 310V278"/>
+  <path class="head" d="M520 270l-5 9h10z"/>
+  <text class="mono" x="532" y="294">IMPORTS VIPI</text>
+  <text class="mono" x="1012" y="294" text-anchor="end">VIPI NEVER IMPORTS RESEARCH OR FLASK</text>
+</svg>
