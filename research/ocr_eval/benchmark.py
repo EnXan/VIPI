@@ -43,6 +43,15 @@ CONFIGURATIONS = {
         "ocr_mode": "quality",
         "decision_provider": "clef-flash",
     },
+    # Same local OCR and review, final detection by Prompt Guard 2 instead.
+    **{
+        f"local-{mode}-prompt-guard": {
+            "ocr_execution_mode": "local",
+            "ocr_mode": mode,
+            "detector": "prompt-guard",
+        }
+        for mode in ("speed", "balanced", "quality")
+    },
     **{
         f"cloud-{provider}": {"ocr_execution_mode": "cloud", "ocr_provider": provider}
         for provider in ("google", "openai", "mistral")

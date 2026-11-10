@@ -26,6 +26,7 @@ DETECTOR_LABELS = {
     "d1": "d1 (LiquidAI d1-3B)",
     "clef": "Clef (Cloudflare)",
     "clef-flash": "Clef-Flash (Cloudflare)",
+    "prompt-guard": "Prompt Guard 2 (Meta)",
     "openai": "OpenAI Luna",
     "jev": "Jev",
 }

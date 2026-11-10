@@ -90,6 +90,22 @@ def used_registry_entries(scan_options, registries):
     }
 
 
+def detector_models(scan_options):
+    """Pinned detectors outside the registries, only when the configuration uses them."""
+    if config.ScanOptions(**scan_options).resolved_detector != "prompt-guard":
+        return {}
+    from vipi.detection.providers.prompt_guard import MODEL_ID
+
+    return {
+        "detector_models": {
+            "prompt-guard": {
+                "repository": MODEL_ID,
+                "revision": config.PROMPT_GUARD_REVISION,
+            }
+        }
+    }
+
+
 def model_identity(root, scan_options):
     constants = {
         name: getattr(config, name)
@@ -103,6 +119,7 @@ def model_identity(root, scan_options):
     return {
         "constants": constants,
         "registries": used_registry_entries(scan_options, registries),
+        **detector_models(scan_options),
     }
 
 

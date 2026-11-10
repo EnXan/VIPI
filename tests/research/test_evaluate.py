@@ -182,6 +182,9 @@ def test_configurations_are_the_product_scan_options():
         "local-balanced",
         "local-quality",
         "local-quality-clef-flash",
+        "local-speed-prompt-guard",
+        "local-balanced-prompt-guard",
+        "local-quality-prompt-guard",
         "cloud-google",
         "cloud-openai",
         "cloud-mistral",
@@ -273,6 +276,27 @@ def test_only_used_registry_entries_make_a_baseline_stale(manifest_root):
         "configuration.model_identity.registries.src/vipi/decision_models.json.d1.revision"
     ]
     assert suite.status("cloud-google", root=root)["state"] == "fresh"
+
+
+def test_prompt_guard_configurations_change_only_the_detector(manifest_root):
+    from vipi.config import PROMPT_GUARD_REVISION, ScanOptions
+
+    root, _rows, _document = manifest_root
+    for mode in ("speed", "balanced", "quality"):
+        default = ScanOptions(**suite.CONFIGURATIONS[f"local-{mode}"])
+        guard = ScanOptions(**suite.CONFIGURATIONS[f"local-{mode}-prompt-guard"])
+        assert guard.resolved_detector == "prompt-guard"
+        assert guard.resolved_ocr_model == default.resolved_ocr_model
+        assert guard.resolved_decision_provider == default.resolved_decision_provider
+    identity = suite.manifest("local-speed-prompt-guard", root=root)["configuration"][
+        "model_identity"
+    ]
+    assert identity["detector_models"]["prompt-guard"]["revision"] == (
+        PROMPT_GUARD_REVISION
+    )
+    assert list(identity["registries"][suite.DECISION_REGISTRY]) == ["d1"]
+    plain = suite.manifest("local-speed", root=root)["configuration"]["model_identity"]
+    assert "detector_models" not in plain  # older baselines stay comparable
 
 
 def test_old_whole_registry_hashes_are_verified_against_git(manifest_root):
