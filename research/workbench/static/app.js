@@ -213,8 +213,28 @@ $('scan-start').onclick = async () => {
 
 let evaluationSettings;
 const selectedSplit = () => document.querySelector('input[name="split"]:checked').value;
+const gibibytes = bytes => `${Math.round(bytes / 1024 ** 3)} GiB`;
+// Runs before ADR 0062 recorded only the host's sysctl values, not the devices.
+function describeHost(run) {
+  const machine = run.execution?.host;
+  if (machine) return [machine.cpu || 'CPU unknown', machine.memory_bytes && `${gibibytes(machine.memory_bytes)} RAM`, machine.gpu?.name].filter(Boolean).join(' · ');
+  const hardware = run.host?.hardware || {};
+  return [hardware['machdep.cpu.brand_string'], hardware['hw.memsize'] && `${gibibytes(Number(hardware['hw.memsize']))} RAM`].filter(Boolean).join(' · ');
+}
+const describeDevice = part => part.device === 'api' ? `${part.model} via API` : `${part.model} on ${part.device.toUpperCase()}${part.dtype ? ` (${part.dtype})` : ''}`;
+function describeExecution(run) {
+  const host = describeHost(run);
+  if (!host) return '';
+  const parts = run.execution;
+  if (!parts) return `Ran on ${host} · devices not recorded`;
+  const models = parts.decision.model === parts.detector.model
+    ? `review and detection ${describeDevice(parts.decision)}`
+    : `review ${describeDevice(parts.decision)} · detection ${describeDevice(parts.detector)}`;
+  return `Ran on ${host} · OCR ${describeDevice(parts.ocr)} · ${models}`;
+}
 function describeBaseline(baseline) {
-  const when = baseline.completed_at ? ` · ${baseline.completed_at.slice(0, 10)}` : '';
+  const host = describeHost(baseline);
+  const when = (baseline.completed_at ? ` · ${baseline.completed_at.slice(0, 10)}` : '') + (host ? ` · ${host}` : '');
   if (baseline.state === 'none') return {text: 'None saved yet — save this run afterwards', detail: ''};
   if (baseline.state === 'fresh') return {text: `Up to date${when}`, detail: ''};
   return {
@@ -321,6 +341,7 @@ function renderRun(run) {
   $('run-progress').max = run.progress.total || 1;
   $('run-progress').value = run.progress.done;
   $('run-progress-text').textContent = `${run.progress.done} of ${run.progress.total} images scanned${run.state === 'stopping' ? ' · stopping after the current image' : ''}`;
+  $('run-machine').textContent = describeExecution(run);
   $('run-error').hidden = !run.error;
   $('run-error').textContent = run.error || '';
   for (const [id, url] of [['run-report', run.report_url], ['run-comparison', run.comparison_url]]) {

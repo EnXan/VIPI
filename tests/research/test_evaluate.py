@@ -422,6 +422,11 @@ def run_root(manifest_root, monkeypatch):
         }
 
     monkeypatch.setattr(runs, "ResourceMonitor", FakeMonitor)
+    monkeypatch.setattr(
+        runs.execution,
+        "torch_device",
+        lambda: {"device": "mps", "dtype": "float16", "name": "Apple GPU (MPS)"},
+    )
     monkeypatch.setattr(runs.benchmark, "main", fake_main)
     monkeypatch.setattr(runs.benchmark_report, "report", fake_report)
     monkeypatch.setattr(runs.benchmark_report, "markdown", lambda data: "# fixture\n")
@@ -457,7 +462,15 @@ def test_run_freezes_split_keys_and_writes_a_local_summary(run_root):
     assert summary["metrics"]["time"] == {"image_seconds_total": 1.0}
     assert summary["operations"]["wall_seconds"] == 2.0
     assert summary["local_artifacts"] == "runs/evaluations/base"
-    assert (directory / "report.md").is_file()
+    assert summary["execution"]["decision"] == {
+        "model": "d1",
+        "device": "mps",
+        "dtype": "float16",
+    }
+    assert summary["execution"]["host"]["memory_bytes"] > 0
+    report = (directory / "report.md").read_text()
+    assert "## Execution" in report
+    assert "OCR review: d1 on MPS, float16." in report
     assert suite.status("local-speed", root=root)["state"] == "none"
 
 

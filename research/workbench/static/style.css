@@ -101,3 +101,4 @@ button.dataset-step:not(:disabled):hover{border-color:var(--vipi-paper)}button.d
 .run-plan dd[data-paid=true]{color:var(--vipi-status-review)}
 #baseline-detail{margin-top:12px}
 @media(max-width:700px){.run-plan{grid-template-columns:1fr}.run-plan>div+div{border-left:0;border-top:1px solid var(--vipi-graphite)}}
+.run-machine{margin:16px 0 0;line-height:1.5}.run-machine:empty{display:none}

@@ -115,6 +115,10 @@ uv run python -m research.evaluate save-baseline <run-id>
   CPU time and peak memory from `psutil` sampling every 0.5 s. CPU time is a
   lower bound because short-lived workers can exit between samples. GPU/MPS
   memory is allocated inside worker processes and is recorded as unavailable.
+- **Execution**: the host (CPU, cores, RAM, GPU) and the device and dtype of
+  OCR, OCR review and injection detector, or `api` for hosted providers
+  ([ADR 0062](../../adr-code/0062-record-execution-devices.md)). Shown in the
+  report and the workbench; older baselines show only their host.
 
 The comparison lists every entry whose scan newly failed or recovered, whose
 OCR coverage regressed or improved, and whose verdict became wrong or right,
