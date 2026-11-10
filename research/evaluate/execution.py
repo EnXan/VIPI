@@ -69,14 +69,15 @@ def machine():
     }
 
 
-def record(scan_options, *, device=torch_device, host=machine):
+def record(scan_options, *, device=None, host=None):
     """Host and per-component devices for one configuration's scan options."""
     options = ScanOptions(**scan_options)
     local_models = {
         options.resolved_decision_provider,
         options.resolved_detector,
     } & set(LOCAL_DECISION_PROVIDERS)
-    selected = device() if local_models else None
+    # Looked up at call time so tests can replace the module functions.
+    selected = (device or torch_device)() if local_models else None
 
     def component(name):
         if name in LOCAL_DECISION_PROVIDERS:
@@ -92,7 +93,7 @@ def record(scan_options, *, device=torch_device, host=machine):
     local_ocr = options.resolved_ocr_execution_mode == "local"
     return {
         "host": {
-            **host(),
+            **(host or machine)(),
             "gpu": None
             if selected is None or selected["device"] == "cpu"
             else {
