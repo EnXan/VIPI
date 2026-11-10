@@ -197,11 +197,15 @@
       "provider": "mistral"
     },
     "decision": {
-      "model": "openai",
+      "model": "gpt-6-luna",
+      "provider": "openai",
+      "service": "OpenAI Decisions API",
       "device": "api"
     },
     "detector": {
-      "model": "openai",
+      "model": "gpt-6-luna",
+      "provider": "openai",
+      "service": "OpenAI Decisions API",
       "device": "api"
     }
   }

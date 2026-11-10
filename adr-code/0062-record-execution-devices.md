@@ -24,8 +24,10 @@ baseline what it ran on, including the host hardware.
   review or detector records the model ID its provider sends (for example
   `gpt-6-luna` through the OpenAI Decisions API, `jev-1.14.0` through the
   TypeSafe API) with `provider` and `service`, read from the provider class
-  so the record follows the code. Baselines saved before this record only
-  the provider name (`openai`, `jev`).
+  so the record follows the code. The cloud baselines saved before this
+  change, which held only the provider name (`openai`, `jev`), were updated
+  to this form: the IDs match the provider code at each run's commit and the
+  model the APIs reported in the run's results.
 - The torch device rule is repeated from the product instead of importing a
   new product helper. Any change under `src/vipi/` changes the OCR identity
   and would make every earlier result unusable for reuse (ADR 0058), so cloud
