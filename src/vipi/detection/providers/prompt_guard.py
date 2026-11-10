@@ -166,7 +166,6 @@ def native_labels(config):
 class PromptGuard:
     name = "prompt-guard"
     model = MODEL_ID
-    native = True
 
     def __init__(self, directory=MODEL_DIR):
         self.directory = Path(directory).resolve()
@@ -225,7 +224,7 @@ class PromptGuard:
                 _loaded[key] = tokenizer, model, torch, labels, threading.Lock()
             return _loaded[key]
 
-    def check(self, state, image=None):
+    def check(self, state):
         tokenizer, model, torch, labels, lock = self._runtime()
         text = state["untrusted_evidence"]["text"]
         malicious_id = next(k for k, v in labels.items() if v == "MALICIOUS")

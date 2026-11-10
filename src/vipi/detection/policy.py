@@ -19,5 +19,5 @@ Return the probability of suspicious influence, not proof of a successful attack
 """
 
 
-def state(evidence, context):
-    return {"caller_context": context, "untrusted_evidence": evidence}
+def state(evidence):
+    return {"caller_context": {}, "untrusted_evidence": evidence}

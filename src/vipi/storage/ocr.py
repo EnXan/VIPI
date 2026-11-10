@@ -1,17 +1,16 @@
-"""Persistent step results and replayable progress events for one run."""
+"""Persist OCR attempts, progress events and results for one run."""
 
 import json
 import threading
 import uuid
 
-from .events import EventLog
 from .files import write_json
 from pathlib import Path
 
 from vipi.ocr.runtime import DEFAULT_BACKEND, threads_per_worker
 
 
-class RunStore(EventLog):
+class RunStore:
     def __init__(
         self,
         root: Path,
@@ -24,7 +23,7 @@ class RunStore(EventLog):
         self.id = uuid.uuid4().hex
         self.directory = root / self.id
         (self.directory / "images").mkdir(parents=True)
-        self.condition = threading.Condition()
+        self.lock = threading.RLock()
         self.events = []
         self.on_event = on_event
         self.status = {
@@ -47,7 +46,7 @@ class RunStore(EventLog):
         store = cls.__new__(cls)
         store.directory = directory
         store.id = directory.name
-        store.condition = threading.Condition()
+        store.lock = threading.RLock()
         store.on_event = None
         store.status = json.loads(
             (directory / "status.json").read_text(encoding="utf-8")
@@ -72,7 +71,7 @@ class RunStore(EventLog):
         return store
 
     def emit(self, name: str, **data):
-        with self.condition:
+        with self.lock:
             event = {
                 "id": len(self.events) + 1,
                 "type": name,
@@ -85,12 +84,11 @@ class RunStore(EventLog):
             self.events.append(event)
             self.status["event_id"] = event["id"]
             write_json(self.directory / "status.json", self.status)
-            self.condition.notify_all()
             if self.on_event:
                 self.on_event(event)
 
     def transition(self, name, *, data=None, **updates):
-        with self.condition:
+        with self.lock:
             self.status.update(updates)
             self.emit(
                 name,
@@ -99,14 +97,14 @@ class RunStore(EventLog):
             )
 
     def advance(self, worker_id, name, state, step):
-        with self.condition:
+        with self.lock:
             self.status["state"] = "processing" if self.status["workers"] > 1 else state
             self.status["current"] = step
             self.status["active_steps"][str(worker_id)] = {"state": state, "step": step}
             self.emit(name, worker_id=worker_id, step=step)
 
     def complete_step(self, worker_id, step):
-        with self.condition:
+        with self.lock:
             self.save_step(step)
             self.status["completed"] += 1
             self.status["current"] = step
@@ -119,13 +117,13 @@ class RunStore(EventLog):
             )
 
     def save_step(self, step):
-        with self.condition:
+        with self.lock:
             with (self.directory / "steps.jsonl").open("a", encoding="utf-8") as file:
                 file.write(json.dumps(step, ensure_ascii=False) + "\n")
                 file.flush()
 
     def snapshot(self):
-        with self.condition:
+        with self.lock:
             status = {
                 **self.status,
                 "active_steps": dict(self.status.get("active_steps", {})),

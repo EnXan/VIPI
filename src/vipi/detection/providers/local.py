@@ -6,7 +6,6 @@ from ..verdict import probability
 
 
 class LocalDecisionProvider:
-    native = False
 
     def __init__(self, name, directory, *, runtime=None):
         self.name = name
@@ -14,7 +13,7 @@ class LocalDecisionProvider:
         self.model = self.runtime.model
         self.identity = self.runtime.identity
 
-    def check(self, state, image=None):
+    def check(self, state):
         response = self.runtime.ask(
             state, {QUESTION_ID: {"type": "noul", "instructions": INSTRUCTIONS}}
         )

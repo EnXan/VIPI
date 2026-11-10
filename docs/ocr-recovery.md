@@ -81,7 +81,7 @@ typed-decision APIs. The pinned revisions and source-code hashes live in
 `src/vipi/decision_models.json`. Inference loads the prepared local directories
 and verifies those code hashes. Clef-Flash uses a 9B backbone and therefore
 requires substantially more memory than d1-3B; it replaced the 27B Clef
-([ADR 0065](../adr-code/0065-clef-flash-replaces-clef.md)). PyTorch 2.11, Transformers 5.14.1 and torchvision 0.26 are
+([ADR 0065](../adr-code/0065-clef-flash-replaces-clef.md)). PyTorch 2.11, Transformers 5.22.2 and torchvision 0.26 are
 included in `detector-local` for these runtimes. On Apple MPS, d1 uses FP16, query-chunked causal attention and serial vision-tile encoding to fit the measured multi-image requests. Every query, key and image tile is retained. Query batches reuse the pinned d1 runtime’s 1024-query work size; they do not cap input length. Mathematical parity is checked against full attention and batched SigLIP2 vision encoding. CUDA uses the upstream BF16 path and CPU uses FP32. The model cards' hardware
 measurements are not VIPI runtime measurements.
 

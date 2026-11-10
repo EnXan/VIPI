@@ -11,7 +11,7 @@ import pytest
 from vipi.config import ScanOptions
 from vipi.ocr.recovery import pipeline as recovery_pipeline
 from vipi.ocr.recovery.tiles import recover_with_tiles
-from vipi.ocr.transforms import views_for_size
+from vipi.ocr.measured_transforms import orientation_view
 from vipi.storage.ocr import RunStore
 
 
@@ -260,7 +260,7 @@ def test_unscored_cloud_page_boxes_do_not_launch_unusable_tile_requests():
 
 def test_tiles_preserve_incumbent_words_and_use_the_original_source(tmp_path):
     original = Image.new("RGB", (2100, 80), "red")
-    view = views_for_size(*original.size, selected_ids={"original-unchanged-1x"})[0]
+    view = orientation_view(*original.size)
     region = {
         "text": "KEEP",
         "confidence": 0.99,

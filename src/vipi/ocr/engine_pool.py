@@ -1,6 +1,5 @@
-"""Keep one OCR instance per executor thread for a complete image batch."""
+"""Reuse a stateful OCR engine per calling thread across an image batch."""
 
-from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 import threading
 
@@ -11,7 +10,7 @@ from .workers import worker_count
 
 
 class EnginePool:
-    """Own one stateful OCR engine per executor thread for a scan batch."""
+    """Own and release the engines used by a scan batch."""
 
     def __init__(
         self,
@@ -20,8 +19,6 @@ class EnginePool:
         workers,
         backend,
         engine_factory=None,
-        *,
-        native_pipeline=False,
     ):
         validate_backend(model, backend)
         self.model = model
@@ -29,14 +26,10 @@ class EnginePool:
         self.workers = worker_count(workers)
         self.backend = backend
         self.factory = engine_factory
-        self.native_pipeline = native_pipeline
         self.local = threading.local()
         self.engines = []
         self.lock = threading.Lock()
         self.cancelled = False
-        self.executor = ThreadPoolExecutor(
-            max_workers=self.workers, thread_name_prefix="ocr"
-        )
 
     def engine(self) -> OcrEngine:
         if not hasattr(self.local, "engine"):
@@ -48,7 +41,6 @@ class EnginePool:
                     self.directory,
                     backend=self.backend,
                     threads=threads_per_worker(self.workers),
-                    **({"native_pipeline": True} if self.native_pipeline else {}),
                 )
             )
             with self.lock:
@@ -79,7 +71,6 @@ class EnginePool:
         return self
 
     def __exit__(self, *exc):
-        self.executor.shutdown(wait=True, cancel_futures=True)
         for engine in self.engines:
             if hasattr(engine, "close"):
                 engine.close()

@@ -2,8 +2,6 @@
 
 import hashlib
 import json
-import re
-from pathlib import Path
 
 API_TEXT_BYTES = 16000
 CHUNK_OVERLAP = 256
@@ -15,42 +13,6 @@ def digest(value):
             value, ensure_ascii=False, sort_keys=True, separators=(",", ":")
         ).encode()
     ).hexdigest()
-
-
-def run_directory(root, run_id):
-    if not isinstance(run_id, str) or not re.fullmatch(r"[a-f0-9]{32}", run_id):
-        raise ValueError("Invalid OCR run ID.")
-    return Path(root) / run_id
-
-
-def load_evidence(directory):
-    directory = Path(directory)
-    status = json.loads((directory / "status.json").read_text(encoding="utf-8"))
-    result_path = directory / "result.json"
-    if result_path.is_file():
-        result = json.loads(result_path.read_text(encoding="utf-8"))
-    else:
-        result = {"text": "", "regions": [], "variants": []}
-    # Original-view raster preserves the pixels provided to the existing OCR flow.
-    original = next(
-        (
-            x
-            for x in result.get("variants", [])
-            if x.get("view_id") == "original" and x.get("filter") == "unchanged"
-        ),
-        None,
-    )
-    image_path = directory / "input.png"
-    if not image_path.is_file() and original:
-        image_path = directory / "images" / f"{original['id']}.png"
-    image = image_path.read_bytes() if image_path.is_file() else None
-    result.setdefault("model", status.get("model"))
-    return build_evidence(
-        result,
-        run_id=directory.name,
-        complete=status.get("state") == "completed",
-        image=image,
-    ), image
 
 
 def build_evidence(result, *, run_id=None, complete=True, image=None):

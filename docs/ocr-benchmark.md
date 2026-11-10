@@ -34,7 +34,7 @@ region-group conflicts. Full-reference passes therefore equal the tolerant
 local and 408 cloud; exact-word coverage and exact whole-image completion are
 different metrics.
 
-The README credits failures as zero across all 31,140 words / 1,113 entries:
+The historical README credited failures as zero across all 31,140 words / 1,113 entries:
 local tolerant coverage is 69.46%, cloud 85.38%. The full generated tables also
 show scored-only word coverage (cloud 86.38%) and mean-image coverage (84.48%).
 Keep these denominators explicit when comparing figures.

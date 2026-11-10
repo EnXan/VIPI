@@ -162,3 +162,12 @@ def test_evaluation_callback_precedes_completion_and_retains_partial_ocr_on_fail
     assert callbacks == ["0001"]
     assert len(store.snapshot()["variants"]) == 1
     assert engine.closed == 1
+
+
+def test_interrupted_run_is_restored_as_failed(tmp_path):
+    store = RunStore(tmp_path, "test")
+    store.status.update(state="ocr", total=170)
+    store.emit("ocr_started")
+    restored = RunStore.restore(store.directory)
+    assert restored.status["state"] == "failed"
+    assert restored.events[-1]["type"] == "run_failed"
