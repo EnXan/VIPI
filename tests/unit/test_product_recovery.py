@@ -448,3 +448,17 @@ def test_clef_runtime_models_need_their_joint_head(tmp_path, monkeypatch):
         validate_model("clef-flash", tmp_path)
     (tmp_path / "joint_head.safetensors").write_bytes(b"")
     assert validate_model("clef-flash", tmp_path)["runtime"] == "clef"
+
+
+def test_clef_runtime_can_load_with_a_device_map(tmp_path):
+    # The pinned Clef/Clef-Flash loader (joint_schema_model.load_release_model)
+    # calls from_pretrained(..., device_map={"": device}); transformers needs
+    # accelerate for that, so it must ship with the detector-local extra.
+    transformers = pytest.importorskip("transformers")
+
+    config = transformers.GPT2Config(n_layer=1, n_embd=8, n_head=2, vocab_size=16)
+    transformers.GPT2LMHeadModel(config).save_pretrained(tmp_path)
+    model = transformers.GPT2LMHeadModel.from_pretrained(
+        tmp_path, device_map={"": "cpu"}
+    )
+    assert str(model.device) == "cpu"
