@@ -70,9 +70,34 @@ def test_cloud_configurations_use_apis_and_do_not_load_torch():
         "device": "api",
         "provider": "google",
     }
-    assert value["decision"] == {"model": "openai", "device": "api"}
-    assert value["detector"] == {"model": "jev", "device": "api"}
-    assert "no GPU used" in execution.report_lines(value)[3]
+    assert value["decision"] == {
+        "model": "gpt-6-luna",
+        "provider": "openai",
+        "service": "OpenAI Decisions API",
+        "device": "api",
+    }
+    assert value["detector"] == {
+        "model": "jev-1.14.0",
+        "provider": "jev",
+        "service": "TypeSafe API",
+        "device": "api",
+    }
+    lines = execution.report_lines(value)
+    assert "no GPU used" in lines[3]
+    assert lines[5] == (
+        "OCR: google-cloud-vision via API. "
+        "OCR review: gpt-6-luna via OpenAI Decisions API. "
+        "Injection detector: jev-1.14.0 via TypeSafe API."
+    )
+
+
+def test_cloud_model_ids_follow_the_providers():
+    from vipi.detection.providers.jev import Jev
+    from vipi.detection.providers.openai import Decisions
+
+    value, _ = record("cloud-openai", None)
+    assert value["decision"]["model"] == value["detector"]["model"] == Decisions.model
+    assert record("cloud-mistral-jev", None)[0]["detector"]["model"] == Jev.model
 
 
 def test_machine_reports_this_host():
