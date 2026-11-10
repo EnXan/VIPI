@@ -61,6 +61,11 @@ git push origin v0.1.3
 - Run checks appropriate to the change. Report what was actually verified and
   what remains untested; a documentation-only change does not require a full
   model run. Windows/Linux execution remains unverified until tested there.
+- Keep figures in sync with the change. When a change alters what a diagram,
+  chart or other figure shows (scan steps, models, commands, thresholds,
+  workflows or measured results), update the figure in `assets/diagrams/` in
+  the same PR, together with the text and tables it illustrates. New baselines
+  that change the README results update the results chart and its tables.
 
 ## Contributing
 
