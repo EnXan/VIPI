@@ -1,4 +1,4 @@
-"""Pinned Clef, Clef-Flash and d1 inference shared by OCR review and detection."""
+"""Pinned Clef-Flash and d1 inference shared by OCR review and detection."""
 
 import hashlib
 import importlib.util
@@ -78,13 +78,13 @@ def prepare_model(name, directory):
 
 
 class LocalDecisionModel:
-    """Load verified, prepared Clef/d1 files and reuse their inference runtime."""
+    """Load verified, prepared Clef-Flash/d1 files and reuse their inference runtime."""
 
     def __init__(self, name, directory):
         self.name = name
         self.directory = Path(directory).resolve()
         metadata = validate_model(name, self.directory)
-        self.runtime = metadata["runtime"]  # "clef" (Clef, Clef-Flash) or "d1"
+        self.runtime = metadata["runtime"]  # "clef" (Clef-Flash) or "d1"
         self.model = metadata["repository"]
         self.identity = {
             "model": self.model,
@@ -182,7 +182,7 @@ class LocalDecisionModel:
                 limit = config.max_position_embeddings
                 if len(encoded.input_ids) > limit:
                     raise ValueError(
-                        f"Clef input exceeds its model context of {limit} tokens."
+                        f"Clef-Flash input exceeds its model context of {limit} tokens."
                     )
                 return module.systemone(model, processor, request, max_length=limit)
             finally:

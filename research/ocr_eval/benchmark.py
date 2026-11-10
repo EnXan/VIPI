@@ -35,9 +35,11 @@ ROOT = Path(__file__).resolve().parents[2]
 CONFIGURATIONS = {
     **{
         f"local-{mode}": {"ocr_execution_mode": "local", "ocr_mode": mode}
-        for mode in ("speed", "balanced", "quality")
+        for mode in ("speed", "balanced")
     },
-    # Quality OCR with Clef-Flash for review and detection instead of Clef.
+    # Quality OCR with Clef-Flash for review and detection (the product default
+    # since ADR 0065). The explicit provider and the name are kept so the
+    # baseline saved under this name stays comparable.
     "local-quality-clef-flash": {
         "ocr_execution_mode": "local",
         "ocr_mode": "quality",

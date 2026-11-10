@@ -83,7 +83,7 @@ multi-view assembly and per-run API cost estimates stay in `vipi.ocr`. The
 workbench owns batch-level performance summaries in `reporting`.
 `vipi.ocr.pipeline` supports the workbench's native baseline and fixed-transform
 comparison profiles. `vipi.local_decisions` owns
-the prepared Clef/d1 runtimes reused by OCR review and injection detection.
+the prepared Clef-Flash/d1 runtimes reused by OCR review and injection detection.
 
 See [Product OCR recovery](ocr-recovery.md) for the recovery stages and measured
 limits, [CLI usage](cli.md) for execution modes and model selection, and

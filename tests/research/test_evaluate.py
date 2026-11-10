@@ -180,7 +180,6 @@ def test_configurations_are_the_product_scan_options():
     assert list(suite.CONFIGURATIONS) == [
         "local-speed",
         "local-balanced",
-        "local-quality",
         "local-quality-clef-flash",
         "local-speed-prompt-guard",
         "local-balanced-prompt-guard",
@@ -282,8 +281,12 @@ def test_prompt_guard_configurations_change_only_the_detector(manifest_root):
     from vipi.config import PROMPT_GUARD_REVISION, ScanOptions
 
     root, _rows, _document = manifest_root
-    for mode in ("speed", "balanced", "quality"):
-        default = ScanOptions(**suite.CONFIGURATIONS[f"local-{mode}"])
+    for mode, default in (
+        ("speed", "local-speed"),
+        ("balanced", "local-balanced"),
+        ("quality", "local-quality-clef-flash"),
+    ):
+        default = ScanOptions(**suite.CONFIGURATIONS[default])
         guard = ScanOptions(**suite.CONFIGURATIONS[f"local-{mode}-prompt-guard"])
         assert guard.resolved_detector == "prompt-guard"
         assert guard.resolved_ocr_model == default.resolved_ocr_model

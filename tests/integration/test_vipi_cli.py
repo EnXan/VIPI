@@ -231,7 +231,7 @@ def test_scan_runs_shared_pipeline_sequentially_and_emits_json(
     assert report["ocr_mode"] == "quality"
     assert report["ocr_model"] == "ppocr-v6"
     assert report["ocr"]["ocr_profile"] == "adaptive-jev"
-    assert report["decision_provider"] == report["detector"] == "clef"
+    assert report["decision_provider"] == report["detector"] == "clef-flash"
     assert report["ocr"]["workers"] == 1 and report["ocr"]["backend"] == "cpu"
     assert report["files"][0]["ocr_profile"] == "adaptive-jev"
     assert report["files"][0]["ocr_passes"] == 3
@@ -395,7 +395,7 @@ def test_setup_only_prepares_default_ocr_and_selected_local_detector(
     )
     assert main(["setup"]) == 0
     assert len(calls) == 1 and calls[0][1] is None
-    assert decisions[-1][0] == "clef"
+    assert decisions[-1][0] == "clef-flash"
     assert "Models ready" in capsys.readouterr().out
     assert main(["setup", "--ocr-mode", "fast"]) == 0
     assert calls[-1][1] == "ppocr-v6-tiny"

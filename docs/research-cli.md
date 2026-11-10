@@ -54,7 +54,7 @@ uv run python -m research.evaluate save-baseline <run-id>
 uv run python -m research.evaluate split --check
 ```
 
-Configurations: `local-speed`, `local-balanced`, `local-quality`,
+Configurations: `local-speed`, `local-balanced`,
 `local-quality-clef-flash`, `local-speed-prompt-guard`,
 `local-balanced-prompt-guard`, `local-quality-prompt-guard`,
 `cloud-google`, `cloud-openai`, `cloud-mistral`, `cloud-google-jev`,

@@ -151,7 +151,7 @@ class JevDecider(_AdaptiveDecider):
 
 
 class LocalDecider(_AdaptiveDecider):
-    """Answer visual OCR questions with a prepared Clef or d1 runtime."""
+    """Answer visual OCR questions with a prepared Clef-Flash or d1 runtime."""
 
     def __init__(self, name, directory, *, mode="quality", runtime=None):
         from vipi.local_decisions import LocalDecisionModel

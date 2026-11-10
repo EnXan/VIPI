@@ -75,7 +75,7 @@ def upload(client, **form):
 def test_configurations_are_the_product_options_with_the_product_default(tmp_path):
     client = create_app(repository_root=tmp_path).test_client()
     data = client.get("/api/configurations").json
-    assert data["default"] == "local-quality"
+    assert data["default"] == "local-quality-clef-flash"
     assert data["threshold"] == 80
     assert data["splits"] == ["development", "test"]
     labels = {
@@ -85,9 +85,10 @@ def test_configurations_are_the_product_options_with_the_product_default(tmp_pat
         "Local · Speed OCR · d1 (LiquidAI d1-3B) detector",
         False,
     )
-    assert (
-        labels["local-quality"][0] == "Local · Quality OCR · Clef (Cloudflare) detector"
+    assert labels["local-quality-clef-flash"][0] == (
+        "Local · Quality OCR · Clef-Flash (Cloudflare) detector"
     )
+    assert "local-quality" not in labels  # Clef was replaced (ADR 0065)
     assert labels["cloud-google"] == (
         "Cloud · Google Cloud Vision · OpenAI Luna detector",
         True,

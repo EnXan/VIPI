@@ -36,11 +36,11 @@ Temporary planning and review queues belong in `.llm-plans/`.
 | [0056](0056-contribute-only-changes.md) | Contributors add or generate images locally and submit only their changes |
 | [0057](0057-jev-detector-configurations.md) | Jev detector configurations for evaluation (amends 0054) |
 | [0058](0058-reuse-ocr-across-runs.md) | Reuse OCR and detection results across evaluation runs |
-| [0059](0059-clef-flash-local-decision-model.md) | Clef-Flash as an optional local decision model |
 | [0060](0060-model-identity-per-used-entry.md) | Model identity covers only the registry entries a configuration uses (amends 0054) |
 | [0061](0061-prompt-guard-detector-configurations.md) | Prompt Guard detector configurations for evaluation (extends 0057) |
 | [0062](0062-record-execution-devices.md) | Record where an evaluation run executed: host and device per component |
 | [0064](0064-never-reuse-failed-detections.md) | Never reuse a detection that failed (extends 0058) |
+| [0065](0065-clef-flash-replaces-clef.md) | Clef-Flash replaces Clef as the local quality model (replaces 0059) |
 
 When revising an agreed decision, write its replacement with a summary of the
 old ADR (identifier, decision, rationale and reason for revision), then delete
