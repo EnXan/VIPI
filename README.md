@@ -86,10 +86,10 @@ Development split of the
 
 - **Detection rate:** injection images reported as an injection. Higher is better.
 - **False positive rate:** benign images wrongly reported. Lower is better.
-- **OCR word accuracy:** words in the images read, tolerating a small typo.
-  Higher is better.
+- **Words recognized:** words in the images VIPI recognized, tolerating a
+  small typo. Higher is better.
 
-| Cloud · OCR + detector | Detection rate | False positive rate | OCR word accuracy |
+| Cloud · OCR + detector | Detection rate | False positive rate | Words recognized |
 | :-- | --: | --: | --: |
 | Mistral + Jev | 81.5% | **0.4%** | 83.2% |
 | Mistral + OpenAI | **85.0%** | 4.5% | 83.2% |
@@ -98,7 +98,7 @@ Development split of the
 | Google + OpenAI (default) | 78.4% | 3.6% | 87.4% |
 | Google + Jev | 74.0% | 0.9% | 87.4% |
 
-| Local · OCR + detector | Detection rate | False positive rate | OCR word accuracy |
+| Local · OCR + detector | Detection rate | False positive rate | Words recognized |
 | :-- | --: | --: | --: |
 | Quality + Clef-Flash (default) | 16.7% | **0%** | **75.5%** |
 | Quality + Prompt Guard 2 | **19.4%** | 1.8% | **75.5%** |
