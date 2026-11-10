@@ -9,6 +9,7 @@ All brand files for VIPI. The rules are in `brand/vipi-brand.html` (open it in a
 | `icon` | App icon dark/light (SVG, 1024, 512, 192 px), `apple-touch-icon.png`, `favicon.svg`, `favicon.ico`, `favicon-16/32/48.png` |
 | `motion` | Reveal animation as animated SVG, MP4 and GIF |
 | `social` | Link preview image (1200 × 630) |
+| `diagrams` | Scan flow and scan pipeline as SVG with light and dark styles |
 | `tokens` | Colors and typefaces as CSS variables and JSON |
 | `brand` | Brand guidelines as an HTML page |
 | `source` | `build_logo.py` regenerates all logo SVGs from the pixel grid |

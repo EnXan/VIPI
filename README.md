@@ -64,6 +64,10 @@ downloads the large `quality` model. If `vipi` is not on `PATH`, run
 Every scan runs up to three steps; step 2 runs only when the OCR result is
 uncertain. The mode decides who provides the models.
 
+<p align="center">
+  <img src="https://raw.githubusercontent.com/EnXan/VIPI/main/assets/diagrams/vipi-scan-pipeline.svg" alt="VIPI reads the text of an image with OCR, has a visual model review uncertain OCR and re-reads the image if text is missing, then checks the final text for prompt injections. The scan ends clean (exit 0), with an injection (exit 1) or incomplete (exit 2)." width="900">
+</p>
+
 | Step | Local `quality` (default) | Local `balanced` | Local `speed` | Cloud |
 | :-- | :-- | :-- | :-- | :-- |
 | 1 · Read text | <img src="https://raw.githubusercontent.com/EnXan/VIPI/main/assets/providers/paddlepaddle.svg" width="14" height="14" alt="PaddlePaddle"> PP-OCRv6 Medium<br><sub>or Small · Tiny</sub> | <img src="https://raw.githubusercontent.com/EnXan/VIPI/main/assets/providers/paddlepaddle.svg" width="14" height="14" alt="PaddlePaddle"> PP-OCRv6 Small<br><sub>or Medium · Tiny</sub> | <img src="https://raw.githubusercontent.com/EnXan/VIPI/main/assets/providers/paddlepaddle.svg" width="14" height="14" alt="PaddlePaddle"> PP-OCRv6 Tiny<br><sub>or Medium · Small</sub> | <img src="https://raw.githubusercontent.com/EnXan/VIPI/main/assets/providers/google.svg" width="14" height="14" alt="Google"> Cloud Vision<br><sub>or <img src="https://raw.githubusercontent.com/EnXan/VIPI/main/assets/providers/openai.svg" width="12" height="12" alt=""> OpenAI · <img src="https://raw.githubusercontent.com/EnXan/VIPI/main/assets/providers/mistralai.svg" width="12" height="12" alt=""> Mistral</sub> |

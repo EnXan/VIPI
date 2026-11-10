@@ -1,0 +1,107 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1040 380" role="img" aria-labelledby="title desc">
+  <title id="title">How VIPI scans an image</title>
+  <desc id="desc">VIPI takes images from files, folders or a Git diff. Step 1 reads the text with OCR: PP-OCRv6 locally, or Google Cloud Vision, GPT-6 Luna or Mistral OCR in the cloud. When the OCR result looks uncertain, step 2 asks a visual decision model (Clef-Flash or d1 locally, GPT-6 Luna or Jev in the cloud) whether text is missing, and VIPI re-reads the image rotated, with more contrast or upscaled. A clear OCR result skips the review. Step 3 checks the final text for prompt injections with Clef-Flash, d1 or Prompt Guard 2 locally, or GPT-6 Luna or Jev in the cloud. A score at or above the threshold of 80 is a finding. The scan ends clean with exit code 0, with an injection with exit code 1, or incomplete with exit code 2.</desc>
+  <defs>
+    <style>
+      .bg { fill: #FFFFFF; stroke: rgba(11,12,16,.12); }
+      .dot { fill: rgba(11,12,16,.10); }
+      .card { fill: #F2F3F5; stroke: rgba(11,12,16,.16); }
+      .ink { fill: #0B0C10; }
+      .wire { fill: none; stroke: #5C616C; stroke-width: 1.5; }
+      .dash { fill: none; stroke: #5C616C; stroke-width: 1.5; stroke-dasharray: 5 4; }
+      .head { fill: #5C616C; }
+      .title { fill: #0B0C10; font: 500 17px "Geist", "Helvetica Neue", Arial, sans-serif; letter-spacing: -0.01em; }
+      .title-inv { fill: #F2F3F5; font: 500 17px "Geist", "Helvetica Neue", Arial, sans-serif; letter-spacing: -0.01em; }
+      .mono { fill: #5C616C; font: 500 10px "Geist Mono", ui-monospace, Menlo, Consolas, monospace; letter-spacing: .06em; }
+      .step { fill: #0B0C10; font: 500 10px "Geist Mono", ui-monospace, Menlo, Consolas, monospace; letter-spacing: .08em; }
+      .mono-inv { fill: #A3A8B2; font: 500 10px "Geist Mono", ui-monospace, Menlo, Consolas, monospace; letter-spacing: .06em; }
+      .step-inv { fill: #F2F3F5; font: 500 10px "Geist Mono", ui-monospace, Menlo, Consolas, monospace; letter-spacing: .08em; }
+      .clean { fill: #30A46C; }
+      .injection { fill: #E5484D; }
+      .review { fill: #F5A524; }
+      @media (prefers-color-scheme: dark) {
+        .bg { fill: #121318; stroke: rgba(242,243,245,.12); }
+        .dot { fill: rgba(242,243,245,.09); }
+        .card { fill: #0B0C10; stroke: rgba(242,243,245,.16); }
+        .ink { fill: #F2F3F5; }
+        .wire, .dash { stroke: #A3A8B2; }
+        .head { fill: #A3A8B2; }
+        .title, .step { fill: #F2F3F5; }
+        .title-inv, .step-inv { fill: #0B0C10; }
+        .mono { fill: #A3A8B2; }
+        .mono-inv { fill: #5C616C; }
+      }
+    </style>
+    <pattern id="raster" width="24" height="24" patternUnits="userSpaceOnUse" x="12" y="12">
+      <circle class="dot" cx="12" cy="12" r="1.2"/>
+    </pattern>
+  </defs>
+
+  <rect class="bg" x="0.5" y="0.5" width="1039" height="379" rx="4"/>
+  <rect x="1" y="1" width="1038" height="378" rx="4" fill="url(#raster)"/>
+
+  <!-- Input -->
+  <rect class="card" x="24.5" y="140.5" width="150" height="140" rx="4"/>
+  <text class="step" x="40" y="166">INPUT</text>
+  <text class="title" x="40" y="194">Images</text>
+  <text class="mono" x="40" y="226">FILES · FOLDERS</text>
+  <text class="mono" x="40" y="244">GIT DIFF</text>
+  <text class="mono" x="40" y="262">PNG · JPEG · WEBP</text>
+
+  <path class="wire" d="M175 210H202"/>
+  <path class="head" d="M210 210l-9-5v10z"/>
+
+  <!-- 1 · Read text -->
+  <rect class="card" x="210.5" y="140.5" width="170" height="140" rx="4"/>
+  <text class="step" x="226" y="166">01 · READ TEXT</text>
+  <text class="title" x="226" y="194">OCR</text>
+  <text class="mono" x="226" y="226">LOCAL PP-OCRV6</text>
+  <text class="mono" x="226" y="244">CLOUD VISION · LUNA</text>
+  <text class="mono" x="226" y="262">MISTRAL OCR</text>
+
+  <path class="wire" d="M381 210H408"/>
+  <path class="head" d="M416 210l-9-5v10z"/>
+
+  <!-- 2 · Verify OCR -->
+  <rect class="card" x="416.5" y="140.5" width="170" height="140" rx="4"/>
+  <text class="step" x="432" y="166">02 · VERIFY OCR</text>
+  <text class="title" x="432" y="194">Visual review</text>
+  <text class="mono" x="432" y="226">TEXT MISSING?</text>
+  <text class="mono" x="432" y="244">CLEF-FLASH · D1</text>
+  <text class="mono" x="432" y="262">LUNA · JEV</text>
+
+  <path class="wire" d="M587 210H614"/>
+  <path class="head" d="M622 210l-9-5v10z"/>
+
+  <!-- 3 · Detect -->
+  <rect class="ink" x="622" y="140" width="170" height="141" rx="4"/>
+  <text class="step-inv" x="638" y="166">03 · DETECT</text>
+  <text class="title-inv" x="638" y="194">Injection check</text>
+  <text class="mono-inv" x="638" y="226">CLEF-FLASH · D1</text>
+  <text class="mono-inv" x="638" y="244">PROMPT GUARD 2</text>
+  <text class="mono-inv" x="638" y="262">LUNA · JEV</text>
+
+  <!-- Clear OCR skips the review -->
+  <path class="dash" d="M295 140V96H707V131"/>
+  <path class="head" d="M707 140l-5-9h10z"/>
+  <text class="mono" x="501" y="86" text-anchor="middle">CLEAR OCR · NO REVIEW NEEDED</text>
+
+  <!-- Uncertain OCR is read again -->
+  <path class="dash" d="M501 281V324H295V289"/>
+  <path class="head" d="M295 281l-5 9h10z"/>
+  <text class="mono" x="398" y="346" text-anchor="middle">RE-READ · ROTATE · CONTRAST · 2× UPSCALE</text>
+
+  <!-- Result -->
+  <text class="mono" x="842" y="128">SCORE ≥ 80 = FINDING</text>
+  <path class="wire" d="M792 210H812M812 160V260M812 160H828M812 260H828M812 210H828"/>
+  <path class="head" d="M836 160l-9-5v10z"/>
+  <path class="head" d="M836 210l-9-5v10z"/>
+  <path class="head" d="M836 260l-9-5v10z"/>
+
+  <rect class="clean" x="844" y="155" width="10" height="10"/>
+  <text class="step" x="862" y="164">CLEAN · EXIT 0</text>
+  <rect class="injection" x="844" y="205" width="10" height="10"/>
+  <text class="step" x="862" y="214">INJECTION · EXIT 1</text>
+  <rect class="review" x="844" y="255" width="10" height="10"/>
+  <text class="step" x="862" y="264">INCOMPLETE · EXIT 2</text>
+</svg>
