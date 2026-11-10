@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1040 380" role="img" aria-labelledby="title desc">
   <title id="title">How VIPI scans an image</title>
-  <desc id="desc">VIPI takes images from files, folders or a Git diff. Step 1 reads the text with OCR: PP-OCRv6 locally, or Google Cloud Vision, GPT-6 Luna or Mistral OCR in the cloud. When the OCR result looks uncertain, step 2 asks a visual decision model (Clef-Flash or d1 locally, GPT-6 Luna or Jev in the cloud) whether text is missing, and VIPI re-reads the image rotated, with more contrast, upscaled or in tiles. A clear OCR result skips the review. Step 3 checks the final text for prompt injections with Clef-Flash, d1 or Prompt Guard 2 locally, or GPT-6 Luna or Jev in the cloud. A score at or above the threshold of 80 is a finding. The scan ends clean with exit code 0, with an injection with exit code 1, or incomplete with exit code 2.</desc>
+  <desc id="desc">VIPI takes images from files, folders or a Git diff. Step 1 reads the text with OCR: PP-OCRv6 locally, or Google Cloud Vision, GPT-6 Luna or Mistral OCR in the cloud. When the OCR result looks uncertain, step 2 asks a visual decision model (Clef-Flash or d1 locally, GPT-6 Luna or Jev in the cloud) whether text is missing, and VIPI re-reads the image rotated, with more contrast or upscaled. A clear OCR result skips the review. Step 3 checks the final text for prompt injections with Clef-Flash, d1 or Prompt Guard 2 locally, or GPT-6 Luna or Jev in the cloud. A score at or above the threshold of 80 is a finding. The scan ends clean with exit code 0, with an injection with exit code 1, or incomplete with exit code 2.</desc>
   <defs>
     <style>
       .bg { fill: #FFFFFF; stroke: rgba(11,12,16,.12); }
@@ -89,7 +89,7 @@
   <!-- Uncertain OCR is read again -->
   <path class="dash" d="M501 281V324H295V289"/>
   <path class="head" d="M295 281l-5 9h10z"/>
-  <text class="mono" x="398" y="346" text-anchor="middle">RE-READ · ROTATE · CONTRAST · UPSCALE · TILES</text>
+  <text class="mono" x="398" y="346" text-anchor="middle">RE-READ · ROTATE · CONTRAST · 2× UPSCALE</text>
 
   <!-- Result -->
   <text class="mono" x="842" y="128">SCORE ≥ 80 = FINDING</text>
