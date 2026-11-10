@@ -80,6 +80,10 @@ which call this benchmark on one split. The runner requires one or more
 `local-balanced`, `local-quality`, `cloud-google`, `cloud-openai`,
 `cloud-mistral`, and the same three cloud names with `-jev`) and runs them in the given order. Each entry is scanned with
 `vipi.scanner.scan_image`, so a run records OCR text and the detection verdict.
+`--reuse-ocr-from RUNS_DIR` reuses results of earlier evaluation runs for
+identical images: the OCR when the OCR identity matches (then only detection
+runs), the whole result when the detection identity matches too
+([ADR 0058](../adr-code/0058-reuse-ocr-across-runs.md)).
 Repeating the same command resumes entries without a terminal record; completed
 and failed attempts are retained. Use a new directory for a fresh trial. A worker
 crash counts the image that was running as failed; unstarted images continue in

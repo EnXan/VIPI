@@ -46,8 +46,10 @@ class EvaluationService:
             dry_run=True,
         )
 
-    def start(self, configuration, split, confirm_test, run_id=None):
-        """Start a new run, or resume ``run_id``; returns the run ID."""
+    def start(self, configuration, split, confirm_test, run_id=None, reuse_ocr=True):
+        """Start a new run, or resume ``run_id``; returns the run ID.
+
+        A resumed run keeps the OCR reuse choice it started with."""
         if run_id is not None:
             request = read_json(self.directory(run_id) / "request.json")
             if request is None:
@@ -79,6 +81,7 @@ class EvaluationService:
                     run_id=run_id,
                     confirm_test=confirm_test,
                     cancel=state["cancel"],
+                    reuse_ocr=reuse_ocr,
                 )
             except Exception as error:
                 state["error"] = str(error) or type(error).__name__

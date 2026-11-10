@@ -214,10 +214,29 @@ $('scan-start').onclick = async () => {
 let evaluationSettings;
 const selectedSplit = () => document.querySelector('input[name="split"]:checked').value;
 function describeBaseline(baseline) {
-  if (baseline.state === 'none') return 'No baseline saved for these settings yet. After this run you can save it as the baseline.';
-  const when = baseline.completed_at ? ` from ${baseline.completed_at.slice(0, 10)}` : '';
-  if (baseline.state === 'fresh') return `Baseline ${baseline.run_id}${when} matches this checkout. The run will be compared with it.`;
-  return `Baseline ${baseline.run_id}${when} is out of date (changed: ${baseline.differences.join(', ')}). The comparison will be marked "not the same inputs"; save a new baseline before comparing changes.`;
+  const when = baseline.completed_at ? ` · ${baseline.completed_at.slice(0, 10)}` : '';
+  if (baseline.state === 'none') return {text: 'None saved yet — save this run afterwards', detail: ''};
+  if (baseline.state === 'fresh') return {text: `Up to date${when}`, detail: ''};
+  return {
+    text: `Out of date${when}`,
+    detail: `Baseline ${baseline.run_id} no longer matches this checkout (changed: ${baseline.differences.join(', ')}). The comparison will be marked "not the same inputs"; save a new baseline before comparing changes.`,
+  };
+}
+function describeWork(setup, reuse) {
+  const total = setup.entries;
+  const ocr = total - (reuse ? setup.reusable_ocr : 0);
+  const detection = total - (reuse ? setup.reusable_complete : 0);
+  if (!ocr && !detection) return {ocr, detection, text: `Nothing to scan — all ${total} results reused`};
+  if (ocr === total && detection === total) return {ocr, detection, text: `OCR and detection for ${total} images`};
+  if (!ocr) return {ocr, detection, text: `Detection for ${detection} images · OCR reused for all ${total}`};
+  return {ocr, detection, text: `OCR for ${ocr}, detection for ${detection} of ${total} images`};
+}
+function describeCost(item, work) {
+  if (!item.paid) return 'Free — runs on this computer';
+  if (!work.ocr && !work.detection) return 'No paid API calls';
+  const calls = work.ocr === work.detection ? `OCR and detection for ${work.ocr}`
+    : [work.ocr && `OCR for ${work.ocr}`, work.detection && `detection for ${work.detection}`].filter(Boolean).join(', ');
+  return `Paid API calls: ${calls} images${item.detector === 'jev' ? ' (Jev cost is not estimated)' : ''}`;
 }
 let setupRequest = 0;
 async function refreshEvaluationSetup() {
@@ -226,32 +245,42 @@ async function refreshEvaluationSetup() {
   const split = selectedSplit();
   const item = configuration(evaluationSettings.value());
   $('test-confirm-row').hidden = split !== 'test';
-  $('baseline-status').textContent = 'Checking the saved baseline…';
+  $('baseline-status').textContent = 'Checking…';
+  $('evaluation-work').textContent = '';
+  $('evaluation-cost').textContent = '';
+  $('baseline-detail').hidden = true;
   $('evaluation-start').disabled = true;
   try {
     const params = new URLSearchParams({configuration: item.id, split});
     const setup = await request(`/api/evaluations/setup?${params}`);
     if (ticket !== setupRequest) return;
     $(`split-${split}-count`).textContent = `(${setup.entries} images)`;
-    $('baseline-status').textContent = describeBaseline(setup.baseline);
+    const baseline = describeBaseline(setup.baseline);
+    $('baseline-status').textContent = baseline.text;
     $('baseline-status').dataset.state = setup.baseline.state;
-    $('evaluation-cost').hidden = !item.paid;
-    $('evaluation-cost').textContent = `Cloud runs make paid API calls (OCR, review and detection) for each of the ${setup.entries} images.${item.detector === 'jev' ? ' Jev usage is recorded, but its cost is not estimated (no verified rate).' : ''}`;
+    $('baseline-detail').textContent = baseline.detail;
+    $('baseline-detail').hidden = !baseline.detail;
+    const work = describeWork(setup, $('reuse-ocr').checked);
+    $('evaluation-work').textContent = work.text;
+    $('evaluation-cost').textContent = describeCost(item, work);
+    $('evaluation-cost').dataset.paid = String(item.paid && Boolean(work.ocr || work.detection));
+    $('evaluation-start').dataset.paid = $('evaluation-cost').dataset.paid;
     $('evaluation-start').disabled = split === 'test' && !$('test-confirm').checked;
-    $('evaluation-start').textContent = `Start evaluation · ${item.label} · ${setup.entries} images`;
+    $('evaluation-start').textContent = `Start evaluation · ${setup.entries} images`;
   } catch (error) {
     if (ticket === setupRequest) $('baseline-status').textContent = error.message;
   }
 }
 for (const input of document.querySelectorAll('input[name="split"]')) input.onchange = refreshEvaluationSetup;
 $('test-confirm').onchange = refreshEvaluationSetup;
+$('reuse-ocr').onchange = refreshEvaluationSetup;
 
 $('evaluation-start').onclick = async () => {
   showError('');
   const item = configuration(evaluationSettings.value());
-  if (item.paid && !window.confirm(`Start a paid cloud evaluation with ${item.label}?`)) return;
+  if ($('evaluation-start').dataset.paid === 'true' && !window.confirm(`Start a paid cloud evaluation with ${item.label}?`)) return;
   try {
-    const {run_id: runId} = await postJson('/api/evaluations', {configuration: item.id, split: selectedSplit(), confirm_test: $('test-confirm').checked});
+    const {run_id: runId} = await postJson('/api/evaluations', {configuration: item.id, split: selectedSplit(), confirm_test: $('test-confirm').checked, reuse_ocr: $('reuse-ocr').checked});
     openRun(runId);
     refreshRuns();
   } catch (error) { showError(error.message); }

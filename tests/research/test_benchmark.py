@@ -156,8 +156,8 @@ def test_main_manifest_contains_only_requested_configurations(tmp_path, monkeypa
     monkeypatch.setattr(
         benchmark,
         "run_configuration",
-        lambda directory, configuration, rows, cancel: runs.append(
-            (directory, configuration, rows)
+        lambda directory, configuration, rows, cancel, **reuse: runs.append(
+            (directory, configuration, rows, reuse)
         ),
     )
 
@@ -166,7 +166,14 @@ def test_main_manifest_contains_only_requested_configurations(tmp_path, monkeypa
 
     manifest = json.loads((output / "manifest.json").read_text())
     assert list(manifest["configurations"]) == ["cloud-google"]
-    assert runs == [(output / "cloud-google", "cloud-google", selected)]
+    assert runs == [
+        (
+            output / "cloud-google",
+            "cloud-google",
+            selected,
+            {"provenance_record": {}, "reuse_from": None},
+        )
+    ]
 
 
 def test_provenance_tolerates_unavailable_macos_sysctl_fields(tmp_path, monkeypatch):

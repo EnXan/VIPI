@@ -162,12 +162,18 @@ def evaluation_client(tmp_path, monkeypatch):
         confirm_test=False,
         dry_run=False,
         cancel=None,
+        reuse_ocr=True,
     ):
         if split == "test" and not confirm_test:
             raise ValueError("pass --confirm-test-split")
         run_id = run_id or f"20261109T000000Z-{configuration}-{split}"
         if dry_run:
-            return {"run_id": run_id, "entries": 3}
+            return {
+                "run_id": run_id,
+                "entries": 3,
+                "reusable_ocr": 2,
+                "reusable_complete": 1,
+            }
         calls.append(run_id)
         directory = evaluate_runs.run_directory(run_id, root)
         directory.mkdir(parents=True, exist_ok=True)
@@ -176,7 +182,9 @@ def evaluation_client(tmp_path, monkeypatch):
             "split": split,
             "suite": {"entries": 3},
         }
-        benchmark.write_json(directory / "request.json", {"manifest": manifest})
+        benchmark.write_json(
+            directory / "request.json", {"manifest": manifest, "reuse_ocr": reuse_ocr}
+        )
         rows = directory / "benchmark" / configuration / "rows"
         rows.mkdir(parents=True, exist_ok=True)
         for index in range(3):
@@ -225,6 +233,8 @@ def test_evaluation_runs_lists_reports_and_saves_the_baseline(evaluation_client)
     setup = client.get("/api/evaluations/setup?configuration=local-speed").json
     assert setup == {
         "entries": 3,
+        "reusable_ocr": 2,
+        "reusable_complete": 1,
         "baseline": {
             "state": "none",
             "run_id": None,
@@ -320,3 +330,25 @@ def test_benchmark_stop_terminates_the_worker_and_keeps_the_image_unrecorded(
     assert list((directory / "rows").glob("*.json")) == []
     history = json.loads((directory / "invocations.json").read_text())
     assert history[0]["cancelled"] is True and history[0]["interrupted"] is True
+
+
+def test_evaluation_reuses_ocr_unless_the_checkbox_is_off(evaluation_client):
+    client, root, _calls = evaluation_client
+    for reuse in (True, False):
+        started = client.post(
+            "/api/evaluations",
+            json={
+                "configuration": f"local-{'speed' if reuse else 'balanced'}",
+                "reuse_ocr": reuse,
+            },
+        )
+        run_id = started.json["run_id"]
+        wait(
+            lambda: client.get(f"/api/evaluations/{run_id}").json["state"] == "complete"
+        )
+        request = json.loads(
+            (evaluate_runs.run_directory(run_id, root) / "request.json").read_text()
+        )
+        assert request["reuse_ocr"] is reuse
+    page = client.get("/").data
+    assert b'id="reuse-ocr" type="checkbox" checked' in page

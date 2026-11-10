@@ -49,9 +49,18 @@ Choose the settings and the images:
 - **Test split** (104 images): only once, to confirm a change before a default
   changes. Starting it needs a confirmation.
 
-Before you start, the page says whether a baseline is saved for these settings
-and whether it still matches this checkout. A run scans every image of the
-split, shows its progress and can be stopped and resumed. When it is complete,
+**Reuse identical results** is on by default: for an identical image, an
+earlier OCR result is reused when OCR settings and OCR code match, and its
+detection as well when detector, settings, product code and packages also
+match ([ADR 0058](../../adr-code/0058-reuse-ocr-across-runs.md)). Turn it off
+to scan every image from scratch.
+
+Before you start, a summary shows the **Baseline** (none, up to date or out of
+date with the changed fields), the **Work** (how many images need OCR and
+detection after reuse) and the **Cost** (free locally; otherwise which paid
+calls remain).
+
+A run goes through every image of the split, shows its progress and can be stopped and resumed. When it is complete,
 the page shows OCR word coverage, fully read images, attacks flagged, benign
 images flagged and detection accuracy, each with the change against the
 baseline, the number of images whose result changed, and results per content

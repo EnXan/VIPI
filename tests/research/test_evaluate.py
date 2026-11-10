@@ -352,8 +352,11 @@ def test_run_freezes_split_keys_and_writes_a_local_summary(run_root):
             "local-speed",
             "--selection-file",
             str(directory / "selection.json"),
+            "--reuse-ocr-from",
+            str(root / "runs/evaluations"),
         ]
     ]
+    assert json.loads((directory / "request.json").read_text())["reuse_ocr"] is True
     summary = json.loads((directory / "summary.json").read_text())
     assert summary["metrics"]["time"] == {"image_seconds_total": 1.0}
     assert summary["operations"]["wall_seconds"] == 2.0
@@ -452,3 +455,12 @@ def test_implementation_records_dirty_and_untracked_changes(tmp_path):
     assert untracked["dirty"] is True and untracked["untracked_files"] == 1
     (tmp_path / "a.txt").write_text("changed")
     assert runs.implementation(tmp_path)["diff_sha256"] != clean["diff_sha256"]
+
+
+def test_run_without_ocr_reuse_scans_everything_and_resume_keeps_the_choice(run_root):
+    root, _rows, calls, _state = run_root
+    runs.run("local-speed", root=root, run_id="full", reuse_ocr=False)
+    runs.run("local-speed", root=root, run_id="full")  # resume: choice kept
+    assert all("--reuse-ocr-from" not in call for call in calls)
+    plan = runs.run("local-speed", root=root, run_id="full", dry_run=True)
+    assert plan["reuse_ocr"] is False

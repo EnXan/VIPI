@@ -15,7 +15,7 @@ import subprocess
 import threading
 import time
 
-from research.ocr_eval import benchmark, benchmark_report
+from research.ocr_eval import benchmark, benchmark_report, ocr_reuse
 from vipi.storage.files import write_json
 
 from . import compare, splits, suite
@@ -136,6 +136,23 @@ def prepare(configuration, split, root, *, confirm_test=False):
     return suite.manifest(configuration, split, root), suite.selected_rows(root, split)
 
 
+def reusable(configuration, rows, root, runs_root, exclude=None):
+    """Count ``rows`` with an earlier result this checkout can reuse.
+
+    Returns ``(ocr, complete)``: images with reusable OCR, and of those the
+    images whose detection can be reused as well."""
+    if not any(Path(runs_root).glob("*/benchmark/manifest.json")):
+        return 0, 0
+    found = ocr_reuse.candidates(
+        runs_root,
+        suite.CONFIGURATIONS[configuration],
+        benchmark.provenance(root),
+        exclude=exclude,
+    )
+    matched = ocr_reuse.matching(rows, found)
+    return len(matched), sum(item["detection"] is not None for item in matched.values())
+
+
 def write_or_match(target, value):
     if target.exists():
         if json.loads(target.read_text(encoding="utf-8")) != value:
@@ -193,11 +210,14 @@ def run(
     confirm_test=False,
     dry_run=False,
     cancel=None,
+    reuse_ocr=True,
 ):
     """Run (or resume) one evaluation and compare it with the saved baseline.
 
     ``cancel`` (a threading.Event) stops the scan; the run is then incomplete
-    and resumes with the same run ID."""
+    and resumes with the same run ID. With ``reuse_ocr`` (the default), images
+    with an earlier OCR result of the same OCR identity in the runs folder only
+    run detection (ADR 0058). A resumed run keeps the choice it started with."""
     root = Path(root)
     manifest, rows = prepare(configuration, split, root, confirm_test=confirm_test)
     run_id = run_id or default_run_id(configuration, split)
@@ -211,7 +231,17 @@ def run(
         "directory": directory.relative_to(root).as_posix(),
         "baseline": baseline[1]["run_id"] if baseline else None,
     }
+    runs_root = root / runs_directory
+    request_path = directory / "request.json"
+    if request_path.exists():
+        reuse_ocr = json.loads(request_path.read_text(encoding="utf-8")).get(
+            "reuse_ocr", False
+        )
+    plan["reuse_ocr"] = reuse_ocr
     if dry_run:
+        plan["reusable_ocr"], plan["reusable_complete"] = reusable(
+            configuration, rows, root, runs_root, exclude=directory / "benchmark"
+        )
         return {"state": "planned", **plan}
     directory.mkdir(parents=True, exist_ok=True)
     selection_path = directory / "selection.json"
@@ -224,7 +254,6 @@ def run(
             f"{manifest['suite']['splits_sha256']}",
         },
     )
-    request_path = directory / "request.json"
     if request_path.exists():
         request = json.loads(request_path.read_text(encoding="utf-8"))
         if request["manifest"] != manifest:
@@ -235,6 +264,7 @@ def run(
             "directory": plan["directory"],
             "manifest": manifest,
             "implementation": implementation(root),
+            "reuse_ocr": reuse_ocr,
         }
         write_json(request_path, request)
 
@@ -246,6 +276,7 @@ def run(
                 configuration,
                 "--selection-file",
                 str(selection_path),
+                *(["--reuse-ocr-from", str(runs_root)] if reuse_ocr else []),
             ],
             cancel=cancel,
         )
@@ -262,13 +293,20 @@ def run(
         json.dumps(report, separators=(",", ":"), allow_nan=False) + "\n",
         encoding="utf-8",
     )
+    reuse = ocr_reuse.summary(
+        directory / "benchmark" / configuration, benchmark.is_local(configuration)
+    )
     (directory / "report.md").write_text(
-        benchmark_report.markdown(report), encoding="utf-8"
+        benchmark_report.markdown(report).rstrip("\n")
+        + "\n"
+        + "".join(f"{line}\n" for line in ocr_reuse.report_lines(reuse, len(rows))),
+        encoding="utf-8",
     )
     if not report["inference_complete"]:
         return {"state": "incomplete", **plan}
     summary = summary_document(request, report, operations)
     summary["report_sha256"] = benchmark.digest(directory / "report.json")
+    summary["reused"] = reuse
     write_json(directory / "summary.json", summary)
     result = {"state": "complete", **plan}
     if baseline:

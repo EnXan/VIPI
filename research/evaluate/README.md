@@ -78,6 +78,18 @@ uv run python -m research.evaluate save-baseline <run-id>
   and hashes of uncommitted/untracked changes. Resume an interrupted run with
   `--run-id <id>`; completed and failed attempts are kept. The test split
   requires `--confirm-test-split`.
+- By default `run` reuses results of completed runs in the runs folder for a
+  byte-identical image. The OCR is reused when OCR model, OCR mode, review
+  model, OCR-related product sources and runtime packages are the same; the
+  detection is reused as well when, in addition, the detector, detection
+  settings, every product source and every package version are the same.
+  Otherwise the missing part runs. A `cloud-google-jev` run after a
+  `cloud-google` run therefore pays only for Jev, and repeating a run on
+  unchanged code reuses everything. Reused rows keep the original time and cost
+  (so totals compare with full runs); the report states how many images were
+  reused, with or without detection, and the cost not spent again.
+  `--dry-run` prints both counts; `--no-reuse-ocr` scans everything. A resumed
+  run keeps its choice. Details: [ADR 0058](../../adr-code/0058-reuse-ocr-across-runs.md).
 - If a baseline of the same configuration and split is saved, `run` compares
   with it and writes `comparison.md`/`.json` into the run directory. Runs with
   different inputs are labeled "not the same inputs" with the changed fields.

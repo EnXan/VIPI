@@ -43,6 +43,13 @@ def build_parser():
     run.add_argument("--run-id", help="Resume this run ID; default: a new ID")
     run.add_argument("--runs-dir", type=Path, default=runs.DEFAULT_RUNS_DIRECTORY)
     run.add_argument("--dry-run", action="store_true")
+    run.add_argument(
+        "--no-reuse-ocr",
+        dest="reuse_ocr",
+        action="store_false",
+        help="Scan every image from scratch instead of reusing earlier results "
+        "(OCR, and detection when detector, sources and packages also match)",
+    )
     save = commands.add_parser(
         "save-baseline",
         help="Save a complete run as the baseline (research/baselines/).",
@@ -60,12 +67,20 @@ def run_command(args):
         run_id=args.run_id,
         confirm_test=args.confirm_test_split,
         dry_run=args.dry_run,
+        reuse_ocr=args.reuse_ocr,
     )
     print(
         f"{result['state']}: {result['configuration']} "
         f"({result['split']}, {result['entries']} entries) run {result['run_id']}"
     )
     print(f"local artifacts {result['directory']}")
+    if "reusable_ocr" in result:
+        print(
+            f"reusable earlier results: {result['reusable_ocr']} of "
+            f"{result['entries']} images, {result['reusable_complete']} of them "
+            "including detection"
+            + ("" if result["reuse_ocr"] else " (not used: --no-reuse-ocr)")
+        )
     print(f"baseline {result['baseline'] or 'none saved'}")
     comparison = result.get("comparison")
     if comparison:
