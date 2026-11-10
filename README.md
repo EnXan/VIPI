@@ -107,10 +107,6 @@ Development split of the
 | Speed + d1 | 15.0% | 0.4% | 69.3% |
 | Speed + Prompt Guard 2 | 18.5% | 2.2% | 69.3% |
 
-Runs and metrics:
-[`research/baselines/`](https://github.com/EnXan/VIPI/tree/main/research/baselines),
-[evaluation guide](https://github.com/EnXan/VIPI/blob/main/research/evaluate/README.md).
-
 ## Usage
 
 ```bash
