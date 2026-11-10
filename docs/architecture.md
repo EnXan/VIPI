@@ -26,6 +26,8 @@ the research web UI are not included in the wheel.
 | `vipi.reporting` | Conversion to the CLI report schema and its exit policy |
 | `vipi.storage` | Atomic JSON, file hashes, run artifacts and transport-independent events |
 
+![VIPI reads the text of an image with OCR, has a visual model review uncertain OCR and re-reads the image if text is missing, then checks the final text for prompt injections.](../assets/diagrams/vipi-scan-pipeline.svg)
+
 The data flow is:
 
 ```text
