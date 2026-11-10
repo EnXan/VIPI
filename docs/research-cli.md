@@ -55,7 +55,8 @@ uv run python -m research.evaluate split --check
 ```
 
 Configurations: `local-speed`, `local-balanced`, `local-quality`,
-`cloud-google`, `cloud-openai`, `cloud-mistral` (product scan options).
+`cloud-google`, `cloud-openai`, `cloud-mistral`, `cloud-google-jev`,
+`cloud-openai-jev`, `cloud-mistral-jev` (product scan options).
 `run` accepts `--split development|test` (test requires
 `--confirm-test-split`), `--run-id` to resume, `--runs-dir` (default
 `runs/evaluations`) and `--dry-run`; it exits 0 for a planned or complete run

@@ -78,7 +78,7 @@ For baseline comparisons use the [evaluation runs](../research/evaluate/README.m
 which call this benchmark on one split. The runner requires one or more
 `--configuration` names (product scan options: `local-speed`,
 `local-balanced`, `local-quality`, `cloud-google`, `cloud-openai`,
-`cloud-mistral`) and runs them in the given order. Each entry is scanned with
+`cloud-mistral`, and the same three cloud names with `-jev`) and runs them in the given order. Each entry is scanned with
 `vipi.scanner.scan_image`, so a run records OCR text and the detection verdict.
 Repeating the same command resumes entries without a terminal record; completed
 and failed attempts are retained. Use a new directory for a fresh trial. A worker

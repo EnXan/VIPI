@@ -8,13 +8,20 @@ recorded in [ADR 0054](../../adr-code/0054-evaluation-runs-and-baseline.md).
 
 ## Configurations
 
-A configuration is a set of `vipi scan` options. Detector and threshold stay
-at the product defaults (`auto`, 80).
+A configuration is a set of `vipi scan` options. The threshold stays at the
+product default (80); the detector stays `auto` unless the name ends in `-jev`.
 
-| Configuration | Scan options |
-| --- | --- |
-| `local-speed`, `local-balanced`, `local-quality` | `--modus local --ocr-mode <mode>` |
-| `cloud-google`, `cloud-openai`, `cloud-mistral` | `--modus cloud --ocr-provider <provider>` |
+| Configuration | Scan options | Detector |
+| --- | --- | --- |
+| `local-speed`, `local-balanced` | `--modus local --ocr-mode <mode>` | d1 |
+| `local-quality` | `--modus local --ocr-mode quality` | Clef |
+| `cloud-google`, `cloud-openai`, `cloud-mistral` | `--modus cloud --ocr-provider <provider>` | OpenAI Luna |
+| `cloud-google-jev`, `cloud-openai-jev`, `cloud-mistral-jev` | the same plus `--detector jev` | Jev |
+
+A `-jev` configuration and its counterpart without the suffix share OCR and
+OCR review; only the final detector differs, so comparing their runs compares
+the two detectors on the same text. Each has its own baseline. Jev needs
+`TYPESAFE_API_KEY`; its usage is recorded, but no cost is estimated.
 
 Local configurations run offline (network blocked) and need the models from
 `vipi setup`. Cloud configurations need the provider API keys and incur

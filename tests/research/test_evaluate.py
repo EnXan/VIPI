@@ -180,11 +180,30 @@ def test_configurations_are_the_product_scan_options():
         "cloud-google",
         "cloud-openai",
         "cloud-mistral",
+        "cloud-google-jev",
+        "cloud-openai-jev",
+        "cloud-mistral-jev",
     ]
     assert suite.CONFIGURATIONS["cloud-mistral"] == {
         "ocr_execution_mode": "cloud",
         "ocr_provider": "mistral",
     }
+    assert suite.CONFIGURATIONS["cloud-mistral-jev"] == {
+        "ocr_execution_mode": "cloud",
+        "ocr_provider": "mistral",
+        "detector": "jev",
+    }
+
+
+def test_jev_configurations_change_only_the_final_detector():
+    from vipi.config import ScanOptions
+
+    for provider in ("google", "openai", "mistral"):
+        default = ScanOptions(**suite.CONFIGURATIONS[f"cloud-{provider}"])
+        jev = ScanOptions(**suite.CONFIGURATIONS[f"cloud-{provider}-jev"])
+        assert (default.resolved_detector, jev.resolved_detector) == ("openai", "jev")
+        assert jev.resolved_ocr_model == default.resolved_ocr_model
+        assert jev.resolved_decision_provider == default.resolved_decision_provider
 
 
 def test_manifest_selects_only_the_requested_split(manifest_root):

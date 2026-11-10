@@ -6,7 +6,7 @@ import threading
 from flask import Flask, jsonify, render_template, request, send_file
 from werkzeug.exceptions import RequestEntityTooLarge
 
-from vipi.config import DEFAULT_THRESHOLD
+from vipi.config import DEFAULT_THRESHOLD, ScanOptions
 
 from research.evaluate.suite import CONFIGURATIONS, SPLIT_NAMES
 from research.ocr_eval import benchmark
@@ -22,6 +22,12 @@ OCR_LABELS = {
     "openai": "OpenAI",
     "mistral": "Mistral",
 }
+DETECTOR_LABELS = {
+    "d1": "d1 (LiquidAI d1-3B)",
+    "clef": "Clef (Cloudflare)",
+    "openai": "OpenAI Luna",
+    "jev": "Jev",
+}
 
 
 def configuration_options():
@@ -29,14 +35,18 @@ def configuration_options():
     for name, values in CONFIGURATIONS.items():
         local = values["ocr_execution_mode"] == "local"
         ocr = values.get("ocr_mode") or values.get("ocr_provider")
+        detector = ScanOptions(**values).resolved_detector
         options.append(
             {
                 "id": name,
                 "run_on": "local" if local else "cloud",
                 "ocr": ocr,
                 "ocr_label": OCR_LABELS[ocr],
+                "detector": detector,
+                "detector_label": DETECTOR_LABELS[detector],
                 "label": f"{'Local' if local else 'Cloud'} · {OCR_LABELS[ocr]}"
-                + (" OCR" if local else ""),
+                + (" OCR" if local else "")
+                + f" · {DETECTOR_LABELS[detector]} detector",
                 "paid": not local,
             }
         )
