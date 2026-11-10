@@ -240,6 +240,8 @@ def test_evaluation_runs_lists_reports_and_saves_the_baseline(evaluation_client)
         "reusable_complete": 1,
         "baseline": {
             "state": "none",
+            "execution": None,
+            "host": None,
             "run_id": None,
             "completed_at": None,
             "differences": [],

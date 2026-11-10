@@ -39,6 +39,7 @@ Temporary planning and review queues belong in `.llm-plans/`.
 | [0059](0059-clef-flash-local-decision-model.md) | Clef-Flash as an optional local decision model |
 | [0060](0060-model-identity-per-used-entry.md) | Model identity covers only the registry entries a configuration uses (amends 0054) |
 | [0061](0061-prompt-guard-detector-configurations.md) | Prompt Guard detector configurations for evaluation (extends 0057) |
+| [0062](0062-record-execution-devices.md) | Record where an evaluation run executed: host and device per component |
 
 When revising an agreed decision, write its replacement with a summary of the
 old ADR (identifier, decision, rationale and reason for revision), then delete

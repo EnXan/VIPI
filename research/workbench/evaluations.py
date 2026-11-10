@@ -12,6 +12,12 @@ from research.evaluate import runs, suite
 from research.ocr_eval import benchmark
 
 
+def ran_on(summary):
+    """Where a run executed; runs before ADR 0062 recorded only the host."""
+    summary = summary or {}
+    return {"execution": summary.get("execution"), "host": summary.get("host")}
+
+
 def read_json(path):
     path = Path(path)
     return json.loads(path.read_text(encoding="utf-8")) if path.is_file() else None
@@ -30,8 +36,11 @@ class EvaluationService:
     def baseline(self, configuration, split):
         """The saved baseline and whether it matches this checkout."""
         result = suite.status(configuration, split, self.root)
+        saved = result.get("baseline", {}).get("summary")
+        summary = read_json(self.root / saved) if saved else None
         return {
             "state": result["state"],
+            **ran_on(summary),
             "run_id": result.get("baseline", {}).get("run_id"),
             "completed_at": result.get("baseline", {}).get("completed_at"),
             "differences": result.get("differences", []),
@@ -136,6 +145,7 @@ class EvaluationService:
             "metrics": summary["metrics"] if summary and details else None,
             "contents": self.contents(directory, configuration) if details else [],
             "comparison": read_json(directory / "comparison.json") if details else None,
+            **ran_on(summary),
             "is_baseline": saved is not None,
             "report_url": f"/api/evaluations/{run_id}/report.md"
             if (directory / "report.md").is_file()

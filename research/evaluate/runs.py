@@ -18,7 +18,7 @@ import time
 from research.ocr_eval import benchmark, benchmark_report, ocr_reuse
 from vipi.storage.files import write_json
 
-from . import compare, splits, suite
+from . import compare, execution, splits, suite
 
 DEFAULT_RUNS_DIRECTORY = Path("runs/evaluations")
 SAMPLE_SECONDS = 0.5
@@ -299,10 +299,12 @@ def run(
     reuse = ocr_reuse.summary(
         directory / "benchmark" / configuration, benchmark.is_local(configuration)
     )
+    executed = execution.record(request["manifest"]["configuration"]["scan_options"])
+    extra = ocr_reuse.report_lines(reuse, len(rows)) + execution.report_lines(executed)
     (directory / "report.md").write_text(
         benchmark_report.markdown(report).rstrip("\n")
         + "\n"
-        + "".join(f"{line}\n" for line in ocr_reuse.report_lines(reuse, len(rows))),
+        + "".join(f"{line}\n" for line in extra),
         encoding="utf-8",
     )
     if not report["inference_complete"]:
@@ -310,6 +312,7 @@ def run(
     summary = summary_document(request, report, operations)
     summary["report_sha256"] = benchmark.digest(directory / "report.json")
     summary["reused"] = reuse
+    summary["execution"] = executed
     write_json(directory / "summary.json", summary)
     result = {"state": "complete", **plan}
     if baseline:
