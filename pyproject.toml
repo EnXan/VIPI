@@ -67,6 +67,7 @@ detector-local = [
     "sentencepiece==0.2.3",
     "safetensors==0.8.0",
     "torchvision==0.26.0",
+    "accelerate==1.15.0",
 ]
 research = [
     "Flask==3.1.2",
