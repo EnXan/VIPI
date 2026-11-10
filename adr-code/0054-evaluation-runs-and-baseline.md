@@ -34,7 +34,8 @@ current form (algorithm v3, one dataset) is in [ADR 0053](0053-one-evaluation-da
   `local-balanced`, `local-quality`, `cloud-google`, `cloud-openai`,
   `cloud-mistral`. Detector (`auto`) and threshold (80) stay at the product
   defaults (the `-jev` cloud configurations of
-  [ADR 0057](0057-jev-detector-configurations.md) set the detector); evaluation has no threshold setting.
+  [ADR 0057](0057-jev-detector-configurations.md) set the detector; the model
+  registry part covers only used entries, [ADR 0060](0060-model-identity-per-used-entry.md)); evaluation has no threshold setting.
 - **One run measures OCR and detection.** The benchmark worker calls
   `vipi.scanner.scan_image` per entry and records the OCR output and the
   verdict. Every split entry is scanned (450 development entries). OCR metrics

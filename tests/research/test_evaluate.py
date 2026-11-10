@@ -1,5 +1,6 @@
 """Keep evaluation splits grouped/disjoint and baseline freshness explicit."""
 
+import hashlib
 import json
 import subprocess
 
@@ -135,11 +136,14 @@ def manifest_root(tmp_path, monkeypatch):
         "research/dataset/catalog.json",
         "research/splits.json",
         *suite.METRIC_SOURCES,
-        *suite.MODEL_REGISTRIES,
     ):
         path = tmp_path / source
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text("{}" if source.endswith(".json") else "# fixture\n")
+    for source in suite.MODEL_REGISTRIES:  # real registries: entries are selected
+        path = tmp_path / source
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes((suite.benchmark.ROOT / source).read_bytes())
     rows = [
         {"key": "a", "image_sha256": "1", "reference_sha256": "r1"},
         {"key": "b", "image_sha256": "2", "reference_sha256": None},
@@ -177,6 +181,7 @@ def test_configurations_are_the_product_scan_options():
         "local-speed",
         "local-balanced",
         "local-quality",
+        "local-quality-clef-flash",
         "cloud-google",
         "cloud-openai",
         "cloud-mistral",
@@ -237,6 +242,73 @@ def test_status_reports_none_fresh_and_stale_with_changed_fields(manifest_root):
         "suite.metric_sha256.research/ocr_eval/evaluation/metrics.py",
         "suite.selection_sha256",
     ]
+
+
+def edit_registry(root, change):
+    path = root / suite.DECISION_REGISTRY
+    registry = json.loads(path.read_text())
+    change(registry)
+    path.write_text(json.dumps(registry, indent=2))
+
+
+def test_only_used_registry_entries_make_a_baseline_stale(manifest_root):
+    root, _rows, _document = manifest_root
+    for name in ("local-speed", "cloud-google"):
+        write_baseline(
+            root, name, suite.manifest(name, root=root), "2026-11-07T00:00:00"
+        )
+    edit_registry(
+        root,
+        lambda registry: registry.update(
+            {"new-model": {**registry["d1"], "repository": "fixture/new"}}
+        ),
+    )
+    assert suite.status("local-speed", root=root)["state"] == "fresh"
+    assert suite.status("cloud-google", root=root)["state"] == "fresh"
+
+    edit_registry(root, lambda registry: registry["d1"].update(revision="0" * 40))
+    stale = suite.status("local-speed", root=root)
+    assert stale["state"] == "stale"
+    assert stale["differences"] == [
+        "configuration.model_identity.registries.src/vipi/decision_models.json.d1.revision"
+    ]
+    assert suite.status("cloud-google", root=root)["state"] == "fresh"
+
+
+def test_old_whole_registry_hashes_are_verified_against_git(manifest_root):
+    root, _rows, _document = manifest_root
+    git = lambda *args: subprocess.run(  # noqa: E731
+        ["git", *args], cwd=root, check=True, capture_output=True, text=True
+    )
+    git("init", "-q")
+    git("add", *suite.MODEL_REGISTRIES)
+    git("-c", "user.name=t", "-c", "user.email=t@t", "commit", "-qm", "registries")
+    commit = git("rev-parse", "HEAD").stdout.strip()
+    current = suite.manifest("local-speed", root=root)
+    hashes = {
+        source: hashlib.sha256((root / source).read_bytes()).hexdigest()
+        for source in suite.MODEL_REGISTRIES
+    }
+    identity = current["configuration"]["model_identity"]
+    old = {
+        **current,
+        "configuration": {
+            **current["configuration"],
+            "model_identity": {**identity, "registries": hashes},
+        },
+    }
+    assert suite.comparable(old, {"commit": commit}, root) == current
+    assert suite.comparable(old, None, root) == old  # no commit: cannot verify
+    wrong = {**hashes, suite.DECISION_REGISTRY: "0" * 64}
+    tampered = {
+        **old,
+        "configuration": {
+            **old["configuration"],
+            "model_identity": {**identity, "registries": wrong},
+        },
+    }
+    assert suite.comparable(tampered, {"commit": commit}, root) == tampered
+    assert suite.comparable(current, {"commit": commit}, root) == current
 
 
 def test_baselines_of_other_splits_and_configurations_are_ignored(manifest_root):

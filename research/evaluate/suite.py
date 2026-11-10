@@ -10,10 +10,12 @@ deliberately excluded: a change differs from its baseline by design.
 import hashlib
 import json
 from pathlib import Path
+import subprocess
 
 from research.catalog import CATALOG_NAME
 from research.ocr_eval import benchmark
 from vipi import config
+from vipi.ocr.models import REQUIRED as OCR_FILES_BY_MODEL
 
 from . import splits
 
@@ -24,7 +26,10 @@ METRIC_SOURCES = (
     "research/ocr_eval/benchmark_report.py",
 )
 BASELINES = Path("research/baselines")
-MODEL_REGISTRIES = ("src/vipi/ocr/model_files.json", "src/vipi/decision_models.json")
+OCR_REGISTRY = "src/vipi/ocr/model_files.json"
+DECISION_REGISTRY = "src/vipi/decision_models.json"
+MODEL_REGISTRIES = (OCR_REGISTRY, DECISION_REGISTRY)
+DECISION_MODEL_FIELDS = ("repository", "revision", "code")
 SPLIT_NAMES = ("development", "test")
 SUMMARY_KIND = "vipi-evaluation-run"
 
@@ -61,16 +66,94 @@ def selected_rows(root, split):
     return [row for row in rows if document["entries"][row["key"]]["split"] == split]
 
 
-def model_identity(root):
+def used_registry_entries(scan_options, registries):
+    """The registry entries a configuration actually loads (ADR 0060).
+
+    OCR files of the resolved OCR model; repository, revision and code hashes of
+    the local decision models it uses for review and detection. Other entries,
+    such as a newly added model, do not change a configuration's identity."""
+    options = config.ScanOptions(**scan_options)
+    ocr = registries[OCR_REGISTRY]
+    decisions = registries[DECISION_REGISTRY]
+    names = sorted(
+        {options.resolved_decision_provider, options.resolved_detector} & set(decisions)
+    )
+    return {
+        OCR_REGISTRY: {
+            key: ocr[key]
+            for key in OCR_FILES_BY_MODEL.get(options.resolved_ocr_model, ())
+        },
+        DECISION_REGISTRY: {
+            name: {field: decisions[name][field] for field in DECISION_MODEL_FIELDS}
+            for name in names
+        },
+    }
+
+
+def model_identity(root, scan_options):
     constants = {
         name: getattr(config, name)
         for name in sorted(dir(config))
         if name.endswith("_MODEL") and isinstance(getattr(config, name), str)
     }
     registries = {
-        source: benchmark.digest(Path(root) / source) for source in MODEL_REGISTRIES
+        source: json.loads((Path(root) / source).read_text(encoding="utf-8"))
+        for source in MODEL_REGISTRIES
     }
-    return {"constants": constants, "registries": registries}
+    return {
+        "constants": constants,
+        "registries": used_registry_entries(scan_options, registries),
+    }
+
+
+def file_at_commit(root, commit, path):
+    """Bytes of ``path`` at ``commit``, or None when git cannot provide them."""
+    try:
+        return subprocess.run(
+            ["git", "show", f"{commit}:{path}"],
+            cwd=root,
+            check=True,
+            capture_output=True,
+        ).stdout
+    except (OSError, subprocess.CalledProcessError):
+        return None
+
+
+def comparable(manifest_value, implementation, root=benchmark.ROOT):
+    """Express a manifest recorded with whole-registry hashes per used entry.
+
+    Manifests before ADR 0060 recorded a SHA-256 of each registry file. The file
+    is read from git at the recorded commit and used only if its SHA-256 equals
+    the recorded hash; otherwise the manifest is returned unchanged and compares
+    as different. Current manifests are returned unchanged."""
+    identity = manifest_value.get("configuration", {}).get("model_identity", {})
+    recorded = identity.get("registries", {})
+    commit = (implementation or {}).get("commit")
+    if (
+        not commit
+        or not recorded
+        or not all(isinstance(value, str) for value in recorded.values())
+    ):
+        return manifest_value
+    registries = {}
+    for path in MODEL_REGISTRIES:
+        content = file_at_commit(root, commit, path)
+        if content is None or hashlib.sha256(content).hexdigest() != recorded.get(path):
+            return manifest_value
+        registries[path] = json.loads(content)
+    configuration = manifest_value["configuration"]
+    return {
+        **manifest_value,
+        "configuration": {
+            **configuration,
+            "model_identity": {
+                **identity,
+                "registries": used_registry_entries(
+                    configuration["scan_options"], registries
+                ),
+            },
+        },
+    }
 
 
 def manifest(name, split="development", root=benchmark.ROOT):
@@ -98,7 +181,7 @@ def manifest(name, split="development", root=benchmark.ROOT):
         },
         "configuration": {
             "scan_options": CONFIGURATIONS[name],
-            "model_identity": model_identity(root),
+            "model_identity": model_identity(root, CONFIGURATIONS[name]),
         },
     }
 
@@ -137,7 +220,9 @@ def status(name, split="development", root=benchmark.ROOT):
     if not found:
         return {"state": "none", "configuration": name, "split": split}
     path, latest = found
-    changed = differences(latest["manifest"], current)
+    changed = differences(
+        comparable(latest["manifest"], latest.get("implementation"), root), current
+    )
     return {
         "state": "stale" if changed else "fresh",
         "configuration": name,

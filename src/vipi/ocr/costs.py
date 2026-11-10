@@ -1,6 +1,7 @@
 """Dated API list-rate estimates, separate from provider invoices and local compute."""
 
 from vipi.config import GOOGLE_OCR_MODEL as GOOGLE_MODEL, LUNA_OCR_MODEL as LUNA_MODEL
+from vipi.config import LOCAL_DECISION_PROVIDERS
 
 PRICING_DATE = "2026-10-25"
 API_MODELS = (LUNA_MODEL, GOOGLE_MODEL, "mistral-ocr-4-1")
@@ -81,7 +82,7 @@ def cost_for_result(result):
                 "Sum of saved Decisions fee estimates; not an invoice."
                 if provider == "openai-decisions"
                 else "No external decision API fee; local compute is not measured."
-                if provider in {"clef", "d1"}
+                if provider in LOCAL_DECISION_PROVIDERS
                 else "Jev usage is recorded. Total API cost is unknown because no verified Jev rate is configured."
             ),
         }

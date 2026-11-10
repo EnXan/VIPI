@@ -27,8 +27,9 @@ Scan and Evaluate use the options of `vipi scan` and nothing else:
   API calls).
 - **Text recognition**: Speed, Balanced or Quality locally; Google Cloud
   Vision, OpenAI or Mistral in the cloud.
-- **Injection detector**: fixed locally (d1 for Speed and Balanced, Clef for
-  Quality); in the cloud OpenAI Luna (the product default) or Jev.
+- **Injection detector**: locally d1 for Speed and Balanced, and Clef or
+  Clef-Flash for Quality (locally the model also reviews OCR); in the cloud
+  OpenAI Luna (the product default) or Jev.
 - **Threshold** (Scan only): flag at a detector score of at least this value,
   default 80.
 

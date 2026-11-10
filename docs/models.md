@@ -30,19 +30,26 @@ research transform control disables its classification stage.
 
 ## Overrides
 
-`--decision-provider clef|d1` overrides local OCR review. `--detector` overrides
-only the final check: local choices are `clef`, `d1` and `prompt-guard`; cloud
+`--decision-provider clef|clef-flash|d1` overrides local OCR review. `--detector` overrides
+only the final check: local choices are `clef`, `clef-flash`, `d1` and `prompt-guard`; cloud
 choices are `openai` and `jev`. `auto` follows the decision provider.
 `prompt-guard` uses `meta-llama/Llama-Prompt-Guard-2-86M` on final OCR text;
 it does not perform visual OCR review. `--ocr-model` changes OCR without changing
 the local profile's decision model. Local and cloud providers cannot be mixed.
 See the [CLI reference](cli.md#commands-and-options) for every option.
 
+`clef-flash` is Cloudflare's smaller Clef variant (post-trained from
+Qwen/Qwen3.5-9B) with the same API and the same pinned runtime code as Clef. It
+needs about a third of Clef's memory and is not a default; for example
+`vipi scan image.png --ocr-mode quality --decision-provider clef-flash`
+(prepare it with the same options for `vipi setup`). Its quality on the VIPI
+dataset is not yet evaluated (configuration `local-quality-clef-flash`).
+
 ## Pinned weights
 
 Setup prepares local weights and verifies pinned code; scanning has no model
 download or hosted fallback. Exact OCR hashes are in
-[`model_files.json`](../src/vipi/ocr/model_files.json), Clef/d1 repositories and
+[`model_files.json`](../src/vipi/ocr/model_files.json), Clef, Clef-Flash and d1 repositories and
 immutable revisions in [`decision_models.json`](../src/vipi/decision_models.json),
 and the Prompt Guard revision in [`config.py`](../src/vipi/config.py). Clef
 requires substantially more memory than d1. These defaults are configuration
@@ -70,6 +77,7 @@ upstream model sizes at the pinned revisions and VIPI's loading precision:
 | --- | --- | ---: | ---: |
 | [d1](https://huggingface.co/LiquidAI/d1-3B/tree/051bcc464b01b9f92942b364d9586b0ef5912432) | 3.12B parameters, BF16, 6.25 GB files | ~12.5 GB | ~6.3 GB |
 | [Clef](https://huggingface.co/Cloudflare/clef/tree/cfddda043dd190ef3b01cff449d5ee8cff1e8ec6) | 27.36B parameters, BF16, 55 GB files | ~109 GB | ~55 GB |
+| [Clef-Flash](https://huggingface.co/Cloudflare/clef-flash/tree/fb4417d31c1d0f9e7e77f1141b40aaede7491e00) | ~9.5B parameters, BF16, 19 GB files | ~38 GB | ~19 GB |
 | [Prompt Guard 2](https://huggingface.co/meta-llama/Llama-Prompt-Guard-2-86M) | 279M parameters including embeddings, FP32, 1.1 GB file | ~1.1 GB | not used |
 
 VIPI loads decision models in FP32 on CPU, BF16 on CUDA and FP16 on Apple MPS

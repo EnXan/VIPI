@@ -13,10 +13,11 @@ from .providers import create_provider
 from .providers.prompt_guard import MODEL_DIR
 from vipi.storage.detection import DetectionStore
 from vipi.cancellation import check_cancelled
+from vipi.config import LOCAL_DECISION_PROVIDERS
 from .verdict import probability, summarize, validate_thresholds
 
 COMPARISON_PROVIDERS = ("jev", "openai", "prompt-guard")
-TEXT_PROVIDERS = (*COMPARISON_PROVIDERS, "clef", "d1")
+TEXT_PROVIDERS = (*COMPARISON_PROVIDERS, *LOCAL_DECISION_PROVIDERS)
 TEXT_CLASSIFIERS = (*TEXT_PROVIDERS, "compare", "off")
 
 

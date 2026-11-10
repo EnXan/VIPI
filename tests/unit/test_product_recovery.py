@@ -211,6 +211,7 @@ def test_local_scan_requires_prepared_pinned_code_and_never_downloads(
         MODELS,
         "d1",
         {
+            "runtime": "d1",
             "repository": "fixture/d1",
             "revision": "fixed",
             "code": {"model.py": hashlib.sha256(code).hexdigest()},
@@ -403,3 +404,47 @@ def test_serial_vision_preserves_every_tile_and_hidden_state():
     torch.testing.assert_close(actual.pooler_output, expected.pooler_output)
     for got, want in zip(actual.hidden_states, expected.hidden_states, strict=True):
         torch.testing.assert_close(got, want)
+
+
+def test_clef_flash_is_a_pinned_local_model_on_the_clef_runtime():
+    from vipi.config import LOCAL_DECISION_PROVIDERS, ScanOptions
+    from vipi.local_decisions import MODELS
+
+    flash, clef = MODELS["clef-flash"], MODELS["clef"]
+    assert flash["repository"] == "Cloudflare/clef-flash"
+    assert len(flash["revision"]) == 40
+    assert flash["runtime"] == clef["runtime"] == "clef"
+    assert flash["code"] == clef["code"]  # identical upstream runtime code
+    assert MODELS["d1"]["runtime"] == "d1"
+    assert "clef-flash" in LOCAL_DECISION_PROVIDERS
+    options = ScanOptions(ocr_mode="speed", decision_provider="clef-flash")
+    assert options.resolved_decision_provider == "clef-flash"
+    assert options.resolved_detector == "clef-flash"
+    assert ScanOptions().resolved_decision_provider == "clef"  # default unchanged
+    with pytest.raises(ValueError, match="clef-flash"):
+        ScanOptions(
+            ocr_execution_mode="cloud", decision_provider="clef-flash"
+        ).resolved_decision_provider
+
+
+def test_clef_runtime_models_need_their_joint_head(tmp_path, monkeypatch):
+    from vipi.local_decisions import MODELS, validate_model
+
+    code = b"# pinned fixture\n"
+    monkeypatch.setitem(
+        MODELS,
+        "clef-flash",
+        {
+            **MODELS["clef-flash"],
+            "revision": "fixed",
+            "code": {"joint_schema_model.py": hashlib.sha256(code).hexdigest()},
+        },
+    )
+    (tmp_path / "READY.json").write_text(json.dumps({"revision": "fixed"}))
+    (tmp_path / "joint_schema_model.py").write_bytes(code)
+    for name in ("config.json", "tokenizer_config.json", "model.safetensors"):
+        (tmp_path / name).write_text("{}")
+    with pytest.raises(ValueError, match="joint_head.safetensors"):
+        validate_model("clef-flash", tmp_path)
+    (tmp_path / "joint_head.safetensors").write_bytes(b"")
+    assert validate_model("clef-flash", tmp_path)["runtime"] == "clef"

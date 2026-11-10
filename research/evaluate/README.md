@@ -15,6 +15,7 @@ product default (80); the detector stays `auto` unless the name ends in `-jev`.
 | --- | --- | --- |
 | `local-speed`, `local-balanced` | `--modus local --ocr-mode <mode>` | d1 |
 | `local-quality` | `--modus local --ocr-mode quality` | Clef |
+| `local-quality-clef-flash` | the same plus `--decision-provider clef-flash` | Clef-Flash (also reviews OCR) |
 | `cloud-google`, `cloud-openai`, `cloud-mistral` | `--modus cloud --ocr-provider <provider>` | OpenAI Luna |
 | `cloud-google-jev`, `cloud-openai-jev`, `cloud-mistral-jev` | the same plus `--detector jev` | Jev |
 
@@ -69,7 +70,8 @@ uv run python -m research.evaluate save-baseline <run-id>
   still matches this checkout: `fresh`, `stale` with the changed fields, or
   `none`. It exits non-zero unless fresh. Identity covers the dataset revision,
   catalog, split file, selected entries with image/reference hashes, metric
-  sources, scan options and declared model identity; product source code is
+  sources, scan options and declared model identity (the `*_MODEL` constants
+  and only the registry entries the configuration loads, ADR 0060); product source code is
   excluded because a change differs from its baseline by design.
 - `run` scans every entry of the split with the configuration (OCR and
   detection) and writes `runs/evaluations/<run-id>/` (ignored by Git):

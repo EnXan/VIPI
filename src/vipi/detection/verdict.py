@@ -2,7 +2,16 @@
 
 import math
 
-SIGNALS = {"jev", "openai", "prompt-guard", "clef", "d1", "image", "context"}
+from vipi.config import LOCAL_DECISION_PROVIDERS
+
+SIGNALS = {
+    "jev",
+    "openai",
+    "prompt-guard",
+    *LOCAL_DECISION_PROVIDERS,
+    "image",
+    "context",
+}
 
 
 def probability(value):
