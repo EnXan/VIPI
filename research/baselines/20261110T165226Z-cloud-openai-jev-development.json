@@ -16,9 +16,9 @@
       "entries": 450,
       "selection_sha256": "990d6948fe291a21505c1d539aad2ef21a31ee427c8e79602605108cb35b3ff0",
       "metric_sha256": {
-        "research/ocr_eval/evaluation/metrics.py": "69dac5362c79d728b5655f0ff72b27797e65b7f216841e787b043a40d491dcb7",
-        "research/ocr_eval/evaluation/words.py": "3407e6d41f129857e94dc55cd55be69725f174f984227a48375e55eeba28ed9a",
-        "research/ocr_eval/benchmark_report.py": "24a70a06a7a1e23e40e987279bb8c07ef8fa2ce82354c20962b2c1de4a3a0531"
+        "research/ocr_eval/evaluation/metrics.py": "4993f8665fc4859d942081699ce605fb6e06844fb33d82978651a30ed1849bd8",
+        "research/ocr_eval/evaluation/words.py": "a0eadefe98360804ebd23e77cb40a5b1131c469ca44e1d6ca16eef6e8a18bd99",
+        "research/ocr_eval/benchmark_report.py": "cebf9fac0ab083fed348b058469ed1c6e0a1f1146fe11f8ef3396c2058d4b4fd"
       }
     },
     "configuration": {
@@ -100,37 +100,37 @@
     "failure_counts": {},
     "unattempted": 0,
     "referenced": 435,
-    "scored": 391,
-    "unscored_completed": 44,
+    "scored": 435,
+    "unscored_completed": 0,
     "zero_word_references": 0,
     "group_conflict_images": 0,
     "counts": {
-      "at_least_80": 352,
-      "coverage_100": 330,
-      "reference_pass": 330,
-      "exact_100": 293,
-      "exact_reference_pass": 293
+      "at_least_80": 379,
+      "coverage_100": 336,
+      "reference_pass": 336,
+      "exact_100": 296,
+      "exact_reference_pass": 296
     },
     "image_rates": {
-      "at_least_80": 0.8091954022988506,
-      "coverage_100": 0.7586206896551724,
-      "reference_pass": 0.7586206896551724,
-      "exact_100": 0.6735632183908046,
-      "exact_reference_pass": 0.6735632183908046
+      "at_least_80": 0.871264367816092,
+      "coverage_100": 0.7724137931034483,
+      "reference_pass": 0.7724137931034483,
+      "exact_100": 0.6804597701149425,
+      "exact_reference_pass": 0.6804597701149425
     },
     "words": {
-      "matched": 8106,
-      "exact_matched": 7920,
-      "scored_total": 8576,
+      "matched": 13635,
+      "exact_matched": 12901,
+      "scored_total": 15796,
       "planned_total": 15796
     },
-    "word_weighted_coverage": 0.945195895522388,
-    "word_weighted_exact_coverage": 0.9235074626865671,
-    "mean_image_coverage": 0.9150084647310002,
-    "mean_image_exact_coverage": 0.8743768158932926,
-    "all_planned_word_coverage_lower_bound": 0.5131678906052165,
-    "all_planned_exact_word_coverage_lower_bound": 0.5013927576601671,
-    "all_planned_mean_coverage_lower_bound": 0.8224558843903933,
+    "word_weighted_coverage": 0.863193213471765,
+    "word_weighted_exact_coverage": 0.8167257533552799,
+    "mean_image_coverage": 0.8981615416577103,
+    "mean_image_exact_coverage": 0.8543850476316985,
+    "all_planned_word_coverage_lower_bound": 0.863193213471765,
+    "all_planned_exact_word_coverage_lower_bound": 0.8167257533552799,
+    "all_planned_mean_coverage_lower_bound": 0.8981615416577103,
     "detection": {
       "attacks": {
         "images": 227,
@@ -177,7 +177,7 @@
     }
   },
   "local_artifacts": "runs/evaluations/20261110T165226Z-cloud-openai-jev-development",
-  "report_sha256": "ea9abb68073eb22ec028367e3efa92e6b7663a71a75f40e12677134f31e809e9",
+  "report_sha256": "9c651c5a3e892043309b23246bd0d9980c263b9797b9755da955b2e60c1e080c",
   "reused": {
     "images": 447,
     "with_detection": 0,

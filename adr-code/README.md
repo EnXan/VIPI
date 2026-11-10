@@ -14,7 +14,7 @@ Temporary planning and review queues belong in `.llm-plans/`.
 | [0006](0006-apache-2-license.md) | Apache License 2.0 for VIPI's original code and documentation |
 | [0012](0012-hugging-face-evaluation-dataset.md) | Maintainer-reviewed Hugging Face dataset and pinned local downloads |
 | [0020](0020-ocr-assembly-geometry-and-reading-order.md) | Oriented OCR line matching and paragraph column order, implemented for review |
-| [0028](0028-independent-ocr-payload-regions.md) | Tolerant word coverage with independent visual groups and group integrity |
+| [0028](0028-independent-ocr-payload-regions.md) | Tolerant word coverage with independent visual groups and group integrity (for evaluation runs revised by 0067) |
 | [0034](0034-expanded-priority-ocr-signals.md) | Expand the research priority cascade (replaces 0033) |
 | [0036](0036-layout-repair-research-trial.md) | Revert signal-context experiment and test layout repair (replaces 0035) |
 | [0037](0037-guarded-upscale-research-trial.md) | Trial a guarded upscaled OCR candidate |
@@ -42,6 +42,7 @@ Temporary planning and review queues belong in `.llm-plans/`.
 | [0064](0064-never-reuse-failed-detections.md) | Never reuse a detection that failed (extends 0058) |
 | [0065](0065-clef-flash-replaces-clef.md) | Clef-Flash replaces Clef as the local quality model (replaces 0059) |
 | [0066](0066-parallel-evaluations.md) | Parallel evaluations in the workbench, with a warning before local runs overlap |
+| [0067](0067-position-free-benchmark-scoring.md) | Position-free scoring of unordered references in evaluation runs, and offline rescoring |
 
 When revising an agreed decision, write its replacement with a summary of the
 old ADR (identifier, decision, rationale and reason for revision), then delete

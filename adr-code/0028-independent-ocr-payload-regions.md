@@ -2,6 +2,8 @@
 
 Status: Accepted following the user's request to evaluate group order separately
 from word order and to reject payloads whose visual groups were merged.
+For evaluation runs and the OCR benchmark, positional matching and failing
+group conflicts are replaced by [ADR 0067](0067-position-free-benchmark-scoring.md).
 
 ## Summary of replaced decision
 

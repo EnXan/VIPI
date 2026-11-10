@@ -144,7 +144,9 @@ and [confidence validation](../research/ocr_eval/reports/DECISION_CONFIDENCE_HAR
 
 Use the existing [evaluation v4 rules](../research/ocr_eval/README.md), without
 giving reference text to OCR or visual decision providers. Score only the final
-selected output, with its selected observation geometry.
+selected output. References without a reading order are matched region by
+region in the final text, without word positions, so OCR without positions is
+scored like every other provider ([ADR 0067](../adr-code/0067-position-free-benchmark-scoring.md)).
 
 - **Word coverage:** tolerant matched reference words divided by all reference
   words in scored entries. This is word-weighted; long references weigh more.
@@ -154,15 +156,13 @@ selected output, with its selected observation geometry.
 - **≥80% images / 100% images:** entries reaching those tolerant-coverage
   thresholds divided by every planned entry in the group. Use integer word
   counts to test thresholds before rounding displayed percentages.
-- **Full-reference pass:** the existing evaluation-v4 pass, which also requires
-  independent reference-region integrity. Thus 100% word coverage can coexist
-  with a failed full-reference pass. Exact completion and exact reference passes
-  are retained separately in JSON.
+- **Full-reference pass:** every reference word covered. Group conflicts (one
+  OCR box over several independent regions) are reported when the output has
+  positions but do not fail the pass. Exact completion and exact reference
+  passes are retained separately in JSON.
 
 Failures and unscored completions remain in image-success denominators and are
-reported explicitly. A nonempty transcription without locations is unscored
-when the reference requires word geometry, matching the workbench policy.
-Coverage averages use scored entries; JSON additionally reports conservative
+reported explicitly. Coverage averages use scored entries; JSON additionally reports conservative
 coverage lower bounds over all planned reference words/images, assigning zero
 credit to missing scores. Zero-word references never count as threshold successes.
 

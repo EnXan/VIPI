@@ -302,7 +302,7 @@ def test_grouped_facets_overlap_without_duplicating_content_denominator():
     assert next(g for g in groups if g["facet"] == "label")["images"] == 1
 
 
-def test_final_score_matches_existing_evaluator_and_leaves_unlocated_text_unscored():
+def test_final_score_matches_existing_evaluator_for_ordered_text():
     reference = {"text": "One two three", "reading_order_known": True, "regions": []}
     step = {
         "id": "1",
@@ -319,10 +319,30 @@ def test_final_score_matches_existing_evaluator_and_leaves_unlocated_text_unscor
     assert actual["matched"] == expected["matched"]
     assert actual["exact_matched"] == expected["exact"]["matched"]
     assert actual["valid"] == expected["valid"]
-    assert score_result({**reference, "reading_order_known": False}, result) is None
 
 
-def test_spatial_score_preserves_group_conflict_despite_complete_word_coverage():
+def test_unordered_reference_is_scored_from_text_without_word_positions():
+    def region(text):
+        return {"text": text, "input_polygon": [[0, 0], [10, 0], [10, 10], [0, 10]]}
+
+    reference = {
+        "text": "",
+        "reading_order_known": False,
+        "regions_are_independent": True,
+        "regions": [region("Grand Opening"), region("Sale"), region("Sale")],
+    }
+    text_only = {"text": "Sale  Grand Openinq", "regions": [], "variants": []}
+    score = score_result(reference, text_only)
+    # Region order is free; a small typo is tolerated; one "Sale" read covers one region
+    assert score["matched"] == 3 and score["total"] == 4
+    assert score["exact_matched"] == 2
+    assert score["valid"] is False
+    swapped = {"text": "Opening Grand Sale Sale", "regions": [], "variants": []}
+    # Word order inside one region still matters
+    assert score_result(reference, swapped)["matched"] == 3
+
+
+def test_group_conflicts_are_reported_without_failing_the_reference():
     def region(text, left, right):
         return {
             "text": text,
@@ -342,8 +362,10 @@ def test_spatial_score_preserves_group_conflict_despite_complete_word_coverage()
     }
     score = score_result(reference, result)
     assert score["matched"] == score["total"] == 2
+    # Positions only diagnose merged groups; they do not change the score, so
+    # providers with and without word positions are scored alike (ADR 0067).
     assert score["group_conflicts"] == 1
-    assert score["valid"] is False
+    assert score["valid"] is True
 
 
 def test_report_scores_ocr_and_detection_and_excludes_private_artifact_paths(

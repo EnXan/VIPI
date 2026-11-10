@@ -16,9 +16,9 @@
       "entries": 450,
       "selection_sha256": "990d6948fe291a21505c1d539aad2ef21a31ee427c8e79602605108cb35b3ff0",
       "metric_sha256": {
-        "research/ocr_eval/evaluation/metrics.py": "69dac5362c79d728b5655f0ff72b27797e65b7f216841e787b043a40d491dcb7",
-        "research/ocr_eval/evaluation/words.py": "3407e6d41f129857e94dc55cd55be69725f174f984227a48375e55eeba28ed9a",
-        "research/ocr_eval/benchmark_report.py": "24a70a06a7a1e23e40e987279bb8c07ef8fa2ce82354c20962b2c1de4a3a0531"
+        "research/ocr_eval/evaluation/metrics.py": "4993f8665fc4859d942081699ce605fb6e06844fb33d82978651a30ed1849bd8",
+        "research/ocr_eval/evaluation/words.py": "a0eadefe98360804ebd23e77cb40a5b1131c469ca44e1d6ca16eef6e8a18bd99",
+        "research/ocr_eval/benchmark_report.py": "cebf9fac0ab083fed348b058469ed1c6e0a1f1146fe11f8ef3396c2058d4b4fd"
       }
     },
     "configuration": {
@@ -100,37 +100,37 @@
     },
     "unattempted": 0,
     "referenced": 435,
-    "scored": 390,
-    "unscored_completed": 42,
+    "scored": 432,
+    "unscored_completed": 0,
     "zero_word_references": 0,
     "group_conflict_images": 0,
     "counts": {
-      "at_least_80": 351,
-      "coverage_100": 329,
-      "reference_pass": 329,
-      "exact_100": 292,
-      "exact_reference_pass": 292
+      "at_least_80": 378,
+      "coverage_100": 335,
+      "reference_pass": 335,
+      "exact_100": 295,
+      "exact_reference_pass": 295
     },
     "image_rates": {
-      "at_least_80": 0.8068965517241379,
-      "coverage_100": 0.7563218390804598,
-      "reference_pass": 0.7563218390804598,
-      "exact_100": 0.671264367816092,
-      "exact_reference_pass": 0.671264367816092
+      "at_least_80": 0.8689655172413793,
+      "coverage_100": 0.7701149425287356,
+      "reference_pass": 0.7701149425287356,
+      "exact_100": 0.6781609195402298,
+      "exact_reference_pass": 0.6781609195402298
     },
     "words": {
-      "matched": 8095,
-      "exact_matched": 7909,
-      "scored_total": 8565,
+      "matched": 13399,
+      "exact_matched": 12698,
+      "scored_total": 15421,
       "planned_total": 15796
     },
-    "word_weighted_coverage": 0.9451255107997665,
-    "word_weighted_exact_coverage": 0.923409223584355,
-    "mean_image_coverage": 0.91479053771749,
-    "mean_image_exact_coverage": 0.874054705164814,
-    "all_planned_word_coverage_lower_bound": 0.512471511775133,
-    "all_planned_exact_word_coverage_lower_bound": 0.5006963788300836,
-    "all_planned_mean_coverage_lower_bound": 0.8201570338156807,
+    "word_weighted_coverage": 0.8688800985668893,
+    "word_weighted_exact_coverage": 0.8234226055379028,
+    "mean_image_coverage": 0.8992402113024601,
+    "mean_image_exact_coverage": 0.8555536718364425,
+    "all_planned_word_coverage_lower_bound": 0.848252722208154,
+    "all_planned_exact_word_coverage_lower_bound": 0.8038743985819194,
+    "all_planned_mean_coverage_lower_bound": 0.893038554672788,
     "detection": {
       "attacks": {
         "images": 227,
@@ -177,7 +177,7 @@
     }
   },
   "local_artifacts": "runs/evaluations/20261110T105814Z-cloud-openai-development",
-  "report_sha256": "a7d58f4c492b8d7fe26c06c33b19e86b6a3cf1d30c17843b48adc514385bd2d9",
+  "report_sha256": "0bed0ca8732fe78c4920a4995503366ccff50fcb9e3272486c97d6c1eac18609",
   "reused": {
     "images": 0,
     "with_detection": 0,

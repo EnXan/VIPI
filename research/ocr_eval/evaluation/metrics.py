@@ -5,7 +5,7 @@ import unicodedata
 from collections import Counter
 
 from vipi.ocr.merge import bounds
-from .words import WORD_ERROR_RATE, word_distance, word_matches, words
+from .words import WORD_ERROR_RATE, word_alignment, word_distance, word_matches, words
 
 EVALUATION_VERSION = 4
 
@@ -27,6 +27,11 @@ def evaluation_policy():
         "region_grouping": (
             "observations overlapping multiple independent reference regions "
             "are reported as conflicts and prevent passing"
+        ),
+        "benchmark_unordered_regions": (
+            "benchmark scores match each region in the final text without word "
+            "positions; group conflicts are reported but do not prevent passing "
+            "(ADR 0067)"
         ),
         "reference_scope": "annotated reference only, not necessarily all visible image text",
     }
@@ -228,6 +233,29 @@ def region_matches(
     for index in range(len(expected)):
         assign(index, set())
     return [token for token, _ in expected], set(owners.values())
+
+
+def unordered_text_matches(reference, text, *, exact=False, cache=None):
+    """Match unordered reference regions in OCR text without word positions.
+
+    Each region keeps its word order and may appear anywhere in the text; the
+    order between regions is ignored and every OCR word covers at most one
+    reference word. Longer regions claim their words first, then reference
+    order breaks ties, so the result is deterministic (ADR 0067).
+    """
+    units = [words(region["text"]) for region in reference["regions"]]
+    offsets = [sum(len(unit) for unit in units[:index]) for index in range(len(units))]
+    observed = words(text)
+    available = list(range(len(observed)))
+    matched = set()
+    for index in sorted(range(len(units)), key=lambda i: (-len(units[i]), i)):
+        covered, used = word_alignment(
+            units[index], [observed[j] for j in available], exact=exact, cache=cache
+        )
+        matched.update(offsets[index] + position for position in covered)
+        consumed = {available[j] for j in used}
+        available = [j for j in available if j not in consumed]
+    return [word for unit in units for word in unit], matched
 
 
 def score(expected, matched):

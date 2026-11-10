@@ -230,6 +230,30 @@ def run_directory(run_id, root=benchmark.ROOT, runs_directory=DEFAULT_RUNS_DIREC
     return (Path(root) / runs_directory / run_id).resolve()
 
 
+def write_report(directory, configuration, entries, executed, operations):
+    """Score the retained outputs and write report.json and report.md."""
+    report = benchmark_report.report(directory / "benchmark")
+    (directory / "report.json").write_text(
+        json.dumps(report, separators=(",", ":"), allow_nan=False) + "\n",
+        encoding="utf-8",
+    )
+    reuse = ocr_reuse.summary(
+        directory / "benchmark" / configuration, benchmark.is_local(configuration)
+    )
+    extra = (
+        ocr_reuse.report_lines(reuse, entries)
+        + execution.report_lines(executed)
+        + overlap_lines(operations)
+    )
+    (directory / "report.md").write_text(
+        benchmark_report.markdown(report).rstrip("\n")
+        + "\n"
+        + "".join(f"{line}\n" for line in extra),
+        encoding="utf-8",
+    )
+    return report, reuse
+
+
 def run(
     configuration,
     split="development",
@@ -321,25 +345,9 @@ def run(
     ) + [monitor.result]
     write_json(operations_path, operations)
 
-    report = benchmark_report.report(directory / "benchmark")
-    (directory / "report.json").write_text(
-        json.dumps(report, separators=(",", ":"), allow_nan=False) + "\n",
-        encoding="utf-8",
-    )
-    reuse = ocr_reuse.summary(
-        directory / "benchmark" / configuration, benchmark.is_local(configuration)
-    )
     executed = execution.record(request["manifest"]["configuration"]["scan_options"])
-    extra = (
-        ocr_reuse.report_lines(reuse, len(rows))
-        + execution.report_lines(executed)
-        + overlap_lines(operations)
-    )
-    (directory / "report.md").write_text(
-        benchmark_report.markdown(report).rstrip("\n")
-        + "\n"
-        + "".join(f"{line}\n" for line in extra),
-        encoding="utf-8",
+    report, reuse = write_report(
+        directory, configuration, len(rows), executed, operations
     )
     if not report["inference_complete"]:
         return {"state": "incomplete", **plan}
@@ -373,3 +381,52 @@ def save_baseline(
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
     return target
+
+
+def rescore(run_id, root=benchmark.ROOT, *, runs_directory=DEFAULT_RUNS_DIRECTORY):
+    """Score a complete run's retained outputs again with the current scoring code.
+
+    Runs no inference. Rewrites the run's report and replaces only the metrics,
+    the scoring-code hashes and the report hash in its summary and in its saved
+    baseline, if there is one; every other field, including hand-recorded
+    host and execution details, is kept (ADR 0067)."""
+    root = Path(root)
+    directory = run_directory(run_id, root, runs_directory)
+    summary_path = directory / "summary.json"
+    if not summary_path.is_file():
+        raise ValueError(f"Run {run_id} is not complete; finish it first.")
+    summary = json.loads(summary_path.read_text(encoding="utf-8"))
+    request_path = directory / "request.json"
+    request = json.loads(request_path.read_text(encoding="utf-8"))
+    configuration = request["manifest"]["configuration_name"]
+    entries = len(
+        json.loads((directory / "selection.json").read_text(encoding="utf-8"))["keys"]
+    )
+    report, _reuse = write_report(
+        directory,
+        configuration,
+        entries,
+        summary["execution"],
+        summary["operations"]["invocations"],
+    )
+    if not report["inference_complete"]:
+        raise ValueError(f"Run {run_id} has unfinished images; resume it first.")
+    metrics = summary_document(request, report, summary["operations"]["invocations"])[
+        "metrics"
+    ]
+    hashes = {
+        source: benchmark.digest(root / source) for source in suite.METRIC_SOURCES
+    }
+    request["manifest"]["suite"]["metric_sha256"] = hashes
+    write_json(request_path, request)
+    updated = []
+    for path in (summary_path, root / suite.BASELINES / f"{run_id}.json"):
+        if not path.is_file():
+            continue
+        document = json.loads(path.read_text(encoding="utf-8"))
+        document["metrics"] = metrics
+        document["manifest"]["suite"]["metric_sha256"] = hashes
+        document["report_sha256"] = benchmark.digest(directory / "report.json")
+        path.write_text(json.dumps(document, indent=2) + "\n", encoding="utf-8")
+        updated.append(path)
+    return updated

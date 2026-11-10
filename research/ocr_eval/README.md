@@ -31,7 +31,9 @@ reference order, requires distinct observations for repeated words, and can join
 adjacent OCR fragments within a reference word. Independent annotated regions
 ignore order between regions but preserve word order inside each region. An OCR
 box spanning multiple independent regions causes a group conflict and prevents a
-pass. Exact words retain their literal case and attached symbols. Historical
+pass. Evaluation runs and the benchmark score unordered references without word
+positions instead and only report group conflicts, so OCR without positions is
+scored like every other provider ([ADR 0067](../../adr-code/0067-position-free-benchmark-scoring.md)). Exact words retain their literal case and attached symbols. Historical
 reports keep their old evaluation version. This measures the annotated reference
 scope, which may be only the payload, and does not establish semantic equivalence
 or full-image text localization.

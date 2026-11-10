@@ -56,6 +56,13 @@ def build_parser():
     )
     save.add_argument("run_id")
     save.add_argument("--runs-dir", type=Path, default=runs.DEFAULT_RUNS_DIRECTORY)
+    rescore = commands.add_parser(
+        "rescore",
+        help="Score a complete run again with the current scoring code, without "
+        "scanning, and update its summary and saved baseline.",
+    )
+    rescore.add_argument("run_id")
+    rescore.add_argument("--runs-dir", type=Path, default=runs.DEFAULT_RUNS_DIRECTORY)
     return parser
 
 
@@ -99,6 +106,16 @@ def run_command(args):
 def dispatch(args):
     if args.command == "run":
         return run_command(args)
+    if args.command == "rescore":
+        for path in runs.rescore(args.run_id, runs_directory=args.runs_dir):
+            shown = (
+                path.relative_to(splits.ROOT)
+                if path.is_relative_to(splits.ROOT)
+                else path
+            )
+            print(f"updated {shown}")
+        print("commit the updated baseline, if any")
+        return 0
     if args.command == "save-baseline":
         target = runs.save_baseline(args.run_id, runs_directory=args.runs_dir)
         print(f"wrote {target.relative_to(splits.ROOT)} (commit this file)")

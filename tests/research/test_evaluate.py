@@ -504,6 +504,58 @@ def test_saved_baseline_is_fresh_and_later_runs_compare_with_it(run_root):
     assert changed["comparison"]["differences"] == ["suite.selection_sha256"]
 
 
+def test_rescore_updates_metrics_and_keeps_the_rest_of_the_baseline(run_root):
+    root, _rows, calls, _state = run_root
+    runs.run("local-speed", root=root, run_id="base")
+    target = runs.save_baseline("base", root=root)
+    baseline = json.loads(target.read_text())
+    baseline["execution"]["note"] = "edited by hand"
+    target.write_text(json.dumps(baseline))
+    (root / suite.METRIC_SOURCES[0]).write_text("# changed scoring\n")
+    assert suite.status("local-speed", root=root)["state"] == "stale"
+
+    def rescored(directory):
+        report = {
+            "inference_complete": True,
+            "scored_at": "2026-11-11T08:00:00+00:00",
+            "configuration_sources": {"local-speed": {"provenance": {}}},
+            "configurations": {
+                "local-speed": {
+                    "summary": {
+                        "completed": 1,
+                        "failed": 0,
+                        "time": {"invocations": []},
+                        "word_weighted_coverage": 0.5,
+                    },
+                    "groups": [],
+                    "rows": [],
+                }
+            },
+        }
+        return report
+
+    runs.benchmark_report.report = rescored
+    scans_before = len(calls)
+    updated = runs.rescore("base", root=root)
+    assert len(calls) == scans_before  # no inference
+    assert updated == [root / "runs/evaluations/base/summary.json", target]
+    saved = json.loads(target.read_text())
+    assert saved["metrics"]["word_weighted_coverage"] == 0.5
+    assert saved["execution"]["note"] == "edited by hand"
+    assert saved["completed_at"] == baseline["completed_at"]
+    assert saved["operations"] == baseline["operations"]
+    assert saved["report_sha256"] == runs.benchmark.digest(
+        root / "runs/evaluations/base/report.json"
+    )
+    assert suite.status("local-speed", root=root)["state"] == "fresh"
+
+
+def test_rescore_needs_a_complete_run(run_root):
+    root, _rows, _calls, _state = run_root
+    with pytest.raises(ValueError, match="not complete"):
+        runs.rescore("missing", root=root)
+
+
 def test_incomplete_run_cannot_be_saved_and_resume_accumulates_operations(
     run_root,
 ):
