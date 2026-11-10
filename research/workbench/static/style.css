@@ -90,3 +90,14 @@ button.dataset-step:not(:disabled):hover{border-color:var(--vipi-paper)}button.d
 .label-fields .card-title{font-size:18px;margin:0 0 6px}.label-fields-intro{font-size:12px;margin:0 0 16px}.label-fields-intro a{text-decoration:underline}.label-field-hint{font-size:12px;margin:-2px 0 8px;line-height:1.4}
 @media(max-width:1100px){.label-empty{grid-column:2/-1}}@media(max-width:700px){.label-empty{grid-column:1/-1}}
 .label-list:empty{display:none}.label-list:empty~.label-empty{grid-column:1/-1}
+
+.run-options{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:20px 28px;margin-top:24px}
+.run-options .choice input[type=checkbox]{accent-color:var(--vipi-paper)}
+.run-plan{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));margin:24px 0 0;border:1px solid var(--vipi-graphite);border-radius:8px}
+.run-plan>div{padding:14px 16px;min-width:0}.run-plan>div+div{border-left:1px solid var(--vipi-graphite)}
+.run-plan dt{font:12px var(--vipi-font-mono);color:var(--vipi-fog)}.run-plan dd{margin:6px 0 0;font-size:14px;overflow-wrap:anywhere}
+.run-plan dd[data-state]::before{content:"";display:inline-block;width:7px;height:7px;margin-right:8px;border-radius:50%;background:var(--vipi-steel);vertical-align:middle}
+.run-plan dd[data-state=fresh]::before{background:var(--vipi-status-clean)}.run-plan dd[data-state=stale]::before{background:var(--vipi-status-review)}
+.run-plan dd[data-paid=true]{color:var(--vipi-status-review)}
+#baseline-detail{margin-top:12px}
+@media(max-width:700px){.run-plan{grid-template-columns:1fr}.run-plan>div+div{border-left:0;border-top:1px solid var(--vipi-graphite)}}

@@ -70,15 +70,24 @@
       <div class="card">
         <h2 class="card-title">New evaluation</h2>
         <div id="evaluation-settings" class="settings"></div>
-        <fieldset class="choice">
-          <legend>Images</legend>
-          <label><input type="radio" name="split" value="development" checked> <span><strong>Development split</strong> <span id="split-development-count" class="muted"></span><br><span class="muted">Use this for every comparison.</span></span></label>
-          <label><input type="radio" name="split" value="test"> <span><strong>Test split</strong> <span id="split-test-count" class="muted"></span><br><span class="muted">Only once, to confirm a change before a default changes. Never tune on it.</span></span></label>
-        </fieldset>
+        <div class="run-options">
+          <fieldset class="choice">
+            <legend>Images</legend>
+            <label><input type="radio" name="split" value="development" checked> <span><strong>Development split</strong> <span id="split-development-count" class="muted"></span><br><span class="muted">For every comparison</span></span></label>
+            <label><input type="radio" name="split" value="test"> <span><strong>Test split</strong> <span id="split-test-count" class="muted"></span><br><span class="muted">Once, before a default changes</span></span></label>
+          </fieldset>
+          <fieldset class="choice">
+            <legend>Earlier results</legend>
+            <label><input id="reuse-ocr" type="checkbox" checked> <span><strong>Reuse identical results</strong><br><span class="muted">Skips OCR and detection an earlier run already did with the same settings and code</span></span></label>
+          </fieldset>
+        </div>
         <label id="test-confirm-row" class="confirm" hidden><input id="test-confirm" type="checkbox"> I confirm this is the one-time confirmation run on the test split.</label>
-        <label class="confirm"><input id="reuse-ocr" type="checkbox" checked> <span>Reuse results of earlier runs: OCR when OCR settings, OCR code and image are identical, detection as well when detector, settings, product code and packages are also identical. <span id="reuse-ocr-count" class="muted"></span><br><span class="muted">Turn off to scan every image from scratch.</span></span></label>
-        <p id="baseline-status" class="baseline-status" role="status"></p>
-        <p id="evaluation-cost" class="muted" hidden></p>
+        <dl class="run-plan" aria-live="polite">
+          <div><dt>Baseline</dt><dd id="baseline-status"></dd></div>
+          <div><dt>Work</dt><dd id="evaluation-work"></dd></div>
+          <div><dt>Cost</dt><dd id="evaluation-cost"></dd></div>
+        </dl>
+        <p id="baseline-detail" class="baseline-status" data-state="stale" hidden></p>
         <div class="actions-row">
           <button id="evaluation-start" class="primary" type="button" disabled>Start evaluation</button>
         </div>
