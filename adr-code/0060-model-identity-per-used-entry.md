@@ -9,7 +9,7 @@ ADR 0054 made a run's configuration identity the scan options plus the
 declared model identity: the `*_MODEL` constants and a SHA-256 of each model
 registry file (`src/vipi/ocr/model_files.json`,
 `src/vipi/decision_models.json`). Adding Clef-Flash
-([ADR 0059](0059-clef-flash-local-decision-model.md)) added an entry to
+([ADR 0065](0065-clef-flash-replaces-clef.md), which replaced ADR 0059) added an entry to
 `decision_models.json`, so the saved `local-speed`, `cloud-google` and
 `cloud-google-jev` baselines reported `stale`, although none of them loads
 Clef-Flash and their d1, OpenAI and Jev models are unchanged. The user asked on

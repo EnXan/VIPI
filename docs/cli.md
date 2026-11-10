@@ -15,7 +15,7 @@ uv run vipi scan image.png --ocr-mode balanced --output report.json
 
 `vipi setup` explicitly prepares pinned OCR weights and the selected local
 decision/detector models. Without an OCR mode/model, it prepares all three local
-OCR sizes and the default Clef decision model. `--ocr-mode` prepares one local
+OCR sizes and the default Clef-Flash decision model. `--ocr-mode` prepares one local
 profile. Cloud setup downloads no weights and makes no billable request;
 credentials are checked when scanning. Scanning never downloads models.
 
@@ -29,8 +29,8 @@ Without `--diff`, at least one path is required.
 | `--ocr-mode speed|balanced|quality|fast` | Local profile; `quality` is the scan default and `fast` aliases `speed`. Setup without this option prepares all OCR sizes. |
 | `--ocr-model ID` | Override OCR with `ppocr-v6`, `ppocr-v6-medium`, `ppocr-v6-small`, `ppocr-v6-tiny`, `google-cloud-vision`, `gpt-6-luna` or `mistral-ocr-4-1`. |
 | `--ocr-provider google|openai|mistral` | Cloud OCR selection, default Google. Requires explicit `--modus cloud`; cannot be combined with `--ocr-model`. |
-| `--decision-provider clef|clef-flash|d1|jev|openai` | OCR review model. Default local quality: Clef; other local profiles: d1; cloud: OpenAI Decisions. `clef-flash` is a smaller local Clef variant. |
-| `--detector auto|jev|openai|prompt-guard|clef|clef-flash|d1` | Final text detector. Default `auto` follows the decision provider. |
+| `--decision-provider clef-flash|d1|jev|openai` | OCR review model. Default local quality: Clef-Flash; other local profiles: d1; cloud: OpenAI Decisions. |
+| `--detector auto|jev|openai|prompt-guard|clef-flash|d1` | Final text detector. Default `auto` follows the decision provider. |
 | `-h`, `--help` | Show root or command help and exit without preparing models. |
 
 | Scan-only option | Meaning and default |
@@ -69,7 +69,7 @@ setting prevents fallback to the file. See [`.env.example`](../.env.example).
 | OpenAI OCR/review/detection | `OPENAI_API_KEY` |
 | Mistral OCR | `MISTRAL_API_KEY` |
 | Jev review/detection | `TYPESAFE_API_KEY`, alias `JEV_API_KEY` |
-| Clef/Clef-Flash/d1 | Prepared local weights and verified code; no inference API key |
+| Clef-Flash/d1 | Prepared local weights and verified code; no inference API key |
 | Prompt Guard | Prepared local weights; authorized Hugging Face access (`HF_TOKEN` or existing login) for downloads |
 
 The `ocr` extra supplies local OCR and shared image operations. Local decision
@@ -166,7 +166,7 @@ a live progress display when supported; redirected output uses a compact brand.
 | Windows | `%LOCALAPPDATA%/vipi/` |
 
 `XDG_CACHE_HOME/vipi/` overrides these defaults. OCR files live in `ocr/`, local
-decision models in `decisions/clef`, `decisions/clef-flash` and `decisions/d1`, Prompt Guard in
+decision models in `decisions/clef-flash` and `decisions/d1`, Prompt Guard in
 `prompt-guard/`, and persistent input/variant/result artifacts in `runs/`.
 
 ## Platform validation status
@@ -176,6 +176,6 @@ That does not validate the current trained recovery models on every platform.
 Current unit/integration/research checks and package smoke tests use fixtures;
 CI runs on Ubuntu. The recorded trained Tiny+d1 run was on Apple MPS; see
 [the recovery measurement boundary](ocr-recovery.md#measurement-and-costs).
-Fresh Clef quality, cloud-provider and Windows/Linux inference require separate
+Fresh Clef-Flash quality on CUDA or CPU, cloud-provider and Windows/Linux inference require separate
 validation. A platform claim should record a fresh install, model setup, image
 and Git-diff scan, JSON output, exit codes and the actual model/provider.

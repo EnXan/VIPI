@@ -8,7 +8,7 @@ from pathlib import Path
 
 from dotenv import dotenv_values
 
-LOCAL_DECISION_PROVIDERS = ("clef", "clef-flash", "d1")
+LOCAL_DECISION_PROVIDERS = ("clef-flash", "d1")
 CLOUD_DECISION_PROVIDERS = ("jev", "openai")
 LOCAL_DETECTORS = (*LOCAL_DECISION_PROVIDERS, "prompt-guard")
 DETECTORS = (
@@ -153,16 +153,16 @@ class ScanOptions:
         elif not local:
             selected = "openai"
         elif self.ocr_mode == "quality":
-            selected = "clef"
+            selected = "clef-flash"
         else:
             selected = "d1"
         if selected not in DECISION_PROVIDERS:
             raise ValueError(
-                "Choose clef, clef-flash, d1, jev or openai as the decision provider."
+                "Choose clef-flash, d1, jev or openai as the decision provider."
             )
         if (selected in LOCAL_DECISION_PROVIDERS) != local:
             raise ValueError(
-                "The decision provider conflicts with --modus; local execution requires clef, clef-flash or d1, cloud requires jev or openai."
+                "The decision provider conflicts with --modus; local execution requires clef-flash or d1, cloud requires jev or openai."
             )
         return selected
 

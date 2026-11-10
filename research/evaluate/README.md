@@ -14,9 +14,8 @@ product default (80); the detector stays `auto` unless the name ends in `-jev`.
 | Configuration | Scan options | Detector |
 | --- | --- | --- |
 | `local-speed`, `local-balanced` | `--modus local --ocr-mode <mode>` | d1 |
-| `local-quality` | `--modus local --ocr-mode quality` | Clef |
-| `local-quality-clef-flash` | the same plus `--decision-provider clef-flash` | Clef-Flash (also reviews OCR) |
-| `local-speed-prompt-guard`, `local-balanced-prompt-guard`, `local-quality-prompt-guard` | the local configuration plus `--detector prompt-guard` | Prompt Guard 2 (OCR review stays d1 or Clef) |
+| `local-quality-clef-flash` | `--modus local --ocr-mode quality --decision-provider clef-flash` (the product default since ADR 0065) | Clef-Flash (also reviews OCR) |
+| `local-speed-prompt-guard`, `local-balanced-prompt-guard`, `local-quality-prompt-guard` | the local configuration plus `--detector prompt-guard` | Prompt Guard 2 (OCR review stays d1 or Clef-Flash) |
 | `cloud-google`, `cloud-openai`, `cloud-mistral` | `--modus cloud --ocr-provider <provider>` | OpenAI Luna |
 | `cloud-google-jev`, `cloud-openai-jev`, `cloud-mistral-jev` | the same plus `--detector jev` | Jev |
 

@@ -18,7 +18,7 @@ from vipi.storage.ocr import RunStore
 @pytest.mark.parametrize(
     "mode,decision,ocr",
     [
-        ("quality", "clef", "ppocr-v6"),
+        ("quality", "clef-flash", "ppocr-v6"),
         ("balanced", "d1", "ppocr-v6-small"),
         ("speed", "d1", "ppocr-v6-tiny"),
         ("fast", "d1", "ppocr-v6-tiny"),
@@ -406,21 +406,24 @@ def test_serial_vision_preserves_every_tile_and_hidden_state():
         torch.testing.assert_close(got, want)
 
 
-def test_clef_flash_is_a_pinned_local_model_on_the_clef_runtime():
-    from vipi.config import LOCAL_DECISION_PROVIDERS, ScanOptions
+def test_clef_flash_replaces_clef_as_the_pinned_quality_model():
+    from vipi.config import DECISION_PROVIDERS, LOCAL_DECISION_PROVIDERS, ScanOptions
     from vipi.local_decisions import MODELS
 
-    flash, clef = MODELS["clef-flash"], MODELS["clef"]
+    flash = MODELS["clef-flash"]
     assert flash["repository"] == "Cloudflare/clef-flash"
     assert len(flash["revision"]) == 40
-    assert flash["runtime"] == clef["runtime"] == "clef"
-    assert flash["code"] == clef["code"]  # identical upstream runtime code
+    assert flash["runtime"] == "clef"
     assert MODELS["d1"]["runtime"] == "d1"
-    assert "clef-flash" in LOCAL_DECISION_PROVIDERS
+    assert set(MODELS) == {"clef-flash", "d1"}  # Clef was removed (ADR 0065)
+    assert LOCAL_DECISION_PROVIDERS == ("clef-flash", "d1")
+    assert "clef" not in DECISION_PROVIDERS
+    with pytest.raises(ValueError, match="clef-flash"):
+        ScanOptions(decision_provider="clef").resolved_decision_provider
     options = ScanOptions(ocr_mode="speed", decision_provider="clef-flash")
     assert options.resolved_decision_provider == "clef-flash"
     assert options.resolved_detector == "clef-flash"
-    assert ScanOptions().resolved_decision_provider == "clef"  # default unchanged
+    assert ScanOptions().resolved_decision_provider == "clef-flash"  # quality default
     with pytest.raises(ValueError, match="clef-flash"):
         ScanOptions(
             ocr_execution_mode="cloud", decision_provider="clef-flash"

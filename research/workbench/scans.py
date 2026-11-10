@@ -10,7 +10,7 @@ from vipi.reporting import file_record
 
 from research.ocr_eval.benchmark import CONFIGURATIONS
 
-DEFAULT_CONFIGURATION = "local-quality"  # the product default (`vipi scan`)
+DEFAULT_CONFIGURATION = "local-quality-clef-flash"  # the product default (`vipi scan`)
 
 
 def options_for(configuration, threshold=DEFAULT_THRESHOLD):
