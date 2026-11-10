@@ -89,23 +89,23 @@ Development split of the
 - **Words recognized:** words in the images VIPI recognized, tolerating a
   small typo. Higher is better.
 
-| Cloud · OCR + detector | Detection rate | False positive rate | Words recognized |
-| :-- | --: | --: | --: |
-| Mistral + Jev | 81.5% | **0.4%** | 83.2% |
-| Mistral + OpenAI | **85.0%** | 4.5% | 83.2% |
-| OpenAI + OpenAI | 83.3% | 4.5% | **94.5%** |
-| OpenAI + Jev | 78.9% | 1.3% | **94.5%** |
-| Google + OpenAI (default) | 78.4% | 3.6% | 87.4% |
-| Google + Jev | 74.0% | 0.9% | 87.4% |
+| Cloud OCR | Detector | Detection rate | False positive rate | Words recognized |
+| :-- | :-- | --: | --: | --: |
+| Mistral OCR 4.1 | TypeSafe Jev 1.14 | 81.5% | **0.4%** | 83.2% |
+| Mistral OCR 4.1 | OpenAI GPT-6 Luna (Decisions API) | **85.0%** | 4.5% | 83.2% |
+| OpenAI GPT-6 Luna | OpenAI GPT-6 Luna (Decisions API) | 83.3% | 4.5% | **94.5%** |
+| OpenAI GPT-6 Luna | TypeSafe Jev 1.14 | 78.9% | 1.3% | **94.5%** |
+| Google Cloud Vision | OpenAI GPT-6 Luna (Decisions API, default) | 78.4% | 3.6% | 87.4% |
+| Google Cloud Vision | TypeSafe Jev 1.14 | 74.0% | 0.9% | 87.4% |
 
-| Local · OCR + detector | Detection rate | False positive rate | Words recognized |
-| :-- | --: | --: | --: |
-| Quality + Clef-Flash (default) | 16.7% | **0%** | **75.5%** |
-| Quality + Prompt Guard 2 | **19.4%** | 1.8% | **75.5%** |
-| Balanced + d1 | 15.4% | 0.4% | 71.3% |
-| Balanced + Prompt Guard 2 | 16.7% | 1.8% | 71.3% |
-| Speed + d1 | 15.0% | 0.4% | 69.3% |
-| Speed + Prompt Guard 2 | 18.5% | 2.2% | 69.3% |
+| Local OCR | Detector | Detection rate | False positive rate | Words recognized |
+| :-- | :-- | --: | --: | --: |
+| PP-OCRv6 Medium (`quality`) | Clef-Flash 9B (default) | 16.7% | **0%** | **75.5%** |
+| PP-OCRv6 Medium (`quality`) | Prompt Guard 2 86M | **19.4%** | 1.8% | **75.5%** |
+| PP-OCRv6 Small (`balanced`) | d1 3B | 15.4% | 0.4% | 71.3% |
+| PP-OCRv6 Small (`balanced`) | Prompt Guard 2 86M | 16.7% | 1.8% | 71.3% |
+| PP-OCRv6 Tiny (`speed`) | d1 3B | 15.0% | 0.4% | 69.3% |
+| PP-OCRv6 Tiny (`speed`) | Prompt Guard 2 86M | 18.5% | 2.2% | 69.3% |
 
 ## Usage
 
