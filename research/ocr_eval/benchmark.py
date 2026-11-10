@@ -26,7 +26,8 @@ from .evaluation.metrics import evaluation_policy
 from .evaluation.words import words
 
 ROOT = Path(__file__).resolve().parents[2]
-# Product scan options (``vipi scan``); detector and threshold stay at their defaults.
+# Product scan options (``vipi scan``); the threshold stays at its default and
+# the detector at ``auto`` unless a configuration names one.
 CONFIGURATIONS = {
     **{
         f"local-{mode}": {"ocr_execution_mode": "local", "ocr_mode": mode}
@@ -34,6 +35,15 @@ CONFIGURATIONS = {
     },
     **{
         f"cloud-{provider}": {"ocr_execution_mode": "cloud", "ocr_provider": provider}
+        for provider in ("google", "openai", "mistral")
+    },
+    # Same cloud OCR and review, final detection by Jev instead of OpenAI.
+    **{
+        f"cloud-{provider}-jev": {
+            "ocr_execution_mode": "cloud",
+            "ocr_provider": provider,
+            "detector": "jev",
+        }
         for provider in ("google", "openai", "mistral")
     },
 }

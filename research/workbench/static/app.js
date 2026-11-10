@@ -48,7 +48,7 @@ for (const name of ['scan', 'evaluation', 'dataset']) $(`tab-${name}`).onclick =
 // Settings: where the scan runs and which text recognition it uses
 
 /**
- * Render "Run on" and "Text recognition" (and optionally the threshold) into a container.
+ * Render "Run on", "Text recognition", "Injection detector" (and optionally the threshold) into a container.
  * @returns {{value: () => string, threshold: () => number}}
  */
 function settingsPanel(container, {withThreshold, onChange}) {
@@ -63,7 +63,9 @@ function settingsPanel(container, {withThreshold, onChange}) {
   }
   const ocr = element('select', {id: `${name}-ocr`});
   const ocrLabel = element('label', {class: 'field'}, 'Text recognition (OCR)', ocr);
-  container.append(runOn, ocrLabel);
+  const detector = element('select', {id: `${name}-detector`});
+  const detectorLabel = element('label', {class: 'field'}, 'Injection detector', detector);
+  container.append(runOn, ocrLabel, detectorLabel);
   let threshold = null;
   if (withThreshold) {
     threshold = element('input', {id: `${name}-threshold`, type: 'number', min: '0', max: '100', step: '1', value: String(state.threshold)});
@@ -71,19 +73,30 @@ function settingsPanel(container, {withThreshold, onChange}) {
       element('span', {class: 'muted'}, `Product default: ${state.threshold}.`)));
   }
   const selected = () => container.querySelector(`input[name="${name}-run-on"]:checked`).value;
+  // One option per OCR; the detectors offered depend on run-on and OCR.
+  function fillDetector(keep) {
+    const choices = state.configurations.filter(item => item.run_on === selected() && item.ocr === ocr.value);
+    detector.replaceChildren(...choices.map(item => element('option', {value: item.id}, item.detector_label)));
+    if (choices.some(item => item.id === keep)) detector.value = keep;
+    detector.disabled = choices.length < 2;
+  }
   function fillOcr(keep) {
     const choices = state.configurations.filter(item => item.run_on === selected());
-    ocr.replaceChildren(...choices.map(item => element('option', {value: item.id}, item.ocr_label)));
-    if (choices.some(item => item.id === keep)) ocr.value = keep;
+    const ocrs = [...new Map(choices.map(item => [item.ocr, item.ocr_label]))];
+    ocr.replaceChildren(...ocrs.map(([value, label]) => element('option', {value}, label)));
+    const kept = configuration(keep);
+    if (kept && ocrs.some(([value]) => value === kept.ocr)) ocr.value = kept.ocr;
+    fillDetector(keep);
   }
   const initial = configuration(state.defaultConfiguration);
   container.querySelector(`input[value="${initial.run_on}"]`).checked = true;
   fillOcr(initial.id);
   runOn.onchange = () => { fillOcr(); onChange(); };
-  ocr.onchange = onChange;
+  ocr.onchange = () => { fillDetector(); onChange(); };
+  detector.onchange = onChange;
   if (threshold) threshold.oninput = onChange;
   return {
-    value: () => ocr.value,
+    value: () => detector.value,
     threshold: () => (threshold ? Number(threshold.value) : state.threshold),
   };
 }
@@ -223,7 +236,7 @@ async function refreshEvaluationSetup() {
     $('baseline-status').textContent = describeBaseline(setup.baseline);
     $('baseline-status').dataset.state = setup.baseline.state;
     $('evaluation-cost').hidden = !item.paid;
-    $('evaluation-cost').textContent = `Cloud runs make paid API calls (OCR, review and detection) for each of the ${setup.entries} images.`;
+    $('evaluation-cost').textContent = `Cloud runs make paid API calls (OCR, review and detection) for each of the ${setup.entries} images.${item.detector === 'jev' ? ' Jev usage is recorded, but its cost is not estimated (no verified rate).' : ''}`;
     $('evaluation-start').disabled = split === 'test' && !$('test-confirm').checked;
     $('evaluation-start').textContent = `Start evaluation · ${item.label} · ${setup.entries} images`;
   } catch (error) {

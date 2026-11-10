@@ -33,7 +33,8 @@ current form (algorithm v3, one dataset) is in [ADR 0053](0053-one-evaluation-da
 - **Configurations are product scan options** (`vipi scan`): `local-speed`,
   `local-balanced`, `local-quality`, `cloud-google`, `cloud-openai`,
   `cloud-mistral`. Detector (`auto`) and threshold (80) stay at the product
-  defaults; evaluation has no threshold setting.
+  defaults (the `-jev` cloud configurations of
+  [ADR 0057](0057-jev-detector-configurations.md) set the detector); evaluation has no threshold setting.
 - **One run measures OCR and detection.** The benchmark worker calls
   `vipi.scanner.scan_image` per entry and records the OCR output and the
   verdict. Every split entry is scanned (450 development entries). OCR metrics

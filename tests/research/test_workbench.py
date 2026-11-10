@@ -81,8 +81,24 @@ def test_configurations_are_the_product_options_with_the_product_default(tmp_pat
     labels = {
         item["id"]: (item["label"], item["paid"]) for item in data["configurations"]
     }
-    assert labels["local-speed"] == ("Local · Speed OCR", False)
-    assert labels["cloud-google"] == ("Cloud · Google Cloud Vision", True)
+    assert labels["local-speed"] == (
+        "Local · Speed OCR · d1 (LiquidAI d1-3B) detector",
+        False,
+    )
+    assert (
+        labels["local-quality"][0] == "Local · Quality OCR · Clef (Cloudflare) detector"
+    )
+    assert labels["cloud-google"] == (
+        "Cloud · Google Cloud Vision · OpenAI Luna detector",
+        True,
+    )
+    assert labels["cloud-google-jev"] == (
+        "Cloud · Google Cloud Vision · Jev detector",
+        True,
+    )
+    detectors = {item["id"]: item["detector"] for item in data["configurations"]}
+    assert detectors["cloud-mistral-jev"] == "jev"
+    assert detectors["cloud-mistral"] == "openai"
     assert b"Scan an image" in client.get("/").data
 
 
