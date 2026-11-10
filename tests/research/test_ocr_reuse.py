@@ -135,6 +135,24 @@ def test_identical_detection_identity_carries_the_earlier_detection(tmp_path):
         assert again["a"]["detection"] is None
 
 
+def test_a_detection_that_failed_is_never_reused(tmp_path):
+    # A detection that raised (e.g. a missing runtime dependency) records its
+    # error and an "unclear" verdict; reusing it would carry the failure.
+    failed = earlier_run(tmp_path, "failed", GOOGLE_JEV, [("a", "img", "2026-11-03")])
+    row = tmp_path / "failed/benchmark/cloud-google-jev/rows/a.json"
+    record = json.loads(row.read_text())
+    record["detection"] = {"verdict": "unclear", "errors": ["requires accelerate"]}
+    benchmark.write_json(row, record)
+    found = ocr_reuse.candidates(tmp_path, GOOGLE_JEV, provenance())
+    assert found["a"]["artifacts"] == str(failed["a"])  # the OCR is still reused
+    assert found["a"]["detection"] is None  # detection runs again
+    # An earlier successful detection of the same identity is preferred.
+    earlier_run(tmp_path, "ok", GOOGLE_JEV, [("a", "img", "2026-11-01")])
+    found = ocr_reuse.candidates(tmp_path, GOOGLE_JEV, provenance())
+    assert found["a"]["run_id"] == "ok"
+    assert found["a"]["detection"]["verdict"] == "flagged"
+
+
 def test_full_identity_includes_detector_settings_sources_and_packages():
     base = ocr_reuse.full_identity(GOOGLE, provenance())
     assert ocr_reuse.full_identity(GOOGLE_JEV, provenance()) != base
