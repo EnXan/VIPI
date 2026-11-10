@@ -93,6 +93,13 @@ Development split of the
 - **Words recognized:** words in the images VIPI recognized, tolerating a
   small typo. Higher is better.
 
+<p align="center">
+  <img src="https://raw.githubusercontent.com/EnXan/VIPI/main/assets/diagrams/vipi-results.svg" alt="Bar charts of detection rate, false positive rate and words recognized: cloud configurations detect 74 to 85 percent of injections with 0.4 to 4.5 percent false positives and recognize 83 to 95 percent of words; local configurations detect 15 to 19 percent with 0 to 2.2 percent false positives and recognize 69 to 76 percent of words. Exact values and models are in the expandable tables below." width="900">
+</p>
+
+<details>
+<summary>Exact values and models</summary>
+
 | Cloud OCR | Detector | Detection rate | False positive rate | Words recognized |
 | :-- | :-- | --: | --: | --: |
 | Mistral OCR 4.1 | TypeSafe Jev 1.14 | 81.5% | **0.4%** | 83.2% |
@@ -110,6 +117,8 @@ Development split of the
 | PP-OCRv6 Small (`balanced`) | Prompt Guard 2 86M | 16.7% | 1.8% | 71.3% |
 | PP-OCRv6 Tiny (`speed`) | d1 3B | 15.0% | 0.4% | 69.3% |
 | PP-OCRv6 Tiny (`speed`) | Prompt Guard 2 86M | 18.5% | 2.2% | 69.3% |
+
+</details>
 
 ## Usage
 

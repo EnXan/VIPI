@@ -1,0 +1,141 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1040 424" role="img" aria-labelledby="title desc">
+  <title id="title">Latest results: detection rate, false positive rate and words recognized</title>
+  <desc id="desc">Development split, 227 injection and 223 benign images, threshold 80. Cloud: Mistral OCR + Jev: detection rate 81.5%, false positive rate 0.4%, words recognized 83.2%; Mistral OCR + GPT-6 Luna: detection rate 85.0%, false positive rate 4.5%, words recognized 83.2%; GPT-6 Luna + GPT-6 Luna: detection rate 83.3%, false positive rate 4.5%, words recognized 94.5%; GPT-6 Luna + Jev: detection rate 78.9%, false positive rate 1.3%, words recognized 94.5%; Cloud Vision + GPT-6 Luna (default): detection rate 78.4%, false positive rate 3.6%, words recognized 87.4%; Cloud Vision + Jev: detection rate 74.0%, false positive rate 0.9%, words recognized 87.4%. Local: Quality + Clef-Flash (default): detection rate 16.7%, false positive rate 0%, words recognized 75.5%; Quality + Prompt Guard 2: detection rate 19.4%, false positive rate 1.8%, words recognized 75.5%; Balanced + d1: detection rate 15.4%, false positive rate 0.4%, words recognized 71.3%; Balanced + Prompt Guard 2: detection rate 16.7%, false positive rate 1.8%, words recognized 71.3%; Speed + d1: detection rate 15.0%, false positive rate 0.4%, words recognized 69.3%; Speed + Prompt Guard 2: detection rate 18.5%, false positive rate 2.2%, words recognized 69.3%.</desc>
+  <defs>
+    <style>
+      .bg { fill: #FFFFFF; stroke: rgba(11,12,16,.12); }
+      .grid { stroke: rgba(11,12,16,.10); stroke-width: 1; }
+      .base { stroke: rgba(11,12,16,.35); stroke-width: 1; }
+      .bar { fill: #0B0C10; }
+      .head { fill: #0B0C10; font: 500 15px "Geist", "Helvetica Neue", Arial, sans-serif; letter-spacing: -0.01em; }
+      .label { fill: #0B0C10; font: 400 13px "Geist", "Helvetica Neue", Arial, sans-serif; }
+      .value { fill: #5C616C; font: 500 11px "Geist Mono", ui-monospace, Menlo, Consolas, monospace; }
+      .tick { fill: #5C616C; font: 500 10px "Geist Mono", ui-monospace, Menlo, Consolas, monospace; letter-spacing: .04em; }
+      .group { fill: #5C616C; font: 500 10px "Geist Mono", ui-monospace, Menlo, Consolas, monospace; letter-spacing: .08em; }
+      @media (prefers-color-scheme: dark) {
+        .bg { fill: #121318; stroke: rgba(242,243,245,.12); }
+        .grid { stroke: rgba(242,243,245,.10); }
+        .base { stroke: rgba(242,243,245,.35); }
+        .bar { fill: #F2F3F5; }
+        .head, .label { fill: #F2F3F5; }
+        .value, .tick, .group { fill: #A3A8B2; }
+      }
+    </style>
+  </defs>
+  <rect class="bg" x="0.5" y="0.5" width="1039" height="423" rx="4"/>
+  <text class="head" x="290" y="30">Detection rate</text>
+  <text class="group" x="290" y="46">HIGHER IS BETTER</text>
+  <line class="base" x1="290.0" y1="80" x2="290.0" y2="404"/>
+  <text class="tick" x="290.0" y="72" text-anchor="middle">0%</text>
+  <line class="grid" x1="390.0" y1="80" x2="390.0" y2="404"/>
+  <text class="tick" x="390.0" y="72" text-anchor="middle">50%</text>
+  <line class="grid" x1="490.0" y1="80" x2="490.0" y2="404"/>
+  <text class="tick" x="490.0" y="72" text-anchor="middle">100%</text>
+  <text class="head" x="570" y="30">False positive rate</text>
+  <text class="group" x="570" y="46">LOWER IS BETTER</text>
+  <line class="base" x1="570.0" y1="80" x2="570.0" y2="404"/>
+  <text class="tick" x="570.0" y="72" text-anchor="middle">0%</text>
+  <line class="grid" x1="602.0" y1="80" x2="602.0" y2="404"/>
+  <text class="tick" x="602.0" y="72" text-anchor="middle">1%</text>
+  <line class="grid" x1="634.0" y1="80" x2="634.0" y2="404"/>
+  <text class="tick" x="634.0" y="72" text-anchor="middle">2%</text>
+  <line class="grid" x1="666.0" y1="80" x2="666.0" y2="404"/>
+  <text class="tick" x="666.0" y="72" text-anchor="middle">3%</text>
+  <line class="grid" x1="698.0" y1="80" x2="698.0" y2="404"/>
+  <text class="tick" x="698.0" y="72" text-anchor="middle">4%</text>
+  <line class="grid" x1="730.0" y1="80" x2="730.0" y2="404"/>
+  <text class="tick" x="730.0" y="72" text-anchor="middle">5%</text>
+  <text class="head" x="810" y="30">Words recognized</text>
+  <text class="group" x="810" y="46">HIGHER IS BETTER</text>
+  <line class="base" x1="810.0" y1="80" x2="810.0" y2="404"/>
+  <text class="tick" x="810.0" y="72" text-anchor="middle">0%</text>
+  <line class="grid" x1="895.0" y1="80" x2="895.0" y2="404"/>
+  <text class="tick" x="895.0" y="72" text-anchor="middle">50%</text>
+  <line class="grid" x1="980.0" y1="80" x2="980.0" y2="404"/>
+  <text class="tick" x="980.0" y="72" text-anchor="middle">100%</text>
+  <text class="group" x="24" y="100">CLOUD</text>
+  <text class="label" x="24" y="120">Mistral OCR + Jev</text>
+  <path class="bar" d="M290 110h159.0a4 4 0 0 1 4 4v4a4 4 0 0 1 -4 4h-159.0z"><title>Mistral OCR + Jev: detection rate 81.5%</title></path>
+  <text class="value" x="459.0" y="120">81.5%</text>
+  <path class="bar" d="M570 110h8.8a4 4 0 0 1 4 4v4a4 4 0 0 1 -4 4h-8.8z"><title>Mistral OCR + Jev: false positive rate 0.4%</title></path>
+  <text class="value" x="588.8" y="120">0.4%</text>
+  <path class="bar" d="M810 110h137.4a4 4 0 0 1 4 4v4a4 4 0 0 1 -4 4h-137.4z"><title>Mistral OCR + Jev: words recognized 83.2%</title></path>
+  <text class="value" x="957.4" y="120">83.2%</text>
+  <text class="label" x="24" y="142">Mistral OCR + GPT-6 Luna</text>
+  <path class="bar" d="M290 132h166.0a4 4 0 0 1 4 4v4a4 4 0 0 1 -4 4h-166.0z"><title>Mistral OCR + GPT-6 Luna: detection rate 85.0%</title></path>
+  <text class="value" x="466.0" y="142">85.0%</text>
+  <path class="bar" d="M570 132h140.0a4 4 0 0 1 4 4v4a4 4 0 0 1 -4 4h-140.0z"><title>Mistral OCR + GPT-6 Luna: false positive rate 4.5%</title></path>
+  <text class="value" x="720.0" y="142">4.5%</text>
+  <path class="bar" d="M810 132h137.4a4 4 0 0 1 4 4v4a4 4 0 0 1 -4 4h-137.4z"><title>Mistral OCR + GPT-6 Luna: words recognized 83.2%</title></path>
+  <text class="value" x="957.4" y="142">83.2%</text>
+  <text class="label" x="24" y="164">GPT-6 Luna + GPT-6 Luna</text>
+  <path class="bar" d="M290 154h162.6a4 4 0 0 1 4 4v4a4 4 0 0 1 -4 4h-162.6z"><title>GPT-6 Luna + GPT-6 Luna: detection rate 83.3%</title></path>
+  <text class="value" x="462.6" y="164">83.3%</text>
+  <path class="bar" d="M570 154h140.0a4 4 0 0 1 4 4v4a4 4 0 0 1 -4 4h-140.0z"><title>GPT-6 Luna + GPT-6 Luna: false positive rate 4.5%</title></path>
+  <text class="value" x="720.0" y="164">4.5%</text>
+  <path class="bar" d="M810 154h156.7a4 4 0 0 1 4 4v4a4 4 0 0 1 -4 4h-156.7z"><title>GPT-6 Luna + GPT-6 Luna: words recognized 94.5%</title></path>
+  <text class="value" x="976.6" y="164">94.5%</text>
+  <text class="label" x="24" y="186">GPT-6 Luna + Jev</text>
+  <path class="bar" d="M290 176h153.8a4 4 0 0 1 4 4v4a4 4 0 0 1 -4 4h-153.8z"><title>GPT-6 Luna + Jev: detection rate 78.9%</title></path>
+  <text class="value" x="453.8" y="186">78.9%</text>
+  <path class="bar" d="M570 176h37.6a4 4 0 0 1 4 4v4a4 4 0 0 1 -4 4h-37.6z"><title>GPT-6 Luna + Jev: false positive rate 1.3%</title></path>
+  <text class="value" x="617.6" y="186">1.3%</text>
+  <path class="bar" d="M810 176h156.7a4 4 0 0 1 4 4v4a4 4 0 0 1 -4 4h-156.7z"><title>GPT-6 Luna + Jev: words recognized 94.5%</title></path>
+  <text class="value" x="976.6" y="186">94.5%</text>
+  <text class="label" x="24" y="208">Cloud Vision + GPT-6 Luna (default)</text>
+  <path class="bar" d="M290 198h152.8a4 4 0 0 1 4 4v4a4 4 0 0 1 -4 4h-152.8z"><title>Cloud Vision + GPT-6 Luna (default): detection rate 78.4%</title></path>
+  <text class="value" x="452.8" y="208">78.4%</text>
+  <path class="bar" d="M570 198h111.2a4 4 0 0 1 4 4v4a4 4 0 0 1 -4 4h-111.2z"><title>Cloud Vision + GPT-6 Luna (default): false positive rate 3.6%</title></path>
+  <text class="value" x="691.2" y="208">3.6%</text>
+  <path class="bar" d="M810 198h144.6a4 4 0 0 1 4 4v4a4 4 0 0 1 -4 4h-144.6z"><title>Cloud Vision + GPT-6 Luna (default): words recognized 87.4%</title></path>
+  <text class="value" x="964.6" y="208">87.4%</text>
+  <text class="label" x="24" y="230">Cloud Vision + Jev</text>
+  <path class="bar" d="M290 220h144.0a4 4 0 0 1 4 4v4a4 4 0 0 1 -4 4h-144.0z"><title>Cloud Vision + Jev: detection rate 74.0%</title></path>
+  <text class="value" x="444.0" y="230">74.0%</text>
+  <path class="bar" d="M570 220h24.8a4 4 0 0 1 4 4v4a4 4 0 0 1 -4 4h-24.8z"><title>Cloud Vision + Jev: false positive rate 0.9%</title></path>
+  <text class="value" x="604.8" y="230">0.9%</text>
+  <path class="bar" d="M810 220h144.6a4 4 0 0 1 4 4v4a4 4 0 0 1 -4 4h-144.6z"><title>Cloud Vision + Jev: words recognized 87.4%</title></path>
+  <text class="value" x="964.6" y="230">87.4%</text>
+  <text class="group" x="24" y="264">LOCAL</text>
+  <text class="label" x="24" y="284">Quality + Clef-Flash (default)</text>
+  <path class="bar" d="M290 274h29.4a4 4 0 0 1 4 4v4a4 4 0 0 1 -4 4h-29.4z"><title>Quality + Clef-Flash (default): detection rate 16.7%</title></path>
+  <text class="value" x="329.4" y="284">16.7%</text>
+  <text class="value" x="576.0" y="284">0%</text>
+  <path class="bar" d="M810 274h124.3a4 4 0 0 1 4 4v4a4 4 0 0 1 -4 4h-124.3z"><title>Quality + Clef-Flash (default): words recognized 75.5%</title></path>
+  <text class="value" x="944.4" y="284">75.5%</text>
+  <text class="label" x="24" y="306">Quality + Prompt Guard 2</text>
+  <path class="bar" d="M290 296h34.8a4 4 0 0 1 4 4v4a4 4 0 0 1 -4 4h-34.8z"><title>Quality + Prompt Guard 2: detection rate 19.4%</title></path>
+  <text class="value" x="334.8" y="306">19.4%</text>
+  <path class="bar" d="M570 296h53.6a4 4 0 0 1 4 4v4a4 4 0 0 1 -4 4h-53.6z"><title>Quality + Prompt Guard 2: false positive rate 1.8%</title></path>
+  <text class="value" x="633.6" y="306">1.8%</text>
+  <path class="bar" d="M810 296h124.3a4 4 0 0 1 4 4v4a4 4 0 0 1 -4 4h-124.3z"><title>Quality + Prompt Guard 2: words recognized 75.5%</title></path>
+  <text class="value" x="944.4" y="306">75.5%</text>
+  <text class="label" x="24" y="328">Balanced + d1</text>
+  <path class="bar" d="M290 318h26.8a4 4 0 0 1 4 4v4a4 4 0 0 1 -4 4h-26.8z"><title>Balanced + d1: detection rate 15.4%</title></path>
+  <text class="value" x="326.8" y="328">15.4%</text>
+  <path class="bar" d="M570 318h8.8a4 4 0 0 1 4 4v4a4 4 0 0 1 -4 4h-8.8z"><title>Balanced + d1: false positive rate 0.4%</title></path>
+  <text class="value" x="588.8" y="328">0.4%</text>
+  <path class="bar" d="M810 318h117.2a4 4 0 0 1 4 4v4a4 4 0 0 1 -4 4h-117.2z"><title>Balanced + d1: words recognized 71.3%</title></path>
+  <text class="value" x="937.2" y="328">71.3%</text>
+  <text class="label" x="24" y="350">Balanced + Prompt Guard 2</text>
+  <path class="bar" d="M290 340h29.4a4 4 0 0 1 4 4v4a4 4 0 0 1 -4 4h-29.4z"><title>Balanced + Prompt Guard 2: detection rate 16.7%</title></path>
+  <text class="value" x="329.4" y="350">16.7%</text>
+  <path class="bar" d="M570 340h53.6a4 4 0 0 1 4 4v4a4 4 0 0 1 -4 4h-53.6z"><title>Balanced + Prompt Guard 2: false positive rate 1.8%</title></path>
+  <text class="value" x="633.6" y="350">1.8%</text>
+  <path class="bar" d="M810 340h117.2a4 4 0 0 1 4 4v4a4 4 0 0 1 -4 4h-117.2z"><title>Balanced + Prompt Guard 2: words recognized 71.3%</title></path>
+  <text class="value" x="937.2" y="350">71.3%</text>
+  <text class="label" x="24" y="372">Speed + d1</text>
+  <path class="bar" d="M290 362h26.0a4 4 0 0 1 4 4v4a4 4 0 0 1 -4 4h-26.0z"><title>Speed + d1: detection rate 15.0%</title></path>
+  <text class="value" x="326.0" y="372">15.0%</text>
+  <path class="bar" d="M570 362h8.8a4 4 0 0 1 4 4v4a4 4 0 0 1 -4 4h-8.8z"><title>Speed + d1: false positive rate 0.4%</title></path>
+  <text class="value" x="588.8" y="372">0.4%</text>
+  <path class="bar" d="M810 362h113.8a4 4 0 0 1 4 4v4a4 4 0 0 1 -4 4h-113.8z"><title>Speed + d1: words recognized 69.3%</title></path>
+  <text class="value" x="933.8" y="372">69.3%</text>
+  <text class="label" x="24" y="394">Speed + Prompt Guard 2</text>
+  <path class="bar" d="M290 384h33.0a4 4 0 0 1 4 4v4a4 4 0 0 1 -4 4h-33.0z"><title>Speed + Prompt Guard 2: detection rate 18.5%</title></path>
+  <text class="value" x="333.0" y="394">18.5%</text>
+  <path class="bar" d="M570 384h66.4a4 4 0 0 1 4 4v4a4 4 0 0 1 -4 4h-66.4z"><title>Speed + Prompt Guard 2: false positive rate 2.2%</title></path>
+  <text class="value" x="646.4" y="394">2.2%</text>
+  <path class="bar" d="M810 384h113.8a4 4 0 0 1 4 4v4a4 4 0 0 1 -4 4h-113.8z"><title>Speed + Prompt Guard 2: words recognized 69.3%</title></path>
+  <text class="value" x="933.8" y="394">69.3%</text>
+</svg>
