@@ -4,8 +4,9 @@ For a byte-identical image, an earlier run's OCR is reused when the OCR would
 be the same: the same OCR model, OCR mode and review (decision) model, the same
 OCR-related product sources and runtime packages. Its detection is reused too
 when, in addition, the detector, the detection settings, every product source
-and every recorded package version are the same; otherwise detection runs
-again. See ADR 0058.
+and every recorded package version are the same and the earlier detection
+completed without errors; otherwise detection runs again. See ADR 0058 and
+ADR 0064.
 """
 
 import hashlib
@@ -91,8 +92,9 @@ def read_json(path):
 def candidates(runs_root, scan_options, provenance, exclude=None):
     """Map entry key to the best completed earlier result with the same OCR identity.
 
-    A result whose full identity also matches carries its ``detection`` record
-    and is preferred; otherwise the newest is taken. ``runs_root`` holds
+    A result whose full identity also matches and whose detection completed
+    without errors carries its ``detection`` record and is preferred;
+    otherwise the newest is taken. ``runs_root`` holds
     evaluation runs (``<run>/benchmark/manifest.json``); ``exclude`` is the
     benchmark directory of the current run."""
     identity = ocr_identity(scan_options, provenance)
@@ -132,13 +134,25 @@ def candidates(runs_root, scan_options, provenance, exclude=None):
                     "run_id": directory.parent.name,
                     "configuration": name,
                     "session": str(directory / name / "session.json"),
-                    "detection": row.get("detection") if same_detection else None,
+                    "detection": row.get("detection")
+                    if same_detection and reusable_detection(row.get("detection"))
+                    else None,
                     "elapsed_seconds": row.get("elapsed_seconds"),
                 }
                 previous = found.get(row["key"])
                 if previous is None or rank(candidate) > rank(previous):
                     found[row["key"]] = candidate
     return found
+
+
+def reusable_detection(detection):
+    """A recorded detection that completed without errors.
+
+    A detection that raised records its error and an "unclear" verdict; the
+    cause (e.g. a missing runtime package) is not part of the identity, so
+    such a detection always runs again. Errors that follow from the OCR alone
+    cost nothing to recompute."""
+    return isinstance(detection, dict) and not detection.get("errors")
 
 
 def rank(candidate):

@@ -88,8 +88,9 @@ uv run python -m research.evaluate save-baseline <run-id>
   byte-identical image. The OCR is reused when OCR model, OCR mode, review
   model, OCR-related product sources and runtime packages are the same; the
   detection is reused as well when, in addition, the detector, detection
-  settings, every product source and every package version are the same.
-  Otherwise the missing part runs. A `cloud-google-jev` run after a
+  settings, every product source and every package version are the same and
+  the earlier detection completed without errors (ADR 0064). Otherwise the
+  missing part runs. A `cloud-google-jev` run after a
   `cloud-google` run therefore pays only for Jev, and repeating a run on
   unchanged code reuses everything. Reused rows keep the original time and cost
   (so totals compare with full runs); the report states how many images were
