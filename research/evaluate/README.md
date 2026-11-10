@@ -62,6 +62,8 @@ before committing a regenerated split.
 
 ## Run, compare, save
 
+![An evaluation scans the development split, reuses earlier OCR and detection where image, settings, code and packages match, writes a run summary, compares it with the saved baseline and can save it as the new baseline.](../../assets/diagrams/vipi-evaluation.svg)
+
 ```bash
 uv run python -m research.evaluate status local-speed
 uv run python -m research.evaluate run local-speed --dry-run

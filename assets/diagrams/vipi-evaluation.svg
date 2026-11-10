@@ -1,0 +1,103 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1040 384" role="img" aria-labelledby="title desc">
+  <title id="title">How an evaluation run works</title>
+  <desc id="desc">An evaluation scans every image of the development split (450 images; the test split of 104 only once). For each image VIPI looks for an earlier run with the same image bytes: if OCR settings, code and packages match and the earlier detection had no error, OCR and detection are reused; if only the OCR part matches, the OCR is reused and detection runs again; otherwise the image is scanned from scratch. The run summary holds metrics, time, cost, host and models. It is compared with the saved baseline, and a complete run can be saved as the new baseline in research/baselines and committed. --dry-run shows how many images are reused; --no-reuse-ocr scans everything.</desc>
+  <defs>
+    <style>
+      .bg { fill: #FFFFFF; stroke: rgba(11,12,16,.12); }
+      .dot { fill: rgba(11,12,16,.10); }
+      .card { fill: #F2F3F5; stroke: rgba(11,12,16,.16); }
+      .group { fill: none; stroke: rgba(11,12,16,.28); stroke-dasharray: 5 4; }
+      .ink { fill: #0B0C10; }
+      .wire { fill: none; stroke: #5C616C; stroke-width: 1.5; }
+      .dash { fill: none; stroke: #5C616C; stroke-width: 1.5; stroke-dasharray: 5 4; }
+      .head { fill: #5C616C; }
+      .title { fill: #0B0C10; font: 500 17px "Geist", "Helvetica Neue", Arial, sans-serif; letter-spacing: -0.01em; }
+      .title-inv { fill: #F2F3F5; font: 500 17px "Geist", "Helvetica Neue", Arial, sans-serif; letter-spacing: -0.01em; }
+      .mono { fill: #5C616C; font: 500 10px "Geist Mono", ui-monospace, Menlo, Consolas, monospace; letter-spacing: .06em; }
+      .step { fill: #0B0C10; font: 500 10px "Geist Mono", ui-monospace, Menlo, Consolas, monospace; letter-spacing: .08em; }
+      .mono-inv { fill: #A3A8B2; font: 500 10px "Geist Mono", ui-monospace, Menlo, Consolas, monospace; letter-spacing: .06em; }
+      .step-inv { fill: #F2F3F5; font: 500 10px "Geist Mono", ui-monospace, Menlo, Consolas, monospace; letter-spacing: .08em; }
+      .clean { fill: #30A46C; }
+      .injection { fill: #E5484D; }
+      .review { fill: #F5A524; }
+      .steel { fill: #5C616C; }
+      @media (prefers-color-scheme: dark) {
+        .bg { fill: #121318; stroke: rgba(242,243,245,.12); }
+        .dot { fill: rgba(242,243,245,.09); }
+        .card { fill: #0B0C10; stroke: rgba(242,243,245,.16); }
+        .group { stroke: rgba(242,243,245,.28); }
+        .ink { fill: #F2F3F5; }
+        .wire, .dash { stroke: #A3A8B2; }
+        .head, .steel { fill: #A3A8B2; }
+        .title, .step { fill: #F2F3F5; }
+        .title-inv, .step-inv { fill: #0B0C10; }
+        .mono { fill: #A3A8B2; }
+        .mono-inv { fill: #5C616C; }
+      }
+    </style>
+    <pattern id="raster" width="24" height="24" patternUnits="userSpaceOnUse" x="12" y="12">
+      <circle class="dot" cx="12" cy="12" r="1.2"/>
+    </pattern>
+  </defs>
+
+  <rect class="bg" x="0.5" y="0.5" width="1039" height="383" rx="4"/>
+  <rect x="1" y="1" width="1038" height="382" rx="4" fill="url(#raster)"/>
+
+  <rect class="card" x="24.5" y="40.5" width="190" height="124" rx="4"/>
+  <text class="step" x="40" y="66">01 · SPLIT</text>
+  <text class="title" x="40" y="94">Development split</text>
+  <text class="mono" x="40" y="120">450 IMAGES</text>
+  <text class="mono" x="40" y="136">TEST: 104, ONLY ONCE</text>
+  <path class="wire" d="M214 102H238"/>
+  <path class="head" d="M246 102l-9-5v10z"/>
+  <rect class="card" x="246.5" y="40.5" width="210" height="124" rx="4"/>
+  <text class="step" x="262" y="66">02 · REUSE</text>
+  <text class="title" x="262" y="94">Earlier runs</text>
+  <text class="mono" x="262" y="120">SAME IMAGE BYTES</text>
+  <text class="mono" x="262" y="136">OCR: SAME OCR + REVIEW</text>
+  <text class="mono" x="262" y="152">DETECT: SAME CODE, NO ERROR</text>
+  <path class="wire" d="M457 102H476M476 62V142"/>
+  <path class="wire" d="M476 62H486"/>
+  <path class="head" d="M494 62l-9-5v10z"/>
+  <rect class="clean" x="500" y="57" width="10" height="10"/>
+  <text class="step" x="518" y="66">BOTH REUSED</text>
+  <path class="wire" d="M730 62H760"/>
+  <path class="wire" d="M476 102H486"/>
+  <path class="head" d="M494 102l-9-5v10z"/>
+  <rect class="review" x="500" y="97" width="10" height="10"/>
+  <text class="step" x="518" y="106">OCR REUSED · DETECT AGAIN</text>
+  <path class="wire" d="M730 102H760"/>
+  <path class="wire" d="M476 142H486"/>
+  <path class="head" d="M494 142l-9-5v10z"/>
+  <rect class="steel" x="500" y="137" width="10" height="10"/>
+  <text class="step" x="518" y="146">SCAN FROM SCRATCH</text>
+  <path class="wire" d="M730 142H760"/>
+  <path class="wire" d="M760 62V142"/>
+  <path class="wire" d="M760 102H782"/>
+  <path class="head" d="M790 102l-9-5v10z"/>
+  <rect class="card" x="790.5" y="40.5" width="226" height="124" rx="4"/>
+  <text class="step" x="806" y="66">03 · SUMMARY</text>
+  <text class="title" x="806" y="94">Run summary</text>
+  <text class="mono" x="806" y="120">METRICS · TIME · COST</text>
+  <text class="mono" x="806" y="136">HOST · MODELS</text>
+  <text class="mono" x="806" y="152">REUSED IMAGES</text>
+  <path class="wire" d="M903 165V222"/>
+  <path class="head" d="M903 230l-5-9h10z"/>
+  <rect class="card" x="790.5" y="230.5" width="226" height="124" rx="4"/>
+  <text class="step" x="806" y="256">04 · COMPARE</text>
+  <text class="title" x="806" y="284">Baseline comparison</text>
+  <text class="mono" x="806" y="310">comparison.md</text>
+  <text class="mono" x="806" y="326">CHANGED IMAGES</text>
+  <text class="mono" x="806" y="342">SAME INPUTS?</text>
+  <path class="wire" d="M790 292H770"/>
+  <path class="head" d="M762 292l9-5v10z"/>
+  <rect class="ink" x="536" y="230" width="227" height="125" rx="4"/>
+  <text class="step-inv" x="552" y="256">05 · SAVE</text>
+  <text class="title-inv" x="552" y="284">New baseline</text>
+  <text class="mono-inv" x="552" y="310">research/baselines/</text>
+  <text class="mono-inv" x="552" y="326">COMMIT THE FILE</text>
+  <text class="step" x="24" y="268">--dry-run</text>
+  <text class="mono" x="24" y="286">SHOWS HOW MANY IMAGES ARE REUSED</text>
+  <text class="step" x="24" y="318">--no-reuse-ocr</text>
+  <text class="mono" x="24" y="336">SCANS EVERY IMAGE AGAIN</text>
+</svg>
