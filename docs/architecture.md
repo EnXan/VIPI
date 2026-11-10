@@ -13,6 +13,8 @@ the research web UI are not included in the wheel.
 
 ## Product boundaries
 
+![The product package vipi passes an image from the command line through inputs, scanner, OCR and detection to the report. The research tools import vipi; vipi never imports research or Flask.](../assets/diagrams/vipi-architecture.svg)
+
 | Module | Owns |
 | --- | --- |
 | `vipi.cli` | Argument parsing, terminal interaction and process exit codes |
