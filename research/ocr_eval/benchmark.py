@@ -52,7 +52,15 @@ CONFIGURATIONS = {
             "ocr_mode": mode,
             "detector": "prompt-guard",
         }
-        for mode in ("speed", "balanced", "quality")
+        for mode in ("speed", "balanced")
+    },
+    # Names its review provider like local-quality-clef-flash, so its OCR is
+    # reused from runs recorded before Clef-Flash became the quality default.
+    "local-quality-prompt-guard": {
+        "ocr_execution_mode": "local",
+        "ocr_mode": "quality",
+        "decision_provider": "clef-flash",
+        "detector": "prompt-guard",
     },
     **{
         f"cloud-{provider}": {"ocr_execution_mode": "cloud", "ocr_provider": provider}
