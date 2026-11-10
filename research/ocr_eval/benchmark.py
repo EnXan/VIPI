@@ -37,6 +37,12 @@ CONFIGURATIONS = {
         f"local-{mode}": {"ocr_execution_mode": "local", "ocr_mode": mode}
         for mode in ("speed", "balanced", "quality")
     },
+    # Quality OCR with Clef-Flash for review and detection instead of Clef.
+    "local-quality-clef-flash": {
+        "ocr_execution_mode": "local",
+        "ocr_mode": "quality",
+        "decision_provider": "clef-flash",
+    },
     **{
         f"cloud-{provider}": {"ocr_execution_mode": "cloud", "ocr_provider": provider}
         for provider in ("google", "openai", "mistral")

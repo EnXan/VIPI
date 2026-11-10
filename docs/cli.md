@@ -29,8 +29,8 @@ Without `--diff`, at least one path is required.
 | `--ocr-mode speed|balanced|quality|fast` | Local profile; `quality` is the scan default and `fast` aliases `speed`. Setup without this option prepares all OCR sizes. |
 | `--ocr-model ID` | Override OCR with `ppocr-v6`, `ppocr-v6-medium`, `ppocr-v6-small`, `ppocr-v6-tiny`, `google-cloud-vision`, `gpt-6-luna` or `mistral-ocr-4-1`. |
 | `--ocr-provider google|openai|mistral` | Cloud OCR selection, default Google. Requires explicit `--modus cloud`; cannot be combined with `--ocr-model`. |
-| `--decision-provider clef|d1|jev|openai` | OCR review model. Default local quality: Clef; other local profiles: d1; cloud: OpenAI Decisions. |
-| `--detector auto|jev|openai|prompt-guard|clef|d1` | Final text detector. Default `auto` follows the decision provider. |
+| `--decision-provider clef|clef-flash|d1|jev|openai` | OCR review model. Default local quality: Clef; other local profiles: d1; cloud: OpenAI Decisions. `clef-flash` is a smaller local Clef variant. |
+| `--detector auto|jev|openai|prompt-guard|clef|clef-flash|d1` | Final text detector. Default `auto` follows the decision provider. |
 | `-h`, `--help` | Show root or command help and exit without preparing models. |
 
 | Scan-only option | Meaning and default |
@@ -69,7 +69,7 @@ setting prevents fallback to the file. See [`.env.example`](../.env.example).
 | OpenAI OCR/review/detection | `OPENAI_API_KEY` |
 | Mistral OCR | `MISTRAL_API_KEY` |
 | Jev review/detection | `TYPESAFE_API_KEY`, alias `JEV_API_KEY` |
-| Clef/d1 | Prepared local weights and verified code; no inference API key |
+| Clef/Clef-Flash/d1 | Prepared local weights and verified code; no inference API key |
 | Prompt Guard | Prepared local weights; authorized Hugging Face access (`HF_TOKEN` or existing login) for downloads |
 
 The `ocr` extra supplies local OCR and shared image operations. Local decision
@@ -166,7 +166,7 @@ a live progress display when supported; redirected output uses a compact brand.
 | Windows | `%LOCALAPPDATA%/vipi/` |
 
 `XDG_CACHE_HOME/vipi/` overrides these defaults. OCR files live in `ocr/`, local
-decision models in `decisions/clef` and `decisions/d1`, Prompt Guard in
+decision models in `decisions/clef`, `decisions/clef-flash` and `decisions/d1`, Prompt Guard in
 `prompt-guard/`, and persistent input/variant/result artifacts in `runs/`.
 
 ## Platform validation status

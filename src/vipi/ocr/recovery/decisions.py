@@ -2,6 +2,8 @@
 
 import math
 
+from vipi.config import LOCAL_DECISION_PROVIDERS
+
 from vipi.ocr.merge import bounds
 from vipi.ocr.measured_transforms import ORIENTATIONS, orientation_view
 from vipi.ocr.transforms import render_view
@@ -125,7 +127,7 @@ class _AdaptiveDecider:
 
     def compare(self, original, incumbent, candidate, directory):
         """Compare actual OCR readings, with an explicit keep-current outcome."""
-        local = self.provider in {"clef", "d1"}
+        local = self.provider in LOCAL_DECISION_PROVIDERS
         state = {
             "task": VISUAL_TASK,
             "source_image": "<source-image>",

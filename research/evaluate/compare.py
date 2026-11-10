@@ -252,7 +252,10 @@ def code_surface(baseline, candidate, root):
 def compare(baseline, candidate, root=benchmark.ROOT):
     """Compare two run summaries of the same configuration and split."""
     root = Path(root)
-    differences = suite.differences(baseline["manifest"], candidate["manifest"])
+    differences = suite.differences(
+        suite.comparable(baseline["manifest"], baseline.get("implementation"), root),
+        suite.comparable(candidate["manifest"], candidate.get("implementation"), root),
+    )
     first, second = local_report(baseline, root), local_report(candidate, root)
     changes = case_changes(first["rows"], second["rows"]) if first and second else None
     return {

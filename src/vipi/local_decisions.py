@@ -1,4 +1,4 @@
-"""Pinned Clef/d1 inference shared by OCR review and injection detection."""
+"""Pinned Clef, Clef-Flash and d1 inference shared by OCR review and detection."""
 
 import hashlib
 import importlib.util
@@ -40,7 +40,7 @@ def validate_model(name, directory):
         if index.is_file()
         else {"model.safetensors"}
     )
-    if name == "clef":
+    if metadata["runtime"] == "clef":
         weights.add("joint_head.safetensors")
     for filename in ["config.json", "tokenizer_config.json", *weights]:
         if not (directory / filename).is_file():
@@ -84,6 +84,7 @@ class LocalDecisionModel:
         self.name = name
         self.directory = Path(directory).resolve()
         metadata = validate_model(name, self.directory)
+        self.runtime = metadata["runtime"]  # "clef" (Clef, Clef-Flash) or "d1"
         self.model = metadata["repository"]
         self.identity = {
             "model": self.model,
@@ -110,7 +111,7 @@ class LocalDecisionModel:
                     device, dtype = "mps", torch.float16
                 else:
                     device, dtype = "cpu", torch.float32
-                if self.name == "d1":
+                if self.runtime == "d1":
                     from transformers import AutoModel
 
                     model = (
@@ -160,7 +161,7 @@ class LocalDecisionModel:
         model, processor, module, torch, lock = self._runtime()
         with lock, torch.inference_mode():
             try:
-                if self.name == "d1":
+                if self.runtime == "d1":
                     return model.system_one(state, questions, images=images or None)
                 request = {
                     "model": self.model,

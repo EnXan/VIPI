@@ -256,7 +256,10 @@ def run(
     )
     if request_path.exists():
         request = json.loads(request_path.read_text(encoding="utf-8"))
-        if request["manifest"] != manifest:
+        recorded = suite.comparable(
+            request["manifest"], request.get("implementation"), root
+        )
+        if recorded != manifest:
             raise ValueError(f"{directory} belongs to a different run request.")
     else:
         request = {

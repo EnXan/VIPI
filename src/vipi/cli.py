@@ -181,7 +181,7 @@ def build_parser():
         target.add_argument(
             "--decision-provider",
             choices=DECISION_PROVIDERS,
-            help="Decision model: local quality=clef, balanced/speed/fast=d1; cloud=openai by default or jev",
+            help="Decision model: local quality=clef, balanced/speed/fast=d1, or clef-flash; cloud=openai by default or jev",
         )
         target.add_argument(
             "--ocr-provider",
