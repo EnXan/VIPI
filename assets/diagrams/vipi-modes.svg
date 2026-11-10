@@ -1,0 +1,106 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1040 392" role="img" aria-labelledby="title desc">
+  <title id="title">Local and cloud mode</title>
+  <desc id="desc">Local mode: install vipi-scanner with the ocr and detector-local extras, run vipi setup with the OCR mode to download pinned models (Prompt Guard needs a Hugging Face token), then scan without API calls; OCR runs on the CPU, Clef-Flash and d1 on CUDA, Apple MPS or CPU, and images stay on the machine. Cloud mode: install vipi-scanner with the ocr extra, run vipi setup --modus cloud, which downloads nothing and costs nothing, set the provider API keys, then scan with --modus cloud; images go to the providers and each request is billed. Local and cloud cannot be mixed and there is no fallback.</desc>
+  <defs>
+    <style>
+      .bg { fill: #FFFFFF; stroke: rgba(11,12,16,.12); }
+      .dot { fill: rgba(11,12,16,.10); }
+      .card { fill: #F2F3F5; stroke: rgba(11,12,16,.16); }
+      .group { fill: none; stroke: rgba(11,12,16,.28); stroke-dasharray: 5 4; }
+      .ink { fill: #0B0C10; }
+      .wire { fill: none; stroke: #5C616C; stroke-width: 1.5; }
+      .dash { fill: none; stroke: #5C616C; stroke-width: 1.5; stroke-dasharray: 5 4; }
+      .head { fill: #5C616C; }
+      .title { fill: #0B0C10; font: 500 17px "Geist", "Helvetica Neue", Arial, sans-serif; letter-spacing: -0.01em; }
+      .title-inv { fill: #F2F3F5; font: 500 17px "Geist", "Helvetica Neue", Arial, sans-serif; letter-spacing: -0.01em; }
+      .mono { fill: #5C616C; font: 500 10px "Geist Mono", ui-monospace, Menlo, Consolas, monospace; letter-spacing: .06em; }
+      .step { fill: #0B0C10; font: 500 10px "Geist Mono", ui-monospace, Menlo, Consolas, monospace; letter-spacing: .08em; }
+      .mono-inv { fill: #A3A8B2; font: 500 10px "Geist Mono", ui-monospace, Menlo, Consolas, monospace; letter-spacing: .06em; }
+      .step-inv { fill: #F2F3F5; font: 500 10px "Geist Mono", ui-monospace, Menlo, Consolas, monospace; letter-spacing: .08em; }
+      .clean { fill: #30A46C; }
+      .injection { fill: #E5484D; }
+      .review { fill: #F5A524; }
+      .steel { fill: #5C616C; }
+      @media (prefers-color-scheme: dark) {
+        .bg { fill: #121318; stroke: rgba(242,243,245,.12); }
+        .dot { fill: rgba(242,243,245,.09); }
+        .card { fill: #0B0C10; stroke: rgba(242,243,245,.16); }
+        .group { stroke: rgba(242,243,245,.28); }
+        .ink { fill: #F2F3F5; }
+        .wire, .dash { stroke: #A3A8B2; }
+        .head, .steel { fill: #A3A8B2; }
+        .title, .step { fill: #F2F3F5; }
+        .title-inv, .step-inv { fill: #0B0C10; }
+        .mono { fill: #A3A8B2; }
+        .mono-inv { fill: #5C616C; }
+      }
+    </style>
+    <pattern id="raster" width="24" height="24" patternUnits="userSpaceOnUse" x="12" y="12">
+      <circle class="dot" cx="12" cy="12" r="1.2"/>
+    </pattern>
+  </defs>
+
+  <rect class="bg" x="0.5" y="0.5" width="1039" height="391" rx="4"/>
+  <rect x="1" y="1" width="1038" height="390" rx="4" fill="url(#raster)"/>
+
+  <text class="step" x="24" y="40">LOCAL · IMAGES STAY ON THIS MACHINE</text>
+  <rect class="card" x="24.5" y="54.5" width="226" height="124" rx="4"/>
+  <text class="step" x="40" y="80">01 · INSTALL</text>
+  <text class="title" x="40" y="108">Install</text>
+  <text class="mono" x="40" y="134">vipi-scanner[ocr,</text>
+  <text class="mono" x="40" y="150">  detector-local]</text>
+  <rect class="card" x="278.5" y="54.5" width="226" height="124" rx="4"/>
+  <text class="step" x="294" y="80">02 · SETUP</text>
+  <text class="title" x="294" y="108">Download models</text>
+  <text class="mono" x="294" y="134">vipi setup</text>
+  <text class="mono" x="294" y="150">--ocr-mode balanced</text>
+  <text class="mono" x="294" y="166">PROMPT GUARD: HF_TOKEN</text>
+  <path class="wire" d="M250 116H270"/>
+  <path class="head" d="M278 116l-9-5v10z"/>
+  <rect class="card" x="532.5" y="54.5" width="226" height="124" rx="4"/>
+  <text class="step" x="548" y="80">03 · HARDWARE</text>
+  <text class="title" x="548" y="108">Runs on device</text>
+  <text class="mono" x="548" y="134">OCR ON CPU</text>
+  <text class="mono" x="548" y="150">CLEF-FLASH · D1 ON</text>
+  <text class="mono" x="548" y="166">CUDA · MPS · CPU</text>
+  <path class="wire" d="M504 116H524"/>
+  <path class="head" d="M532 116l-9-5v10z"/>
+  <rect class="ink" x="786" y="54" width="227" height="125" rx="4"/>
+  <text class="step-inv" x="802" y="80">04 · SCAN</text>
+  <text class="title-inv" x="802" y="108">Scan</text>
+  <text class="mono-inv" x="802" y="134">vipi scan image.png</text>
+  <text class="mono-inv" x="802" y="150">--ocr-mode balanced</text>
+  <text class="mono-inv" x="802" y="166">FREE · NO API CALLS</text>
+  <path class="wire" d="M758 116H778"/>
+  <path class="head" d="M786 116l-9-5v10z"/>
+  <text class="step" x="24" y="226">CLOUD · IMAGES GO TO THE PROVIDERS</text>
+  <rect class="card" x="24.5" y="240.5" width="226" height="124" rx="4"/>
+  <text class="step" x="40" y="266">01 · INSTALL</text>
+  <text class="title" x="40" y="294">Install</text>
+  <text class="mono" x="40" y="320">vipi-scanner[ocr]</text>
+  <rect class="card" x="278.5" y="240.5" width="226" height="124" rx="4"/>
+  <text class="step" x="294" y="266">02 · SETUP</text>
+  <text class="title" x="294" y="294">Check settings</text>
+  <text class="mono" x="294" y="320">vipi setup --modus cloud</text>
+  <text class="mono" x="294" y="336">NO DOWNLOAD</text>
+  <text class="mono" x="294" y="352">NO CHARGE</text>
+  <path class="wire" d="M250 302H270"/>
+  <path class="head" d="M278 302l-9-5v10z"/>
+  <rect class="card" x="532.5" y="240.5" width="226" height="124" rx="4"/>
+  <text class="step" x="548" y="266">03 · API KEYS</text>
+  <text class="title" x="548" y="294">Provider keys</text>
+  <text class="mono" x="548" y="320">GOOGLE_CLOUD_API_KEY</text>
+  <text class="mono" x="548" y="336">OPENAI_API_KEY</text>
+  <text class="mono" x="548" y="352">+ MISTRAL, TYPESAFE IF USED</text>
+  <path class="wire" d="M504 302H524"/>
+  <path class="head" d="M532 302l-9-5v10z"/>
+  <rect class="ink" x="786" y="240" width="227" height="125" rx="4"/>
+  <text class="step-inv" x="802" y="266">04 · SCAN</text>
+  <text class="title-inv" x="802" y="294">Scan</text>
+  <text class="mono-inv" x="802" y="320">vipi scan image.png</text>
+  <text class="mono-inv" x="802" y="336">--modus cloud</text>
+  <text class="mono-inv" x="802" y="352">BILLED PER REQUEST</text>
+  <path class="wire" d="M758 302H778"/>
+  <path class="head" d="M786 302l-9-5v10z"/>
+  <text class="mono" x="1012" y="226" text-anchor="end">NO MIXING · NO FALLBACK</text>
+</svg>
