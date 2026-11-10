@@ -92,10 +92,10 @@ Development split of the
 | Cloud OCR | Detector | Detection rate | False positive rate | Words recognized |
 | :-- | :-- | --: | --: | --: |
 | Mistral OCR 4.1 | TypeSafe Jev 1.14 | 81.5% | **0.4%** | 83.2% |
-| Mistral OCR 4.1 | OpenAI GPT-6 Luna | **85.0%** | 4.5% | 83.2% |
-| OpenAI GPT-6 Luna | OpenAI GPT-6 Luna | 83.3% | 4.5% | **94.5%** |
+| Mistral OCR 4.1 | OpenAI GPT-6 Luna (Decisions API) | **85.0%** | 4.5% | 83.2% |
+| OpenAI GPT-6 Luna | OpenAI GPT-6 Luna (Decisions API) | 83.3% | 4.5% | **94.5%** |
 | OpenAI GPT-6 Luna | TypeSafe Jev 1.14 | 78.9% | 1.3% | **94.5%** |
-| Google Cloud Vision | OpenAI GPT-6 Luna (default) | 78.4% | 3.6% | 87.4% |
+| Google Cloud Vision | OpenAI GPT-6 Luna (Decisions API, default) | 78.4% | 3.6% | 87.4% |
 | Google Cloud Vision | TypeSafe Jev 1.14 | 74.0% | 0.9% | 87.4% |
 
 | Local OCR | Detector | Detection rate | False positive rate | Words recognized |
