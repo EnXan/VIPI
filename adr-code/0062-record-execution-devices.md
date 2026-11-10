@@ -20,7 +20,19 @@ baseline what it ran on, including the host hardware.
   `summary.json` (and so in a saved baseline): the host (system, CPU name,
   physical and logical CPUs, RAM via `psutil`, and the GPU used, with its
   memory on CUDA) and, for OCR, OCR review and injection detector, the model
-  and its device and dtype, or `api` for hosted providers.
+  and its device and dtype, or `api` for hosted providers. A hosted OCR
+  review or detector records the model ID its provider sends (for example
+  `gpt-6-luna` through the OpenAI Decisions API, `jev-1.14.0` through the
+  TypeSafe API) with `provider` and `service`, read from the provider class
+  so the record follows the code. Hosted OCR records the same `provider`
+  and `service` fields: Google Cloud Vision `DOCUMENT_TEXT_DETECTION`, the
+  OpenAI Responses API or the Mistral OCR API (`vipi.ocr.cloud`), so a
+  baseline shows that `gpt-6-luna` reads text through the Responses API but
+  checks it through the Decisions API. The cloud baselines saved before this
+  change, which held only the provider name (`openai`, `jev`) and no OCR service, were
+  updated to this form: the IDs and endpoints match the provider code at each
+  run's commit, and the IDs match the models the APIs reported in the run's
+  results.
 - The torch device rule is repeated from the product instead of importing a
   new product helper. Any change under `src/vipi/` changes the OCR identity
   and would make every earlier result unusable for reuse (ADR 0058), so cloud

@@ -14,8 +14,21 @@ import platform
 import subprocess
 
 from vipi.config import LOCAL_DECISION_PROVIDERS, ScanOptions
+from vipi.detection.providers.jev import Jev
+from vipi.detection.providers.openai import Decisions
 
 TORCH_MODELS = (*LOCAL_DECISION_PROVIDERS, "prompt-guard")
+# Hosted decision providers: the model ID each sends and the API it calls.
+CLOUD_DECISION_MODELS = {
+    "openai": (Decisions.model, "OpenAI Decisions API"),
+    "jev": (Jev.model, "TypeSafe API"),
+}
+# The API each hosted OCR provider calls (vipi.ocr.cloud).
+CLOUD_OCR_SERVICES = {
+    "google": "Google Cloud Vision DOCUMENT_TEXT_DETECTION",
+    "openai": "OpenAI Responses API",
+    "mistral": "Mistral OCR API",
+}
 
 
 def sysctl(key):
@@ -88,7 +101,8 @@ def record(scan_options, *, device=None, host=None):
             }
         if name == "prompt-guard":
             return {"model": name, "device": "cpu", "dtype": "float32"}
-        return {"model": name, "device": "api"}
+        model, service = CLOUD_DECISION_MODELS[name]
+        return {"model": model, "provider": name, "service": service, "device": "api"}
 
     local_ocr = options.resolved_ocr_execution_mode == "local"
     return {
@@ -102,10 +116,13 @@ def record(scan_options, *, device=None, host=None):
                 if key in ("name", "memory_bytes")
             },
         },
-        "ocr": {
+        "ocr": {"model": options.resolved_ocr_model, "device": "cpu"}
+        if local_ocr
+        else {
             "model": options.resolved_ocr_model,
-            "device": "cpu" if local_ocr else "api",
-            **({} if local_ocr else {"provider": options.resolved_ocr_provider}),
+            "provider": options.resolved_ocr_provider,
+            "service": CLOUD_OCR_SERVICES[options.resolved_ocr_provider],
+            "device": "api",
         },
         "decision": component(options.resolved_decision_provider),
         "detector": component(options.resolved_detector),
@@ -114,7 +131,7 @@ def record(scan_options, *, device=None, host=None):
 
 def describe_component(value):
     if value["device"] == "api":
-        return f"{value['model']} via API"
+        return f"{value['model']} via {value.get('service', 'API')}"
     precision = f", {value['dtype']}" if value.get("dtype") else ""
     return f"{value['model']} on {value['device'].upper()}{precision}"
 

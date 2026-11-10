@@ -186,15 +186,20 @@
     },
     "ocr": {
       "model": "google-cloud-vision",
-      "device": "api",
-      "provider": "google"
+      "provider": "google",
+      "service": "Google Cloud Vision DOCUMENT_TEXT_DETECTION",
+      "device": "api"
     },
     "decision": {
-      "model": "openai",
+      "model": "gpt-6-luna",
+      "provider": "openai",
+      "service": "OpenAI Decisions API",
       "device": "api"
     },
     "detector": {
-      "model": "openai",
+      "model": "gpt-6-luna",
+      "provider": "openai",
+      "service": "OpenAI Decisions API",
       "device": "api"
     },
     "backfilled": {

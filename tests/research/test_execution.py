@@ -67,12 +67,41 @@ def test_cloud_configurations_use_apis_and_do_not_load_torch():
     assert value["host"]["gpu"] is None
     assert value["ocr"] == {
         "model": "google-cloud-vision",
-        "device": "api",
         "provider": "google",
+        "service": "Google Cloud Vision DOCUMENT_TEXT_DETECTION",
+        "device": "api",
     }
-    assert value["decision"] == {"model": "openai", "device": "api"}
-    assert value["detector"] == {"model": "jev", "device": "api"}
-    assert "no GPU used" in execution.report_lines(value)[3]
+    assert value["decision"] == {
+        "model": "gpt-6-luna",
+        "provider": "openai",
+        "service": "OpenAI Decisions API",
+        "device": "api",
+    }
+    assert value["detector"] == {
+        "model": "jev-1.14.0",
+        "provider": "jev",
+        "service": "TypeSafe API",
+        "device": "api",
+    }
+    lines = execution.report_lines(value)
+    assert "no GPU used" in lines[3]
+    assert lines[5] == (
+        "OCR: google-cloud-vision via Google Cloud Vision DOCUMENT_TEXT_DETECTION. "
+        "OCR review: gpt-6-luna via OpenAI Decisions API. "
+        "Injection detector: jev-1.14.0 via TypeSafe API."
+    )
+
+
+def test_cloud_model_ids_follow_the_providers():
+    from vipi.detection.providers.jev import Jev
+    from vipi.detection.providers.openai import Decisions
+
+    value, _ = record("cloud-openai", None)
+    assert value["decision"]["model"] == value["detector"]["model"] == Decisions.model
+    assert value["ocr"]["service"] == "OpenAI Responses API"
+    mistral, _ = record("cloud-mistral-jev", None)
+    assert mistral["detector"]["model"] == Jev.model
+    assert mistral["ocr"]["service"] == "Mistral OCR API"
 
 
 def test_machine_reports_this_host():

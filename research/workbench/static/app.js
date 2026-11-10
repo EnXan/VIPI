@@ -221,7 +221,7 @@ function describeHost(run) {
   const hardware = run.host?.hardware || {};
   return [hardware['machdep.cpu.brand_string'], hardware['hw.memsize'] && `${gibibytes(Number(hardware['hw.memsize']))} RAM`].filter(Boolean).join(' · ');
 }
-const describeDevice = part => part.device === 'api' ? `${part.model} via API` : `${part.model} on ${part.device.toUpperCase()}${part.dtype ? ` (${part.dtype})` : ''}`;
+const describeDevice = part => part.device === 'api' ? `${part.model} via ${part.service || 'API'}` : `${part.model} on ${part.device.toUpperCase()}${part.dtype ? ` (${part.dtype})` : ''}`;
 function describeExecution(run) {
   const host = describeHost(run);
   if (!host) return '';

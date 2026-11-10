@@ -192,15 +192,20 @@
     },
     "ocr": {
       "model": "google-cloud-vision",
-      "device": "api",
-      "provider": "google"
+      "provider": "google",
+      "service": "Google Cloud Vision DOCUMENT_TEXT_DETECTION",
+      "device": "api"
     },
     "decision": {
-      "model": "openai",
+      "model": "gpt-6-luna",
+      "provider": "openai",
+      "service": "OpenAI Decisions API",
       "device": "api"
     },
     "detector": {
-      "model": "jev",
+      "model": "jev-1.14.0",
+      "provider": "jev",
+      "service": "TypeSafe API",
       "device": "api"
     },
     "backfilled": {
