@@ -1,0 +1,91 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1040 378" role="img" aria-labelledby="title desc">
+  <title id="title">How images get into the VIPI dataset</title>
+  <desc id="desc">Download the dataset at the commit pinned in dataset.json with research.download; no account is needed. On the workbench Dataset page or with research.curation, add images with label, content type, source, license and provenance (duplicates are skipped), then label and review them: classification, OCR reference and payload, keeping each content type at 50 percent benign. After hf auth login, submit only your changes as a pull request on Hugging Face. A maintainer reviews image, labels and source; merging accepts them. To use them in VIPI, a GitHub pull request updates the revision in dataset.json and research.download fetches it.</desc>
+  <defs>
+    <style>
+      .bg { fill: #FFFFFF; stroke: rgba(11,12,16,.12); }
+      .dot { fill: rgba(11,12,16,.10); }
+      .card { fill: #F2F3F5; stroke: rgba(11,12,16,.16); }
+      .group { fill: none; stroke: rgba(11,12,16,.28); stroke-dasharray: 5 4; }
+      .ink { fill: #0B0C10; }
+      .wire { fill: none; stroke: #5C616C; stroke-width: 1.5; }
+      .dash { fill: none; stroke: #5C616C; stroke-width: 1.5; stroke-dasharray: 5 4; }
+      .head { fill: #5C616C; }
+      .title { fill: #0B0C10; font: 500 17px "Geist", "Helvetica Neue", Arial, sans-serif; letter-spacing: -0.01em; }
+      .title-inv { fill: #F2F3F5; font: 500 17px "Geist", "Helvetica Neue", Arial, sans-serif; letter-spacing: -0.01em; }
+      .mono { fill: #5C616C; font: 500 10px "Geist Mono", ui-monospace, Menlo, Consolas, monospace; letter-spacing: .06em; }
+      .step { fill: #0B0C10; font: 500 10px "Geist Mono", ui-monospace, Menlo, Consolas, monospace; letter-spacing: .08em; }
+      .mono-inv { fill: #A3A8B2; font: 500 10px "Geist Mono", ui-monospace, Menlo, Consolas, monospace; letter-spacing: .06em; }
+      .step-inv { fill: #F2F3F5; font: 500 10px "Geist Mono", ui-monospace, Menlo, Consolas, monospace; letter-spacing: .08em; }
+      .clean { fill: #30A46C; }
+      .injection { fill: #E5484D; }
+      .review { fill: #F5A524; }
+      .steel { fill: #5C616C; }
+      @media (prefers-color-scheme: dark) {
+        .bg { fill: #121318; stroke: rgba(242,243,245,.12); }
+        .dot { fill: rgba(242,243,245,.09); }
+        .card { fill: #0B0C10; stroke: rgba(242,243,245,.16); }
+        .group { stroke: rgba(242,243,245,.28); }
+        .ink { fill: #F2F3F5; }
+        .wire, .dash { stroke: #A3A8B2; }
+        .head, .steel { fill: #A3A8B2; }
+        .title, .step { fill: #F2F3F5; }
+        .title-inv, .step-inv { fill: #0B0C10; }
+        .mono { fill: #A3A8B2; }
+        .mono-inv { fill: #5C616C; }
+      }
+    </style>
+    <pattern id="raster" width="24" height="24" patternUnits="userSpaceOnUse" x="12" y="12">
+      <circle class="dot" cx="12" cy="12" r="1.2"/>
+    </pattern>
+  </defs>
+
+  <rect class="bg" x="0.5" y="0.5" width="1039" height="377" rx="4"/>
+  <rect x="1" y="1" width="1038" height="376" rx="4" fill="url(#raster)"/>
+
+  <rect class="card" x="24.5" y="40.5" width="300" height="124" rx="4"/>
+  <text class="step" x="40" y="66">00 · DOWNLOAD</text>
+  <text class="title" x="40" y="94">Pinned dataset</text>
+  <text class="mono" x="40" y="120">research.download</text>
+  <text class="mono" x="40" y="136">COMMIT IN dataset.json</text>
+  <text class="mono" x="40" y="152">NO ACCOUNT NEEDED</text>
+  <rect class="card" x="370.5" y="40.5" width="300" height="124" rx="4"/>
+  <text class="step" x="386" y="66">01 · ADD</text>
+  <text class="title" x="386" y="94">Add images</text>
+  <text class="mono" x="386" y="120">LABEL · CONTENT TYPE</text>
+  <text class="mono" x="386" y="136">SOURCE · LICENSE</text>
+  <text class="mono" x="386" y="152">DUPLICATES SKIPPED</text>
+  <path class="wire" d="M324 102H362"/>
+  <path class="head" d="M370 102l-9-5v10z"/>
+  <rect class="card" x="716.5" y="40.5" width="300" height="124" rx="4"/>
+  <text class="step" x="732" y="66">02 · LABEL</text>
+  <text class="title" x="732" y="94">Label and review</text>
+  <text class="mono" x="732" y="120">CLASSIFICATION</text>
+  <text class="mono" x="732" y="136">OCR REFERENCE · PAYLOAD</text>
+  <text class="mono" x="732" y="152">50 % BENIGN PER TYPE</text>
+  <path class="wire" d="M670 102H708"/>
+  <path class="head" d="M716 102l-9-5v10z"/>
+  <path class="wire" d="M866 165V222"/>
+  <path class="head" d="M866 230l-5-9h10z"/>
+  <rect class="card" x="716.5" y="230.5" width="300" height="124" rx="4"/>
+  <text class="step" x="732" y="256">03 · SUBMIT</text>
+  <text class="title" x="732" y="284">Submit changes</text>
+  <text class="mono" x="732" y="310">hf auth login</text>
+  <text class="mono" x="732" y="326">ONLY YOUR CHANGES</text>
+  <text class="mono" x="732" y="342">→ HUGGING FACE PR</text>
+  <rect class="card" x="370.5" y="230.5" width="300" height="124" rx="4"/>
+  <text class="step" x="386" y="256">04 · REVIEW</text>
+  <text class="title" x="386" y="284">Maintainer review</text>
+  <text class="mono" x="386" y="310">IMAGE · LABELS · SOURCE</text>
+  <text class="mono" x="386" y="326">MERGE = ACCEPTED</text>
+  <path class="wire" d="M716 292H678"/>
+  <path class="head" d="M670 292l9-5v10z"/>
+  <rect class="ink" x="24" y="230" width="301" height="125" rx="4"/>
+  <text class="step-inv" x="40" y="256">05 · ADOPT</text>
+  <text class="title-inv" x="40" y="284">Use in VIPI</text>
+  <text class="mono-inv" x="40" y="310">GITHUB PR: NEW REVISION</text>
+  <text class="mono-inv" x="40" y="326">IN dataset.json</text>
+  <text class="mono-inv" x="40" y="342">research.download</text>
+  <path class="wire" d="M370 292H332"/>
+  <path class="head" d="M324 292l9-5v10z"/>
+</svg>
