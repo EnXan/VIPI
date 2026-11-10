@@ -118,6 +118,12 @@ git push origin v0.1.3
   distinct. Reuse their existing contracts before adding new abstractions.
 - Use [architecture](docs/architecture.md), [CLI usage](docs/cli.md) and
   [development](docs/development.md) for current behavior and commands.
+- [docs/cli.md](docs/cli.md) (`vipi setup`, `vipi scan`) and
+  [docs/research-cli.md](docs/research-cli.md) (every `research` command) are
+  the complete command references: each subcommand, argument and option with
+  its purpose and default. A change that adds, removes or changes one updates
+  the reference in the same PR; `tests/research/test_cli_reference.py` fails
+  when a subcommand or option is missing.
 - For dataset work, read [research/curation/README.md](research/curation/README.md),
   the [labeling guide](research/curation/LABELING_GUIDE.md) and the dataset in
   `research/dataset/` before changing data. Preserve source files, exact
