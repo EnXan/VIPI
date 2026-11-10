@@ -35,7 +35,7 @@ Temporary planning and review queues belong in `.llm-plans/`.
 | [0055](0055-workbench-without-research-model-tools.md) | A product-only workbench without research model tools (replaces 0014, 0017, 0018, 0019, 0024, 0026) |
 | [0056](0056-contribute-only-changes.md) | Contributors add or generate images locally and submit only their changes |
 | [0057](0057-jev-detector-configurations.md) | Jev detector configurations for evaluation (amends 0054) |
-| [0058](0058-reuse-ocr-across-runs.md) | Reuse OCR results across evaluation runs |
+| [0058](0058-reuse-ocr-across-runs.md) | Reuse OCR and detection results across evaluation runs |
 
 When revising an agreed decision, write its replacement with a summary of the
 old ADR (identifier, decision, rationale and reason for revision), then delete

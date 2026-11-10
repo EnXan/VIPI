@@ -170,6 +170,7 @@ def create_app(
         return jsonify(
             entries=planned["entries"],
             reusable_ocr=planned.get("reusable_ocr", 0),
+            reusable_complete=planned.get("reusable_complete", 0),
             baseline=baseline,
         )
 

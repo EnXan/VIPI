@@ -229,12 +229,33 @@ def detect_reused(ocr, options, provider):
     return ScanResult(ocr, detection, provider.model, provider.identity)
 
 
+def scanned_record(result, options):
+    scanned = file_record(result)
+    return {
+        "status": "completed",
+        "artifacts": str(result.ocr.artifacts),
+        "result_sha256": digest(result.ocr.artifacts / "result.json"),
+        "pipeline_seconds": result.ocr.elapsed_seconds,
+        "cost": result.ocr.cost,
+        "detection": {
+            "verdict": scanned["verdict"],
+            "max_score": scanned["signals"]
+            .get(options.resolved_detector, {})
+            .get("max_score"),
+            "errors": scanned["errors"],
+            "seconds": scanned["detection_seconds"],
+            "cost": scanned["detection_cost"],
+        },
+    }
+
+
 def worker(directory, configuration, rows, reuse=None):
     """Scan without references; write each result before starting the next image.
 
-    ``reuse`` maps entry keys to earlier OCR results (``ocr_reuse.matching``);
-    those images only run detection. The OCR session opens on the first image
-    that needs OCR."""
+    ``reuse`` maps entry keys to earlier results (``ocr_reuse.matching``):
+    with a matching detection the earlier result is taken whole, otherwise
+    only detection runs. The OCR session opens on the first image that needs
+    OCR."""
     reuse = reuse or {}
     if is_local(configuration):
         os.environ["HF_HUB_OFFLINE"] = "1"
@@ -277,7 +298,12 @@ def worker(directory, configuration, rows, reuse=None):
             write_json(directory / "current.json", record)
             try:
                 earlier = reuse.get(row["key"])
-                ocr = ocr_reuse.restore(earlier) if earlier else None
+                whole = bool(earlier and earlier["detection"])
+                ocr = (
+                    ocr_reuse.restore(earlier, with_detection=whole)
+                    if earlier
+                    else None
+                )
                 if ocr is not None:
                     record["artifacts"] = str(ocr.artifacts)
                     write_json(directory / "current.json", record)
@@ -285,38 +311,35 @@ def worker(directory, configuration, rows, reuse=None):
                     if not session_path.exists() and Path(earlier["session"]).is_file():
                         # Same OCR identity: the earlier session describes this OCR.
                         session_path.write_bytes(Path(earlier["session"]).read_bytes())
-                    result = detect_reused(ocr, options, provider)
-                else:
-                    session = session or open_session()
-                    result = scan_image(
-                        path,
-                        options=options,
-                        session=session,
-                        provider=provider,
-                        on_event=event,
+                if ocr is not None and whole:
+                    # Same OCR and detection identity: the earlier result stands.
+                    record.update(
+                        status="completed",
+                        artifacts=str(ocr.artifacts),
+                        result_sha256=digest(ocr.artifacts / "result.json"),
+                        pipeline_seconds=earlier["pipeline_seconds"],
+                        cost=earlier["cost"],
+                        detection=earlier["detection"],
                     )
-                scanned = file_record(result)
-                record.update(
-                    status="completed",
-                    artifacts=str(result.ocr.artifacts),
-                    result_sha256=digest(result.ocr.artifacts / "result.json"),
-                    pipeline_seconds=result.ocr.elapsed_seconds,
-                    cost=result.ocr.cost,
-                    detection={
-                        "verdict": scanned["verdict"],
-                        "max_score": scanned["signals"]
-                        .get(options.resolved_detector, {})
-                        .get("max_score"),
-                        "errors": scanned["errors"],
-                        "seconds": scanned["detection_seconds"],
-                        "cost": scanned["detection_cost"],
-                    },
-                )
+                else:
+                    if ocr is not None:
+                        result = detect_reused(ocr, options, provider)
+                    else:
+                        session = session or open_session()
+                        result = scan_image(
+                            path,
+                            options=options,
+                            session=session,
+                            provider=provider,
+                            on_event=event,
+                        )
+                    record.update(scanned_record(result, options))
                 if ocr is not None:
                     record["ocr_reused_from"] = {
                         "run_id": earlier["run_id"],
                         "configuration": earlier["configuration"],
                         "run": Path(earlier["artifacts"]).name,
+                        "detection": whole,
                     }
             except Exception as error:
                 record.update(
@@ -328,9 +351,13 @@ def worker(directory, configuration, rows, reuse=None):
                 elapsed_seconds=time.perf_counter() - started, finished_at=utc_now()
             )
             if "ocr_reused_from" in record:
-                # Original OCR time plus this detection, comparable with full runs.
-                record["elapsed_seconds"] = (record["pipeline_seconds"] or 0) + (
-                    record["detection"]["seconds"] or 0
+                # Original times, comparable with full runs: the earlier image
+                # time, or the earlier OCR time plus this detection.
+                record["elapsed_seconds"] = (
+                    earlier["elapsed_seconds"]
+                    if record["ocr_reused_from"]["detection"]
+                    else (record["pipeline_seconds"] or 0)
+                    + (record["detection"]["seconds"] or 0)
                 )
             write_json(
                 directory / "rows" / f"{row['key'].replace(':', '-')}.json", record

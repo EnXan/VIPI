@@ -76,7 +76,7 @@
           <label><input type="radio" name="split" value="test"> <span><strong>Test split</strong> <span id="split-test-count" class="muted"></span><br><span class="muted">Only once, to confirm a change before a default changes. Never tune on it.</span></span></label>
         </fieldset>
         <label id="test-confirm-row" class="confirm" hidden><input id="test-confirm" type="checkbox"> I confirm this is the one-time confirmation run on the test split.</label>
-        <label class="confirm"><input id="reuse-ocr" type="checkbox" checked> <span>Reuse OCR results from earlier runs when OCR settings, OCR code and image are identical; detection always runs again. <span id="reuse-ocr-count" class="muted"></span><br><span class="muted">Turn off to scan every image from scratch.</span></span></label>
+        <label class="confirm"><input id="reuse-ocr" type="checkbox" checked> <span>Reuse results of earlier runs: OCR when OCR settings, OCR code and image are identical, detection as well when detector, settings, product code and packages are also identical. <span id="reuse-ocr-count" class="muted"></span><br><span class="muted">Turn off to scan every image from scratch.</span></span></label>
         <p id="baseline-status" class="baseline-status" role="status"></p>
         <p id="evaluation-cost" class="muted" hidden></p>
         <div class="actions-row">

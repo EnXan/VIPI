@@ -60,7 +60,7 @@ Configurations: `local-speed`, `local-balanced`, `local-quality`,
 `run` accepts `--split development|test` (test requires
 `--confirm-test-split`), `--run-id` to resume, `--runs-dir` (default
 `runs/evaluations`), `--dry-run` and `--no-reuse-ocr` (scan every image instead
-of reusing identical earlier OCR results); it exits 0 for a planned or complete run
+of reusing identical earlier OCR and detection results); it exits 0 for a planned or complete run
 and 1 for an incomplete one. `status` exits 0 only when the saved baseline is
 fresh. Errors exit 2. See the [evaluation guide](../research/evaluate/README.md).
 

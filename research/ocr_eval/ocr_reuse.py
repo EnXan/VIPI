@@ -1,13 +1,16 @@
-"""Reuse OCR results of earlier evaluation runs instead of scanning again.
+"""Reuse results of earlier evaluation runs instead of scanning again.
 
-An earlier result is reused for an image only when the OCR would be the same:
-the same OCR model, OCR mode and review (decision) model, the same OCR-related
-product sources and runtime packages, and a byte-identical image. Detection
-always runs again. See ADR 0058.
+For a byte-identical image, an earlier run's OCR is reused when the OCR would
+be the same: the same OCR model, OCR mode and review (decision) model, the same
+OCR-related product sources and runtime packages. Its detection is reused too
+when, in addition, the detector, the detection settings, every product source
+and every recorded package version are the same; otherwise detection runs
+again. See ADR 0058.
 """
 
 import hashlib
 import json
+import os
 from pathlib import Path
 import shutil
 import uuid
@@ -57,6 +60,27 @@ def ocr_identity(scan_options, provenance):
     }
 
 
+def full_identity(scan_options, provenance):
+    """What determines OCR and detection: all product sources and packages."""
+    options = ScanOptions(**scan_options)
+    return {
+        "ocr": ocr_identity(scan_options, provenance),
+        "detection": options.detection_options(),
+        "sources": {
+            path: value
+            for path, value in provenance["source_hashes"].items()
+            if path.startswith("src/vipi/")
+        },
+        # The product's own version label is left out: its sources are compared
+        # file by file above.
+        "packages": {
+            name: value
+            for name, value in provenance["packages"].items()
+            if name != "vipi-scanner"
+        },
+    }
+
+
 def read_json(path):
     try:
         return json.loads(Path(path).read_text(encoding="utf-8"))
@@ -65,11 +89,14 @@ def read_json(path):
 
 
 def candidates(runs_root, scan_options, provenance, exclude=None):
-    """Map entry key to the newest completed earlier OCR result with the same identity.
+    """Map entry key to the best completed earlier result with the same OCR identity.
 
-    ``runs_root`` holds evaluation runs (``<run>/benchmark/manifest.json``);
-    ``exclude`` is the benchmark directory of the current run."""
+    A result whose full identity also matches carries its ``detection`` record
+    and is preferred; otherwise the newest is taken. ``runs_root`` holds
+    evaluation runs (``<run>/benchmark/manifest.json``); ``exclude`` is the
+    benchmark directory of the current run."""
     identity = ocr_identity(scan_options, provenance)
+    full = full_identity(scan_options, provenance)
     found = {}
     for manifest_path in sorted(Path(runs_root).glob("*/benchmark/manifest.json")):
         directory = manifest_path.parent
@@ -85,6 +112,7 @@ def candidates(runs_root, scan_options, provenance, exclude=None):
             try:
                 if ocr_identity(options, manifest["provenance"]) != identity:
                     continue
+                same_detection = full_identity(options, manifest["provenance"]) == full
             except (KeyError, TypeError, ValueError):
                 continue
             for path in sorted((directory / name / "rows").glob("*.json")):
@@ -104,14 +132,17 @@ def candidates(runs_root, scan_options, provenance, exclude=None):
                     "run_id": directory.parent.name,
                     "configuration": name,
                     "session": str(directory / name / "session.json"),
+                    "detection": row.get("detection") if same_detection else None,
+                    "elapsed_seconds": row.get("elapsed_seconds"),
                 }
                 previous = found.get(row["key"])
-                if (
-                    previous is None
-                    or candidate["finished_at"] > previous["finished_at"]
-                ):
+                if previous is None or rank(candidate) > rank(previous):
                     found[row["key"]] = candidate
     return found
+
+
+def rank(candidate):
+    return (candidate["detection"] is not None, candidate["finished_at"])
 
 
 def matching(rows, found):
@@ -124,8 +155,19 @@ def matching(rows, found):
     }
 
 
-def restore(candidate):
-    """Copy the earlier OCR artifacts (without detection) into a new run.
+def link_or_copy(source, target):
+    """Hard-link an artifact (no extra space); copy across file systems.
+
+    Safe because artifacts are only replaced atomically (``write_json``), never
+    rewritten in place, so the earlier run's files stay unchanged."""
+    try:
+        os.link(source, target)
+    except OSError:
+        shutil.copy2(source, target)
+
+
+def restore(candidate, with_detection=False):
+    """Copy the earlier artifacts into a new run, detection only if requested.
 
     Returns the OCR result, or None when the earlier artifacts are gone or
     changed; the image is then scanned again."""
@@ -137,10 +179,56 @@ def restore(candidate):
         return None
     run_id = uuid.uuid4().hex
     target = cache_directory() / "runs" / run_id
-    shutil.copytree(source, target, ignore=shutil.ignore_patterns("detection"))
+    ignore = None if with_detection else shutil.ignore_patterns("detection")
+    shutil.copytree(source, target, ignore=ignore, copy_function=link_or_copy)
     data = json.loads(result_path.read_text(encoding="utf-8"))
     data["run_id"] = run_id
     write_json(target / "result.json", data)
     return OcrResult.from_dict(
         data, artifacts=target, image=(target / "input.png").read_bytes()
     )
+
+
+def summary(directory, local):
+    """Count reused rows of one configuration's benchmark directory.
+
+    Kept outside the scored report so the metric sources (and with them every
+    saved baseline) stay unchanged. Cloud cost not spent again is the reused
+    rows' original OCR estimate, plus their detection estimate when detection
+    was reused; local runs have no API cost."""
+    rows = [read_json(path) for path in sorted(Path(directory).glob("rows/*.json"))]
+    reused = [
+        row for row in rows if isinstance(row, dict) and row.get("ocr_reused_from")
+    ]
+    whole = [row for row in reused if row["ocr_reused_from"].get("detection")]
+    unspent = 0.0
+    if not local:
+        for row in reused:
+            unspent += (row.get("cost") or {}).get("estimated_usd") or 0.0
+        for row in whole:
+            detection = (row.get("detection") or {}).get("cost") or {}
+            unspent += detection.get("estimated_usd") or 0.0
+    return {
+        "images": len(reused),
+        "with_detection": len(whole),
+        "estimated_usd_not_spent_again": unspent,
+    }
+
+
+def report_lines(reuse, images):
+    """Markdown lines for the run report; empty when nothing was reused."""
+    if not reuse["images"]:
+        return []
+    whole = reuse["with_detection"]
+    return [
+        "",
+        "## Reused results",
+        "",
+        f"Earlier results were reused for {reuse['images']} of {images} images "
+        f"(same OCR settings, OCR sources and image): {whole} including detection "
+        "(same detector, settings, product sources and packages), "
+        f"{reuse['images'] - whole} with detection run again. Their time and cost "
+        "are the original figures and count in the totals above; about "
+        f"${reuse['estimated_usd_not_spent_again']:.2f} was not spent again "
+        "(ADR 0058).",
+    ]

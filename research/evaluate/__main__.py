@@ -47,8 +47,8 @@ def build_parser():
         "--no-reuse-ocr",
         dest="reuse_ocr",
         action="store_false",
-        help="Scan every image from scratch instead of reusing earlier OCR "
-        "results with the same OCR settings, OCR sources and image",
+        help="Scan every image from scratch instead of reusing earlier results "
+        "(OCR, and detection when detector, sources and packages also match)",
     )
     save = commands.add_parser(
         "save-baseline",
@@ -76,7 +76,9 @@ def run_command(args):
     print(f"local artifacts {result['directory']}")
     if "reusable_ocr" in result:
         print(
-            f"reusable OCR results: {result['reusable_ocr']} of {result['entries']}"
+            f"reusable earlier results: {result['reusable_ocr']} of "
+            f"{result['entries']} images, {result['reusable_complete']} of them "
+            "including detection"
             + ("" if result["reuse_ocr"] else " (not used: --no-reuse-ocr)")
         )
     print(f"baseline {result['baseline'] or 'none saved'}")

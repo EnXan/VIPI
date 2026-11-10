@@ -168,7 +168,12 @@ def evaluation_client(tmp_path, monkeypatch):
             raise ValueError("pass --confirm-test-split")
         run_id = run_id or f"20261109T000000Z-{configuration}-{split}"
         if dry_run:
-            return {"run_id": run_id, "entries": 3, "reusable_ocr": 2}
+            return {
+                "run_id": run_id,
+                "entries": 3,
+                "reusable_ocr": 2,
+                "reusable_complete": 1,
+            }
         calls.append(run_id)
         directory = evaluate_runs.run_directory(run_id, root)
         directory.mkdir(parents=True, exist_ok=True)
@@ -229,6 +234,7 @@ def test_evaluation_runs_lists_reports_and_saves_the_baseline(evaluation_client)
     assert setup == {
         "entries": 3,
         "reusable_ocr": 2,
+        "reusable_complete": 1,
         "baseline": {
             "state": "none",
             "run_id": None,

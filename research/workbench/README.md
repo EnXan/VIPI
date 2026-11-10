@@ -50,11 +50,11 @@ Choose the settings and the images:
   changes. Starting it needs a confirmation.
 
 Before you start, the page says whether a baseline is saved for these settings
-and whether it still matches this checkout. **Reuse OCR results from earlier
-runs** is on by default: images whose OCR an earlier run already produced with
-the same OCR settings, OCR code and image only run detection again, and the
-page shows how many images that applies to. Turn it off to scan every image
-from scratch. A run scans every image of the
+and whether it still matches this checkout. **Reuse results of earlier runs** is
+on by default: for an identical image, an earlier OCR result is reused when OCR
+settings and OCR code match, and its detection as well when detector, settings,
+product code and packages also match. The page shows how many images each
+applies to. Turn it off to scan every image from scratch. A run scans every image of the
 split, shows its progress and can be stopped and resumed. When it is complete,
 the page shows OCR word coverage, fully read images, attacks flagged, benign
 images flagged and detection accuracy, each with the change against the

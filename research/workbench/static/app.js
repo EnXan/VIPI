@@ -235,13 +235,15 @@ async function refreshEvaluationSetup() {
     $(`split-${split}-count`).textContent = `(${setup.entries} images)`;
     $('baseline-status').textContent = describeBaseline(setup.baseline);
     $('baseline-status').dataset.state = setup.baseline.state;
-    const reuse = $('reuse-ocr').checked ? setup.reusable_ocr : 0;
-    $('reuse-ocr-count').textContent = `(${setup.reusable_ocr} of ${setup.entries} images have a reusable OCR result)`;
-    const scanned = reuse === setup.entries ? `only detection for the ${setup.entries} images (all OCR reused)`
-      : reuse ? `OCR and review for ${setup.entries - reuse} images, detection for all ${setup.entries}`
-      : `OCR, review and detection for each of the ${setup.entries} images`;
+    const on = $('reuse-ocr').checked;
+    const ocrNeeded = setup.entries - (on ? setup.reusable_ocr : 0);
+    const detectionNeeded = setup.entries - (on ? setup.reusable_complete : 0);
+    $('reuse-ocr-count').textContent = `(reusable: OCR for ${setup.reusable_ocr} of ${setup.entries} images, of these ${setup.reusable_complete} with detection)`;
+    const scanned = `OCR and review for ${ocrNeeded} images, detection for ${detectionNeeded}`;
     $('evaluation-cost').hidden = !item.paid;
-    $('evaluation-cost').textContent = `Cloud runs make paid API calls: ${scanned}.${item.detector === 'jev' ? ' Jev usage is recorded, but its cost is not estimated (no verified rate).' : ''}`;
+    $('evaluation-cost').textContent = !ocrNeeded && !detectionNeeded
+      ? 'No paid API calls: every result is reused from an earlier run.'
+      : `Cloud runs make paid API calls: ${scanned}.${item.detector === 'jev' ? ' Jev usage is recorded, but its cost is not estimated (no verified rate).' : ''}`;
     $('evaluation-start').disabled = split === 'test' && !$('test-confirm').checked;
     $('evaluation-start').textContent = `Start evaluation · ${item.label} · ${setup.entries} images`;
   } catch (error) {
