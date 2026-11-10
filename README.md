@@ -99,9 +99,7 @@ VIPI flags four in five attacks and only 1 of 223 benign images.
 | Google + Jev | 87.4% | 74.0% (168) | 0.9% (2) |
 
 Jev flags a few attacks fewer than OpenAI but raises a third to a tenth of the
-false alarms. A full run of the 450 images cost about $5 with Google OCR, $9
-with Mistral and under $1 with OpenAI (estimates from recorded usage,
-including decisions).
+false alarms.
 
 **Local** detection is not reliable yet: every local profile flags fewer than
 one in five injections. False alarms are rare, but a clean local result is
