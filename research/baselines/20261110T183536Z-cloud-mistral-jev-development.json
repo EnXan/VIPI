@@ -1,0 +1,209 @@
+{
+  "kind": "vipi-evaluation-run",
+  "schema_version": 2,
+  "run_id": "20261110T183536Z-cloud-mistral-jev-development",
+  "completed_at": "2026-11-10T18:38:08.743421+00:00",
+  "manifest": {
+    "configuration_name": "cloud-mistral-jev",
+    "split": "development",
+    "suite": {
+      "dataset": {
+        "repo_id": "EnXan/VIPI-evaluation",
+        "revision": "91eeb7d6023c57cc16375d1b7d6323447cdaffa6"
+      },
+      "catalog_sha256": "dd75a2ba3f1211e8891bd76e77ac8cbcab072be15fbd5cc2b12f0c8de5d5dd0f",
+      "splits_sha256": "fedf2285ee73c6f17b39018bf255659baeb8cc3cc6e5c7ff08c28bbfef66951e",
+      "entries": 450,
+      "selection_sha256": "990d6948fe291a21505c1d539aad2ef21a31ee427c8e79602605108cb35b3ff0",
+      "metric_sha256": {
+        "research/ocr_eval/evaluation/metrics.py": "69dac5362c79d728b5655f0ff72b27797e65b7f216841e787b043a40d491dcb7",
+        "research/ocr_eval/evaluation/words.py": "3407e6d41f129857e94dc55cd55be69725f174f984227a48375e55eeba28ed9a",
+        "research/ocr_eval/benchmark_report.py": "24a70a06a7a1e23e40e987279bb8c07ef8fa2ce82354c20962b2c1de4a3a0531"
+      }
+    },
+    "configuration": {
+      "scan_options": {
+        "ocr_execution_mode": "cloud",
+        "ocr_provider": "mistral",
+        "detector": "jev"
+      },
+      "model_identity": {
+        "constants": {
+          "GOOGLE_OCR_MODEL": "google-cloud-vision",
+          "JEV_MODEL": "jev-1.14.0",
+          "LUNA_OCR_MODEL": "gpt-6-luna",
+          "MISTRAL_OCR_MODEL": "mistral-ocr-4-1"
+        },
+        "registries": {
+          "src/vipi/ocr/model_files.json": {},
+          "src/vipi/decision_models.json": {}
+        }
+      }
+    }
+  },
+  "test_split_confirmation": false,
+  "implementation": {
+    "commit": "1ebf8dc441d5c4d5e85589a05367eb4ca08c66a0",
+    "dirty": true,
+    "diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "untracked_sha256": "92784996ffea27917dd62a42cd4989449bed7348aa3c2ab40bc5e5caffbb25cb",
+    "untracked_files": 12
+  },
+  "host": {
+    "platform": "macOS-27.0.1-arm64-arm-64bit",
+    "python": "3.12.2",
+    "hardware": {
+      "machdep.cpu.brand_string": "Apple M2",
+      "hw.memsize": "17179869184",
+      "hw.physicalcpu": "8",
+      "hw.logicalcpu": "8"
+    },
+    "packages": {
+      "vipi-scanner": "0.7.0",
+      "torch": "2.11.0",
+      "transformers": "5.22.2",
+      "rapidocr": "3.10.0",
+      "onnxruntime": "1.23.2",
+      "Pillow": "11.3.0",
+      "numpy": "1.26.4"
+    }
+  },
+  "operations": {
+    "invocations": [
+      {
+        "started_at": "2026-11-10T18:35:37.749807+00:00",
+        "wall_seconds": 118.93552987500152,
+        "cpu_seconds_lower_bound": 184.510040876,
+        "peak_rss_bytes": 294879232,
+        "sampling_seconds": 0.5,
+        "overlapping_runs": 0,
+        "gpu": {
+          "available": false,
+          "reason": "GPU/MPS memory is allocated in worker processes and not observable from the evaluation process."
+        }
+      }
+    ],
+    "wall_seconds": 118.93552987500152,
+    "cpu_seconds_lower_bound": 184.510040876,
+    "peak_rss_bytes": 294879232,
+    "overlapping_runs": 0,
+    "gpu": {
+      "available": false,
+      "reason": "GPU/MPS memory is allocated in worker processes and not observable from the evaluation process."
+    }
+  },
+  "metrics": {
+    "images": 450,
+    "attempted": 450,
+    "completed": 450,
+    "failed": 0,
+    "failure_counts": {},
+    "unattempted": 0,
+    "referenced": 435,
+    "scored": 435,
+    "unscored_completed": 0,
+    "zero_word_references": 0,
+    "group_conflict_images": 0,
+    "counts": {
+      "at_least_80": 377,
+      "coverage_100": 339,
+      "reference_pass": 339,
+      "exact_100": 286,
+      "exact_reference_pass": 286
+    },
+    "image_rates": {
+      "at_least_80": 0.8666666666666667,
+      "coverage_100": 0.7793103448275862,
+      "reference_pass": 0.7793103448275862,
+      "exact_100": 0.6574712643678161,
+      "exact_reference_pass": 0.6574712643678161
+    },
+    "words": {
+      "matched": 13135,
+      "exact_matched": 12500,
+      "scored_total": 15796,
+      "planned_total": 15796
+    },
+    "word_weighted_coverage": 0.8315396302861484,
+    "word_weighted_exact_coverage": 0.7913395796404153,
+    "mean_image_coverage": 0.8928974331843789,
+    "mean_image_exact_coverage": 0.8412288183519238,
+    "all_planned_word_coverage_lower_bound": 0.8315396302861484,
+    "all_planned_exact_word_coverage_lower_bound": 0.7913395796404153,
+    "all_planned_mean_coverage_lower_bound": 0.892897433184379,
+    "detection": {
+      "attacks": {
+        "images": 227,
+        "flagged": 185,
+        "not_flagged": 42,
+        "unclear": 0,
+        "no_result": 0
+      },
+      "benign": {
+        "images": 223,
+        "flagged": 1,
+        "not_flagged": 221,
+        "unclear": 1,
+        "no_result": 0
+      },
+      "recall": 0.8149779735682819,
+      "false_positive_rate": 0.004484304932735426,
+      "accuracy": 0.9022222222222223,
+      "unclear": 1,
+      "no_result": 0
+    },
+    "time": {
+      "measured_images": 450,
+      "unknown_images": 0,
+      "image_seconds_total": 5367.6907680797885,
+      "mean_image_seconds": 11.928201706843975,
+      "median_image_seconds": 8.22676839599444,
+      "p95_image_seconds": 34.92690566598321,
+      "invocation_wall_seconds": 118.33721145900199
+    },
+    "cost": {
+      "currency": "USD",
+      "known_images": 450,
+      "unknown_images": 0,
+      "recorded_estimate_subtotal": 9.144447295,
+      "recorded_estimate_per_attempt": 0.02032099398888889,
+      "estimated_usd": 9.144447295,
+      "mean_estimated_usd_per_attempt": 0.02032099398888889,
+      "decision_http_attempts": 927,
+      "decision_api_calls": 927,
+      "ocr_api_calls": 2071,
+      "retry_uncertain_images": 0,
+      "unreported_requests": 0
+    }
+  },
+  "local_artifacts": "runs/evaluations/20261110T183536Z-cloud-mistral-jev-development",
+  "report_sha256": "e28fc9595e07428e122786e24e120f705b46cbeedc1e59d10bac9563094dca31",
+  "reused": {
+    "images": 450,
+    "with_detection": 0,
+    "estimated_usd_not_spent_again": 9.131410914999998
+  },
+  "execution": {
+    "host": {
+      "system": "macOS-27.0.1-arm64-arm-64bit",
+      "cpu": "Apple M2",
+      "physical_cpus": 8,
+      "logical_cpus": 8,
+      "memory_bytes": 17179869184,
+      "gpu": null
+    },
+    "ocr": {
+      "model": "mistral-ocr-4-1",
+      "device": "api",
+      "provider": "mistral"
+    },
+    "decision": {
+      "model": "openai",
+      "device": "api"
+    },
+    "detector": {
+      "model": "jev",
+      "device": "api"
+    }
+  }
+}

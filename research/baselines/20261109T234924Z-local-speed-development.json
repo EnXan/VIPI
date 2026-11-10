@@ -1,0 +1,222 @@
+{
+  "kind": "vipi-evaluation-run",
+  "schema_version": 2,
+  "run_id": "20261109T234924Z-local-speed-development",
+  "completed_at": "2026-11-10T08:53:10.696620+00:00",
+  "manifest": {
+    "configuration_name": "local-speed",
+    "split": "development",
+    "suite": {
+      "dataset": {
+        "repo_id": "EnXan/VIPI-evaluation",
+        "revision": "91eeb7d6023c57cc16375d1b7d6323447cdaffa6"
+      },
+      "catalog_sha256": "dd75a2ba3f1211e8891bd76e77ac8cbcab072be15fbd5cc2b12f0c8de5d5dd0f",
+      "splits_sha256": "fedf2285ee73c6f17b39018bf255659baeb8cc3cc6e5c7ff08c28bbfef66951e",
+      "entries": 450,
+      "selection_sha256": "990d6948fe291a21505c1d539aad2ef21a31ee427c8e79602605108cb35b3ff0",
+      "metric_sha256": {
+        "research/ocr_eval/evaluation/metrics.py": "69dac5362c79d728b5655f0ff72b27797e65b7f216841e787b043a40d491dcb7",
+        "research/ocr_eval/evaluation/words.py": "3407e6d41f129857e94dc55cd55be69725f174f984227a48375e55eeba28ed9a",
+        "research/ocr_eval/benchmark_report.py": "24a70a06a7a1e23e40e987279bb8c07ef8fa2ce82354c20962b2c1de4a3a0531"
+      }
+    },
+    "configuration": {
+      "scan_options": {
+        "ocr_execution_mode": "local",
+        "ocr_mode": "speed"
+      },
+      "model_identity": {
+        "constants": {
+          "GOOGLE_OCR_MODEL": "google-cloud-vision",
+          "JEV_MODEL": "jev-1.14.0",
+          "LUNA_OCR_MODEL": "gpt-6-luna",
+          "MISTRAL_OCR_MODEL": "mistral-ocr-4-1"
+        },
+        "registries": {
+          "src/vipi/ocr/model_files.json": "b086fb829b913528bdd3746f3e5ec71afd154f667739791f376d2251617d7b11",
+          "src/vipi/decision_models.json": "fc0cf57d60520462739b76f4d1f4ff7749c180df17ee94d875bccd7182a366f9"
+        }
+      }
+    }
+  },
+  "test_split_confirmation": false,
+  "implementation": {
+    "commit": "2d867fb4e742bdbe27c301ca0741a045b9c510d2",
+    "dirty": true,
+    "diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "untracked_sha256": "2adf6da10b01a037dfa3f82dcf32a9cd1b2d8cccd76086773a20e865d7ca5378",
+    "untracked_files": 1
+  },
+  "host": {
+    "platform": "macOS-27.0.1-arm64-arm-64bit",
+    "python": "3.12.2",
+    "hardware": {
+      "machdep.cpu.brand_string": "Apple M2",
+      "hw.memsize": "17179869184",
+      "hw.physicalcpu": "8",
+      "hw.logicalcpu": "8"
+    },
+    "packages": {
+      "vipi-scanner": "0.6.1",
+      "torch": "2.11.0",
+      "transformers": "5.22.2",
+      "rapidocr": "3.10.0",
+      "onnxruntime": "1.23.2",
+      "Pillow": "11.3.0",
+      "numpy": "1.26.4"
+    }
+  },
+  "operations": {
+    "invocations": [
+      {
+        "started_at": "2026-11-10T08:03:04.930475+00:00",
+        "wall_seconds": 2839.4639498749966,
+        "cpu_seconds_lower_bound": 3796.445296786,
+        "peak_rss_bytes": 10501554176,
+        "sampling_seconds": 0.5,
+        "gpu": {
+          "available": false,
+          "reason": "GPU/MPS memory is allocated in worker processes and not observable from the evaluation process."
+        }
+      },
+      {
+        "started_at": "2026-11-10T08:52:13.941669+00:00",
+        "wall_seconds": 39.42440025000542,
+        "cpu_seconds_lower_bound": 45.743724612,
+        "peak_rss_bytes": 4441178112,
+        "sampling_seconds": 0.5,
+        "gpu": {
+          "available": false,
+          "reason": "GPU/MPS memory is allocated in worker processes and not observable from the evaluation process."
+        }
+      }
+    ],
+    "wall_seconds": 2878.888350125002,
+    "cpu_seconds_lower_bound": 3842.189021398,
+    "peak_rss_bytes": 10501554176,
+    "gpu": {
+      "available": false,
+      "reason": "GPU/MPS memory is allocated in worker processes and not observable from the evaluation process."
+    }
+  },
+  "metrics": {
+    "images": 450,
+    "attempted": 450,
+    "completed": 450,
+    "failed": 0,
+    "failure_counts": {},
+    "unattempted": 0,
+    "referenced": 435,
+    "scored": 435,
+    "unscored_completed": 0,
+    "zero_word_references": 0,
+    "group_conflict_images": 0,
+    "counts": {
+      "at_least_80": 302,
+      "coverage_100": 250,
+      "reference_pass": 250,
+      "exact_100": 173,
+      "exact_reference_pass": 173
+    },
+    "image_rates": {
+      "at_least_80": 0.6942528735632184,
+      "coverage_100": 0.5747126436781609,
+      "reference_pass": 0.5747126436781609,
+      "exact_100": 0.39770114942528734,
+      "exact_reference_pass": 0.39770114942528734
+    },
+    "words": {
+      "matched": 10947,
+      "exact_matched": 9703,
+      "scored_total": 15796,
+      "planned_total": 15796
+    },
+    "word_weighted_coverage": 0.6930235502658901,
+    "word_weighted_exact_coverage": 0.6142694353000759,
+    "mean_image_coverage": 0.7836266571700113,
+    "mean_image_exact_coverage": 0.6922658149585267,
+    "all_planned_word_coverage_lower_bound": 0.6930235502658901,
+    "all_planned_exact_word_coverage_lower_bound": 0.6142694353000759,
+    "all_planned_mean_coverage_lower_bound": 0.7836266571700113,
+    "detection": {
+      "attacks": {
+        "images": 227,
+        "flagged": 34,
+        "not_flagged": 188,
+        "unclear": 5,
+        "no_result": 0
+      },
+      "benign": {
+        "images": 223,
+        "flagged": 1,
+        "not_flagged": 217,
+        "unclear": 5,
+        "no_result": 0
+      },
+      "recall": 0.14977973568281938,
+      "false_positive_rate": 0.004484304932735426,
+      "accuracy": 0.5577777777777778,
+      "unclear": 10,
+      "no_result": 0
+    },
+    "time": {
+      "measured_images": 450,
+      "unknown_images": 0,
+      "image_seconds_total": 4457.407286576003,
+      "mean_image_seconds": 9.90534952572445,
+      "median_image_seconds": 5.677738499996849,
+      "p95_image_seconds": 27.56840262500191,
+      "invocation_wall_seconds": 4656.075270499005
+    },
+    "cost": {
+      "currency": "USD",
+      "known_images": 450,
+      "unknown_images": 0,
+      "recorded_estimate_subtotal": 0.0,
+      "recorded_estimate_per_attempt": 0.0,
+      "estimated_usd": 0.0,
+      "mean_estimated_usd_per_attempt": 0.0,
+      "decision_http_attempts": 0,
+      "decision_api_calls": 0,
+      "ocr_api_calls": 0,
+      "retry_uncertain_images": 0,
+      "unreported_requests": 0
+    }
+  },
+  "local_artifacts": "runs/evaluations/20261109T234924Z-local-speed-development",
+  "report_sha256": "bf1b538f6697d0ce39088d3baa34e2333c88a0173b2b814a830f4e303b7ea3f1",
+  "execution": {
+    "host": {
+      "system": "macOS-27.0.1-arm64-arm-64bit",
+      "cpu": "Apple M2",
+      "physical_cpus": 8,
+      "logical_cpus": 8,
+      "memory_bytes": 17179869184,
+      "gpu": {
+        "name": "Apple GPU (MPS)"
+      }
+    },
+    "ocr": {
+      "model": "ppocr-v6-tiny",
+      "device": "cpu"
+    },
+    "decision": {
+      "model": "d1",
+      "device": "mps",
+      "dtype": "float16"
+    },
+    "detector": {
+      "model": "d1",
+      "device": "mps",
+      "dtype": "float16"
+    },
+    "backfilled": {
+      "at": "2026-11-10T15:20:30.008482+00:00",
+      "decision_requests": 321,
+      "decision_devices": [
+        "mps"
+      ]
+    }
+  }
+}

@@ -1,0 +1,212 @@
+{
+  "kind": "vipi-evaluation-run",
+  "schema_version": 2,
+  "run_id": "20261110T105307Z-cloud-google-jev-development",
+  "completed_at": "2026-11-10T10:55:37.584886+00:00",
+  "manifest": {
+    "configuration_name": "cloud-google-jev",
+    "split": "development",
+    "suite": {
+      "dataset": {
+        "repo_id": "EnXan/VIPI-evaluation",
+        "revision": "91eeb7d6023c57cc16375d1b7d6323447cdaffa6"
+      },
+      "catalog_sha256": "dd75a2ba3f1211e8891bd76e77ac8cbcab072be15fbd5cc2b12f0c8de5d5dd0f",
+      "splits_sha256": "fedf2285ee73c6f17b39018bf255659baeb8cc3cc6e5c7ff08c28bbfef66951e",
+      "entries": 450,
+      "selection_sha256": "990d6948fe291a21505c1d539aad2ef21a31ee427c8e79602605108cb35b3ff0",
+      "metric_sha256": {
+        "research/ocr_eval/evaluation/metrics.py": "69dac5362c79d728b5655f0ff72b27797e65b7f216841e787b043a40d491dcb7",
+        "research/ocr_eval/evaluation/words.py": "3407e6d41f129857e94dc55cd55be69725f174f984227a48375e55eeba28ed9a",
+        "research/ocr_eval/benchmark_report.py": "24a70a06a7a1e23e40e987279bb8c07ef8fa2ce82354c20962b2c1de4a3a0531"
+      }
+    },
+    "configuration": {
+      "scan_options": {
+        "ocr_execution_mode": "cloud",
+        "ocr_provider": "google",
+        "detector": "jev"
+      },
+      "model_identity": {
+        "constants": {
+          "GOOGLE_OCR_MODEL": "google-cloud-vision",
+          "JEV_MODEL": "jev-1.14.0",
+          "LUNA_OCR_MODEL": "gpt-6-luna",
+          "MISTRAL_OCR_MODEL": "mistral-ocr-4-1"
+        },
+        "registries": {
+          "src/vipi/ocr/model_files.json": "b086fb829b913528bdd3746f3e5ec71afd154f667739791f376d2251617d7b11",
+          "src/vipi/decision_models.json": "fc0cf57d60520462739b76f4d1f4ff7749c180df17ee94d875bccd7182a366f9"
+        }
+      }
+    }
+  },
+  "test_split_confirmation": false,
+  "implementation": {
+    "commit": "b8800ee33c5ef1d29880e5c0a0b38c8ff82b7aac",
+    "dirty": true,
+    "diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "untracked_sha256": "dde9a8f4e70a5671f86230156f8079c5e40a9b6444f68f4ce023257ef1b489d7",
+    "untracked_files": 3
+  },
+  "host": {
+    "platform": "macOS-27.0.1-arm64-arm-64bit",
+    "python": "3.12.2",
+    "hardware": {
+      "machdep.cpu.brand_string": "Apple M2",
+      "hw.memsize": "17179869184",
+      "hw.physicalcpu": "8",
+      "hw.logicalcpu": "8"
+    },
+    "packages": {
+      "vipi-scanner": "0.6.0",
+      "torch": "2.11.0",
+      "transformers": "5.22.2",
+      "rapidocr": "3.10.0",
+      "onnxruntime": "1.23.2",
+      "Pillow": "11.3.0",
+      "numpy": "1.26.4"
+    }
+  },
+  "operations": {
+    "invocations": [
+      {
+        "started_at": "2026-11-10T10:53:07.857437+00:00",
+        "wall_seconds": 120.73315529200045,
+        "cpu_seconds_lower_bound": 37.752760523999996,
+        "peak_rss_bytes": 404619264,
+        "sampling_seconds": 0.5,
+        "gpu": {
+          "available": false,
+          "reason": "GPU/MPS memory is allocated in worker processes and not observable from the evaluation process."
+        }
+      }
+    ],
+    "wall_seconds": 120.73315529200045,
+    "cpu_seconds_lower_bound": 37.752760523999996,
+    "peak_rss_bytes": 404619264,
+    "gpu": {
+      "available": false,
+      "reason": "GPU/MPS memory is allocated in worker processes and not observable from the evaluation process."
+    }
+  },
+  "metrics": {
+    "images": 450,
+    "attempted": 450,
+    "completed": 450,
+    "failed": 0,
+    "failure_counts": {},
+    "unattempted": 0,
+    "referenced": 435,
+    "scored": 435,
+    "unscored_completed": 0,
+    "zero_word_references": 0,
+    "group_conflict_images": 0,
+    "counts": {
+      "at_least_80": 355,
+      "coverage_100": 297,
+      "reference_pass": 297,
+      "exact_100": 160,
+      "exact_reference_pass": 160
+    },
+    "image_rates": {
+      "at_least_80": 0.8160919540229885,
+      "coverage_100": 0.6827586206896552,
+      "reference_pass": 0.6827586206896552,
+      "exact_100": 0.367816091954023,
+      "exact_reference_pass": 0.367816091954023
+    },
+    "words": {
+      "matched": 13805,
+      "exact_matched": 11997,
+      "scored_total": 15796,
+      "planned_total": 15796
+    },
+    "word_weighted_coverage": 0.8739554317548747,
+    "word_weighted_exact_coverage": 0.7594960749556849,
+    "mean_image_coverage": 0.8957759684292942,
+    "mean_image_exact_coverage": 0.7777542182594355,
+    "all_planned_word_coverage_lower_bound": 0.8739554317548747,
+    "all_planned_exact_word_coverage_lower_bound": 0.7594960749556849,
+    "all_planned_mean_coverage_lower_bound": 0.8957759684292942,
+    "detection": {
+      "attacks": {
+        "images": 227,
+        "flagged": 168,
+        "not_flagged": 59,
+        "unclear": 0,
+        "no_result": 0
+      },
+      "benign": {
+        "images": 223,
+        "flagged": 2,
+        "not_flagged": 221,
+        "unclear": 0,
+        "no_result": 0
+      },
+      "recall": 0.7400881057268722,
+      "false_positive_rate": 0.008968609865470852,
+      "accuracy": 0.8644444444444445,
+      "unclear": 0,
+      "no_result": 0
+    },
+    "time": {
+      "measured_images": 450,
+      "unknown_images": 0,
+      "image_seconds_total": 4150.851081689776,
+      "mean_image_seconds": 9.224113514866168,
+      "median_image_seconds": 6.757271604496054,
+      "p95_image_seconds": 24.225601957994513,
+      "invocation_wall_seconds": 120.33035929100151
+    },
+    "cost": {
+      "currency": "USD",
+      "known_images": 450,
+      "unknown_images": 0,
+      "recorded_estimate_subtotal": 5.123652585,
+      "recorded_estimate_per_attempt": 0.011385894633333334,
+      "estimated_usd": 5.123652585,
+      "mean_estimated_usd_per_attempt": 0.011385894633333334,
+      "decision_http_attempts": 996,
+      "decision_api_calls": 995,
+      "ocr_api_calls": 2541,
+      "retry_uncertain_images": 1,
+      "unreported_requests": 0
+    }
+  },
+  "local_artifacts": "runs/evaluations/20261110T105307Z-cloud-google-jev-development",
+  "report_sha256": "455a64c3113641074b7f7e1e74ad83d264be3015e0a35319f0b5ff5a5f8ae60d",
+  "reused": {
+    "images": 450,
+    "with_detection": 0,
+    "estimated_usd_not_spent_again": 5.111952225000002
+  },
+  "execution": {
+    "host": {
+      "system": "macOS-27.0.1-arm64-arm-64bit",
+      "cpu": "Apple M2",
+      "physical_cpus": 8,
+      "logical_cpus": 8,
+      "memory_bytes": 17179869184,
+      "gpu": null
+    },
+    "ocr": {
+      "model": "google-cloud-vision",
+      "device": "api",
+      "provider": "google"
+    },
+    "decision": {
+      "model": "openai",
+      "device": "api"
+    },
+    "detector": {
+      "model": "jev",
+      "device": "api"
+    },
+    "backfilled": {
+      "at": "2026-11-10T15:20:31.471510+00:00",
+      "decision_requests": 0,
+      "decision_devices": []
+    }
+  }
+}

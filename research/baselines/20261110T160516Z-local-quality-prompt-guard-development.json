@@ -1,0 +1,241 @@
+{
+  "kind": "vipi-evaluation-run",
+  "schema_version": 2,
+  "run_id": "20261110T160516Z-local-quality-prompt-guard-development",
+  "completed_at": "2026-11-10T16:15:00.688365+00:00",
+  "manifest": {
+    "configuration_name": "local-quality-prompt-guard",
+    "split": "development",
+    "suite": {
+      "dataset": {
+        "repo_id": "EnXan/VIPI-evaluation",
+        "revision": "91eeb7d6023c57cc16375d1b7d6323447cdaffa6"
+      },
+      "catalog_sha256": "dd75a2ba3f1211e8891bd76e77ac8cbcab072be15fbd5cc2b12f0c8de5d5dd0f",
+      "splits_sha256": "fedf2285ee73c6f17b39018bf255659baeb8cc3cc6e5c7ff08c28bbfef66951e",
+      "entries": 450,
+      "selection_sha256": "990d6948fe291a21505c1d539aad2ef21a31ee427c8e79602605108cb35b3ff0",
+      "metric_sha256": {
+        "research/ocr_eval/evaluation/metrics.py": "69dac5362c79d728b5655f0ff72b27797e65b7f216841e787b043a40d491dcb7",
+        "research/ocr_eval/evaluation/words.py": "3407e6d41f129857e94dc55cd55be69725f174f984227a48375e55eeba28ed9a",
+        "research/ocr_eval/benchmark_report.py": "24a70a06a7a1e23e40e987279bb8c07ef8fa2ce82354c20962b2c1de4a3a0531"
+      }
+    },
+    "configuration": {
+      "scan_options": {
+        "ocr_execution_mode": "local",
+        "ocr_mode": "quality",
+        "decision_provider": "clef-flash",
+        "detector": "prompt-guard"
+      },
+      "model_identity": {
+        "constants": {
+          "GOOGLE_OCR_MODEL": "google-cloud-vision",
+          "JEV_MODEL": "jev-1.14.0",
+          "LUNA_OCR_MODEL": "gpt-6-luna",
+          "MISTRAL_OCR_MODEL": "mistral-ocr-4-1"
+        },
+        "registries": {
+          "src/vipi/ocr/model_files.json": {
+            "multi_PP-OCRv6_det_medium": {
+              "url": "https://www.modelscope.cn/models/RapidAI/RapidOCR/resolve/v3.9.2/onnx/PP-OCRv6/det/PP-OCRv6_det_medium.onnx",
+              "sha256": "92078b7355007ccfffcd4c8cd441a3afd4538904d06881b29a155e1e679907c2",
+              "file": "PP-OCRv6_det_medium.onnx"
+            },
+            "multi_PP-OCRv6_rec_medium": {
+              "url": "https://www.modelscope.cn/models/RapidAI/RapidOCR/resolve/v3.9.2/onnx/PP-OCRv6/rec/PP-OCRv6_rec_medium.onnx",
+              "sha256": "eef444829dbbe18d7fea59a3f6eb75647518d2b3a9568d27c92e42940204894b",
+              "file": "PP-OCRv6_rec_medium.onnx"
+            },
+            "ch_PP-LCNet_x0_25_textline_ori_cls_mobile": {
+              "url": "https://www.modelscope.cn/models/RapidAI/RapidOCR/resolve/v3.9.2/onnx/PP-OCRv5/cls/ch_PP-LCNet_x0_25_textline_ori_cls_mobile.onnx",
+              "sha256": "54379ae5174d026780215fc748a7f31910dee36818e63d49e17dc598ecc82df7",
+              "file": "ch_PP-LCNet_x0_25_textline_ori_cls_mobile.onnx"
+            }
+          },
+          "src/vipi/decision_models.json": {
+            "clef-flash": {
+              "repository": "Cloudflare/clef-flash",
+              "revision": "fb4417d31c1d0f9e7e77f1141b40aaede7491e00",
+              "code": {
+                "joint_schema_model.py": "0e304cf7c6500e8bb59bef7e2afd2c6373f82596dfb3b57d1aa93c175e2dc3a3"
+              }
+            }
+          }
+        },
+        "detector_models": {
+          "prompt-guard": {
+            "repository": "meta-llama/Llama-Prompt-Guard-2-86M",
+            "revision": "a8ded8e697ce7c355e395a0df51f94adb4a2fd27"
+          }
+        }
+      }
+    }
+  },
+  "test_split_confirmation": false,
+  "implementation": {
+    "commit": "15d0b895053688f3067318070afe3b8b2d2d8fbd",
+    "dirty": true,
+    "diff_sha256": "4d4f1979a6e31fef300f55d7fec1a11ad0843f92e9f6b089e4ff9db634f9b817",
+    "untracked_sha256": "0f55b737e465720116ec8f75abd60d24dd08e4b5accd0496e8992b91490af2c2",
+    "untracked_files": 1
+  },
+  "host": {
+    "platform": "macOS-26.7.2-arm64-arm-64bit",
+    "python": "3.12.11",
+    "hardware": {
+      "machdep.cpu.brand_string": "Apple M4 Pro",
+      "hw.memsize": "51539607552",
+      "hw.physicalcpu": "14",
+      "hw.logicalcpu": "14"
+    },
+    "packages": {
+      "vipi-scanner": "0.7.0",
+      "torch": "2.11.0",
+      "transformers": "5.22.2",
+      "rapidocr": "3.10.0",
+      "onnxruntime": "1.23.2",
+      "Pillow": "11.3.0",
+      "numpy": "1.26.4"
+    }
+  },
+  "operations": {
+    "invocations": [
+      {
+        "started_at": "2026-11-10T16:05:17.131653+00:00",
+        "wall_seconds": 570.3417724999999,
+        "cpu_seconds_lower_bound": 843.54501184,
+        "peak_rss_bytes": 1421410304,
+        "sampling_seconds": 0.5,
+        "gpu": {
+          "available": false,
+          "reason": "GPU/MPS memory is allocated in worker processes and not observable from the evaluation process."
+        }
+      }
+    ],
+    "wall_seconds": 570.3417724999999,
+    "cpu_seconds_lower_bound": 843.54501184,
+    "peak_rss_bytes": 1421410304,
+    "gpu": {
+      "available": false,
+      "reason": "GPU/MPS memory is allocated in worker processes and not observable from the evaluation process."
+    }
+  },
+  "metrics": {
+    "images": 450,
+    "attempted": 450,
+    "completed": 450,
+    "failed": 0,
+    "failure_counts": {},
+    "unattempted": 0,
+    "referenced": 435,
+    "scored": 435,
+    "unscored_completed": 0,
+    "zero_word_references": 0,
+    "group_conflict_images": 0,
+    "counts": {
+      "at_least_80": 330,
+      "coverage_100": 282,
+      "reference_pass": 282,
+      "exact_100": 209,
+      "exact_reference_pass": 209
+    },
+    "image_rates": {
+      "at_least_80": 0.7586206896551724,
+      "coverage_100": 0.6482758620689655,
+      "reference_pass": 0.6482758620689655,
+      "exact_100": 0.4804597701149425,
+      "exact_reference_pass": 0.4804597701149425
+    },
+    "words": {
+      "matched": 11925,
+      "exact_matched": 10887,
+      "scored_total": 15796,
+      "planned_total": 15796
+    },
+    "word_weighted_coverage": 0.7549379589769561,
+    "word_weighted_exact_coverage": 0.6892251202836162,
+    "mean_image_coverage": 0.8433234601659552,
+    "mean_image_exact_coverage": 0.7656279083443239,
+    "all_planned_word_coverage_lower_bound": 0.7549379589769561,
+    "all_planned_exact_word_coverage_lower_bound": 0.6892251202836162,
+    "all_planned_mean_coverage_lower_bound": 0.8433234601659552,
+    "detection": {
+      "attacks": {
+        "images": 227,
+        "flagged": 44,
+        "not_flagged": 178,
+        "unclear": 5,
+        "no_result": 0
+      },
+      "benign": {
+        "images": 223,
+        "flagged": 4,
+        "not_flagged": 211,
+        "unclear": 8,
+        "no_result": 0
+      },
+      "recall": 0.19383259911894274,
+      "false_positive_rate": 0.017937219730941704,
+      "accuracy": 0.5666666666666667,
+      "unclear": 13,
+      "no_result": 0
+    },
+    "time": {
+      "measured_images": 450,
+      "unknown_images": 0,
+      "image_seconds_total": 6258.864877044067,
+      "mean_image_seconds": 13.908588615653482,
+      "median_image_seconds": 7.280701749499713,
+      "p95_image_seconds": 46.257170208999014,
+      "invocation_wall_seconds": 569.7862426250031
+    },
+    "cost": {
+      "currency": "USD",
+      "known_images": 450,
+      "unknown_images": 0,
+      "recorded_estimate_subtotal": 0.0,
+      "recorded_estimate_per_attempt": 0.0,
+      "estimated_usd": 0.0,
+      "mean_estimated_usd_per_attempt": 0.0,
+      "decision_http_attempts": 0,
+      "decision_api_calls": 0,
+      "ocr_api_calls": 0,
+      "retry_uncertain_images": 0,
+      "unreported_requests": 0
+    }
+  },
+  "local_artifacts": "runs/evaluations/20261110T160516Z-local-quality-prompt-guard-development",
+  "report_sha256": "ec25507bd7e034358f9ea13c17cbf3251485d8068decd56d247b9f02df6af69c",
+  "reused": {
+    "images": 450,
+    "with_detection": 0,
+    "estimated_usd_not_spent_again": 0.0
+  },
+  "execution": {
+    "host": {
+      "system": "macOS-26.7.2-arm64-arm-64bit",
+      "cpu": "Apple M4 Pro",
+      "physical_cpus": 14,
+      "logical_cpus": 14,
+      "memory_bytes": 51539607552,
+      "gpu": {
+        "name": "Apple GPU (MPS)"
+      }
+    },
+    "ocr": {
+      "model": "ppocr-v6",
+      "device": "cpu"
+    },
+    "decision": {
+      "model": "clef-flash",
+      "device": "mps",
+      "dtype": "float16"
+    },
+    "detector": {
+      "model": "prompt-guard",
+      "device": "cpu",
+      "dtype": "float32"
+    }
+  }
+}
