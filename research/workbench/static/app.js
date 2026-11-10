@@ -217,11 +217,13 @@ const gibibytes = bytes => `${Math.round(bytes / 1024 ** 3)} GiB`;
 // Runs before ADR 0062 recorded only the host's sysctl values, not the devices.
 function describeHost(run) {
   const machine = run.execution?.host;
-  if (machine) return [machine.cpu || 'CPU unknown', machine.memory_bytes && `${gibibytes(machine.memory_bytes)} RAM`, machine.gpu?.name].filter(Boolean).join(' · ');
+  if (machine) return [machine.cpu || 'CPU unknown', machine.memory_bytes && `${gibibytes(machine.memory_bytes)} RAM`, typeof machine.gpu === 'string' ? `GPU ${machine.gpu}` : machine.gpu?.name].filter(Boolean).join(' · ');
   const hardware = run.host?.hardware || {};
   return [hardware['machdep.cpu.brand_string'], hardware['hw.memsize'] && `${gibibytes(Number(hardware['hw.memsize']))} RAM`].filter(Boolean).join(' · ');
 }
-const describeDevice = part => part.device === 'api' ? `${part.model} via API` : `${part.model} on ${part.device.toUpperCase()}${part.dtype ? ` (${part.dtype})` : ''}`;
+const describeDevice = part => part.device === 'api' ? `${part.model} via API`
+  : !part.device ? `${part.model} (device not recorded)`
+  : `${part.model} on ${part.device.toUpperCase()}${part.dtype ? ` (${part.dtype})` : ''}`;
 function describeExecution(run) {
   const host = describeHost(run);
   if (!host) return '';

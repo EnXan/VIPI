@@ -4,7 +4,7 @@ import argparse
 from pathlib import Path
 import sys
 
-from . import runs, splits, suite
+from . import execution, runs, splits, suite
 
 
 def build_parser():
@@ -56,7 +56,37 @@ def build_parser():
     )
     save.add_argument("run_id")
     save.add_argument("--runs-dir", type=Path, default=runs.DEFAULT_RUNS_DIRECTORY)
+    backfill = commands.add_parser(
+        "backfill-execution",
+        help="Add host and devices to baselines and runs recorded before they "
+        "were tracked, from recorded data only (no scans).",
+    )
+    backfill.add_argument("--runs-dir", type=Path, default=runs.DEFAULT_RUNS_DIRECTORY)
+    backfill.add_argument("--dry-run", action="store_true")
     return parser
+
+
+def backfill_command(args):
+    changed = runs.backfill_execution(
+        runs_directory=args.runs_dir, dry_run=args.dry_run
+    )
+    for path, value in changed:
+        devices = value["backfilled"]
+        found = (
+            f"{', '.join(devices['decision_devices'])} from "
+            f"{devices['decision_requests']} review requests"
+            if devices["decision_requests"]
+            else "no local review requests"
+        )
+        print(
+            f"{path.relative_to(splits.ROOT)}: {value['host'].get('cpu')}; "
+            f"{execution.describe_component(value['decision'])} ({found})"
+        )
+    if not changed:
+        print("nothing to backfill")
+    elif args.dry_run:
+        print("dry run: nothing written")
+    return 0
 
 
 def run_command(args):
@@ -99,6 +129,8 @@ def run_command(args):
 def dispatch(args):
     if args.command == "run":
         return run_command(args)
+    if args.command == "backfill-execution":
+        return backfill_command(args)
     if args.command == "save-baseline":
         target = runs.save_baseline(args.run_id, runs_directory=args.runs_dir)
         print(f"wrote {target.relative_to(splits.ROOT)} (commit this file)")

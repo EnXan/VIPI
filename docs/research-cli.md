@@ -51,6 +51,7 @@ uv run python -m research.evaluate status local-speed
 uv run python -m research.evaluate run local-speed --dry-run
 uv run python -m research.evaluate run local-speed
 uv run python -m research.evaluate save-baseline <run-id>
+uv run python -m research.evaluate backfill-execution --dry-run
 uv run python -m research.evaluate split --check
 ```
 

@@ -339,3 +339,29 @@ def save_baseline(
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
     return target
+
+
+def backfill_execution(
+    root=benchmark.ROOT, *, runs_directory=DEFAULT_RUNS_DIRECTORY, dry_run=False
+):
+    """Add ``execution`` to saved baselines and run summaries that lack it.
+
+    Uses only recorded data (ADR 0063): the summary's host block and the
+    review requests in the run's local artifacts. Returns ``(path, execution)``
+    for every document that lacked it."""
+    root = Path(root)
+    documents = sorted((root / suite.BASELINES).glob("*.json")) + sorted(
+        (root / runs_directory).glob("*/summary.json")
+    )
+    changed = []
+    for path in documents:
+        summary = json.loads(path.read_text(encoding="utf-8"))
+        if summary.get("kind") != suite.SUMMARY_KIND or "execution" in summary:
+            continue
+        artifacts = summary.get("local_artifacts")
+        benchmark_directory = root / artifacts / "benchmark" if artifacts else None
+        summary["execution"] = execution.backfill(summary, benchmark_directory)
+        if not dry_run:
+            path.write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
+        changed.append((path, summary["execution"]))
+    return changed

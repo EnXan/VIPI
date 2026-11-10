@@ -102,6 +102,13 @@ uv run python -m research.evaluate save-baseline <run-id>
 - `save-baseline` copies a complete run's summary to
   `research/baselines/<run-id>.json`. Commit that file. Save the baseline on
   unmodified code, before changing anything.
+- `backfill-execution` adds the host and device record (`execution`) to saved
+  baselines and run summaries written before it existed, without scanning:
+  the host comes from the summary's own host block, the device of local review
+  and detection models from the `decision_device` in the run's review requests.
+  Run it on the machine that produced the run; elsewhere the device stays "not
+  recorded". The record is marked `backfilled`
+  ([ADR 0063](../../adr-code/0063-backfill-execution-records.md)).
 
 ## Metrics
 
