@@ -194,8 +194,9 @@
     },
     "ocr": {
       "model": "mistral-ocr-4-1",
-      "device": "api",
-      "provider": "mistral"
+      "provider": "mistral",
+      "service": "Mistral OCR API",
+      "device": "api"
     },
     "decision": {
       "model": "gpt-6-luna",

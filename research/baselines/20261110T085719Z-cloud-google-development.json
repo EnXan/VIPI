@@ -186,8 +186,9 @@
     },
     "ocr": {
       "model": "google-cloud-vision",
-      "device": "api",
-      "provider": "google"
+      "provider": "google",
+      "service": "Google Cloud Vision DOCUMENT_TEXT_DETECTION",
+      "device": "api"
     },
     "decision": {
       "model": "gpt-6-luna",

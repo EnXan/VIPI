@@ -67,8 +67,9 @@ def test_cloud_configurations_use_apis_and_do_not_load_torch():
     assert value["host"]["gpu"] is None
     assert value["ocr"] == {
         "model": "google-cloud-vision",
-        "device": "api",
         "provider": "google",
+        "service": "Google Cloud Vision DOCUMENT_TEXT_DETECTION",
+        "device": "api",
     }
     assert value["decision"] == {
         "model": "gpt-6-luna",
@@ -85,7 +86,7 @@ def test_cloud_configurations_use_apis_and_do_not_load_torch():
     lines = execution.report_lines(value)
     assert "no GPU used" in lines[3]
     assert lines[5] == (
-        "OCR: google-cloud-vision via API. "
+        "OCR: google-cloud-vision via Google Cloud Vision DOCUMENT_TEXT_DETECTION. "
         "OCR review: gpt-6-luna via OpenAI Decisions API. "
         "Injection detector: jev-1.14.0 via TypeSafe API."
     )
@@ -97,7 +98,10 @@ def test_cloud_model_ids_follow_the_providers():
 
     value, _ = record("cloud-openai", None)
     assert value["decision"]["model"] == value["detector"]["model"] == Decisions.model
-    assert record("cloud-mistral-jev", None)[0]["detector"]["model"] == Jev.model
+    assert value["ocr"]["service"] == "OpenAI Responses API"
+    mistral, _ = record("cloud-mistral-jev", None)
+    assert mistral["detector"]["model"] == Jev.model
+    assert mistral["ocr"]["service"] == "Mistral OCR API"
 
 
 def test_machine_reports_this_host():

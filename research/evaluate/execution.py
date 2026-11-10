@@ -23,6 +23,12 @@ CLOUD_DECISION_MODELS = {
     "openai": (Decisions.model, "OpenAI Decisions API"),
     "jev": (Jev.model, "TypeSafe API"),
 }
+# The API each hosted OCR provider calls (vipi.ocr.cloud).
+CLOUD_OCR_SERVICES = {
+    "google": "Google Cloud Vision DOCUMENT_TEXT_DETECTION",
+    "openai": "OpenAI Responses API",
+    "mistral": "Mistral OCR API",
+}
 
 
 def sysctl(key):
@@ -110,10 +116,13 @@ def record(scan_options, *, device=None, host=None):
                 if key in ("name", "memory_bytes")
             },
         },
-        "ocr": {
+        "ocr": {"model": options.resolved_ocr_model, "device": "cpu"}
+        if local_ocr
+        else {
             "model": options.resolved_ocr_model,
-            "device": "cpu" if local_ocr else "api",
-            **({} if local_ocr else {"provider": options.resolved_ocr_provider}),
+            "provider": options.resolved_ocr_provider,
+            "service": CLOUD_OCR_SERVICES[options.resolved_ocr_provider],
+            "device": "api",
         },
         "decision": component(options.resolved_decision_provider),
         "detector": component(options.resolved_detector),

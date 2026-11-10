@@ -194,8 +194,9 @@
     },
     "ocr": {
       "model": "gpt-6-luna",
-      "device": "api",
-      "provider": "openai"
+      "provider": "openai",
+      "service": "OpenAI Responses API",
+      "device": "api"
     },
     "decision": {
       "model": "gpt-6-luna",
