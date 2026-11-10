@@ -235,8 +235,13 @@ async function refreshEvaluationSetup() {
     $(`split-${split}-count`).textContent = `(${setup.entries} images)`;
     $('baseline-status').textContent = describeBaseline(setup.baseline);
     $('baseline-status').dataset.state = setup.baseline.state;
+    const reuse = $('reuse-ocr').checked ? setup.reusable_ocr : 0;
+    $('reuse-ocr-count').textContent = `(${setup.reusable_ocr} of ${setup.entries} images have a reusable OCR result)`;
+    const scanned = reuse === setup.entries ? `only detection for the ${setup.entries} images (all OCR reused)`
+      : reuse ? `OCR and review for ${setup.entries - reuse} images, detection for all ${setup.entries}`
+      : `OCR, review and detection for each of the ${setup.entries} images`;
     $('evaluation-cost').hidden = !item.paid;
-    $('evaluation-cost').textContent = `Cloud runs make paid API calls (OCR, review and detection) for each of the ${setup.entries} images.${item.detector === 'jev' ? ' Jev usage is recorded, but its cost is not estimated (no verified rate).' : ''}`;
+    $('evaluation-cost').textContent = `Cloud runs make paid API calls: ${scanned}.${item.detector === 'jev' ? ' Jev usage is recorded, but its cost is not estimated (no verified rate).' : ''}`;
     $('evaluation-start').disabled = split === 'test' && !$('test-confirm').checked;
     $('evaluation-start').textContent = `Start evaluation · ${item.label} · ${setup.entries} images`;
   } catch (error) {
@@ -245,13 +250,14 @@ async function refreshEvaluationSetup() {
 }
 for (const input of document.querySelectorAll('input[name="split"]')) input.onchange = refreshEvaluationSetup;
 $('test-confirm').onchange = refreshEvaluationSetup;
+$('reuse-ocr').onchange = refreshEvaluationSetup;
 
 $('evaluation-start').onclick = async () => {
   showError('');
   const item = configuration(evaluationSettings.value());
   if (item.paid && !window.confirm(`Start a paid cloud evaluation with ${item.label}?`)) return;
   try {
-    const {run_id: runId} = await postJson('/api/evaluations', {configuration: item.id, split: selectedSplit(), confirm_test: $('test-confirm').checked});
+    const {run_id: runId} = await postJson('/api/evaluations', {configuration: item.id, split: selectedSplit(), confirm_test: $('test-confirm').checked, reuse_ocr: $('reuse-ocr').checked});
     openRun(runId);
     refreshRuns();
   } catch (error) { showError(error.message); }

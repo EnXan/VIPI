@@ -167,7 +167,11 @@ def create_app(
             baseline = evaluations.baseline(configuration, split)
         except (ValueError, OSError) as error:
             return evaluation_error(error)
-        return jsonify(entries=planned["entries"], baseline=baseline)
+        return jsonify(
+            entries=planned["entries"],
+            reusable_ocr=planned.get("reusable_ocr", 0),
+            baseline=baseline,
+        )
 
     @app.post("/api/evaluations")
     def start_evaluation():
@@ -177,6 +181,7 @@ def create_app(
                 data.get("configuration", DEFAULT_CONFIGURATION),
                 data.get("split", "development"),
                 data.get("confirm_test") is True,
+                reuse_ocr=data.get("reuse_ocr", True) is not False,
             )
         except (ValueError, RuntimeError, OSError) as error:
             return evaluation_error(error)

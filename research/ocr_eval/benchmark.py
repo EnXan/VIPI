@@ -2,6 +2,7 @@
 every attempt."""
 
 import argparse
+from contextlib import ExitStack
 from datetime import datetime, timezone
 import hashlib
 from importlib.metadata import PackageNotFoundError, version
@@ -15,15 +16,18 @@ import subprocess
 import time
 
 from vipi.config import ScanOptions, cache_directory
+from vipi.detection.pipeline import detect_ocr
 from vipi.detection.providers import prepare_provider
 from vipi.ocr.session import OcrSession
 from vipi.reporting import file_record
+from vipi.results import ScanResult
 from vipi.scanner import scan_image
 from vipi.storage.files import write_json
 
 from research.catalog import CATALOG_NAME, Catalog
 from .evaluation.metrics import evaluation_policy
 from .evaluation.words import words
+from . import ocr_reuse
 
 ROOT = Path(__file__).resolve().parents[2]
 # Product scan options (``vipi scan``); the threshold stays at its default and
@@ -215,8 +219,23 @@ def block_network(*args, **kwargs):
     raise RuntimeError("Network access is forbidden in the local OCR benchmark.")
 
 
-def worker(directory, configuration, rows):
-    """Scan without references; write each result before starting the next image."""
+def detect_reused(ocr, options, provider):
+    """Run only detection on an OCR result restored from an earlier run."""
+    detection = detect_ocr(
+        ocr,
+        options=options.detection_options(),
+        provider_factory=lambda name: provider,
+    )
+    return ScanResult(ocr, detection, provider.model, provider.identity)
+
+
+def worker(directory, configuration, rows, reuse=None):
+    """Scan without references; write each result before starting the next image.
+
+    ``reuse`` maps entry keys to earlier OCR results (``ocr_reuse.matching``);
+    those images only run detection. The OCR session opens on the first image
+    that needs OCR."""
+    reuse = reuse or {}
     if is_local(configuration):
         os.environ["HF_HUB_OFFLINE"] = "1"
         os.environ["TRANSFORMERS_OFFLINE"] = "1"
@@ -227,12 +246,20 @@ def worker(directory, configuration, rows):
     provider = prepare_provider(
         options.resolved_detector, cache_directory() / "prompt-guard"
     )
-    with OcrSession(
-        mode=options.ocr_mode,
-        model=options.resolved_ocr_model,
-        decision_provider=options.resolved_decision_provider,
-    ) as session:
-        write_json(directory / "session.json", session.metadata)
+    with ExitStack() as resources:
+        session = None
+
+        def open_session():
+            opened = resources.enter_context(
+                OcrSession(
+                    mode=options.ocr_mode,
+                    model=options.resolved_ocr_model,
+                    decision_provider=options.resolved_decision_provider,
+                )
+            )
+            write_json(directory / "session.json", opened.metadata)
+            return opened
+
         for row in rows:
             path = dataset_directory() / row["image"]
             if digest(path) != row["image_sha256"]:
@@ -249,13 +276,25 @@ def worker(directory, configuration, rows):
 
             write_json(directory / "current.json", record)
             try:
-                result = scan_image(
-                    path,
-                    options=options,
-                    session=session,
-                    provider=provider,
-                    on_event=event,
-                )
+                earlier = reuse.get(row["key"])
+                ocr = ocr_reuse.restore(earlier) if earlier else None
+                if ocr is not None:
+                    record["artifacts"] = str(ocr.artifacts)
+                    write_json(directory / "current.json", record)
+                    session_path = directory / "session.json"
+                    if not session_path.exists() and Path(earlier["session"]).is_file():
+                        # Same OCR identity: the earlier session describes this OCR.
+                        session_path.write_bytes(Path(earlier["session"]).read_bytes())
+                    result = detect_reused(ocr, options, provider)
+                else:
+                    session = session or open_session()
+                    result = scan_image(
+                        path,
+                        options=options,
+                        session=session,
+                        provider=provider,
+                        on_event=event,
+                    )
                 scanned = file_record(result)
                 record.update(
                     status="completed",
@@ -273,6 +312,12 @@ def worker(directory, configuration, rows):
                         "cost": scanned["detection_cost"],
                     },
                 )
+                if ocr is not None:
+                    record["ocr_reused_from"] = {
+                        "run_id": earlier["run_id"],
+                        "configuration": earlier["configuration"],
+                        "run": Path(earlier["artifacts"]).name,
+                    }
             except Exception as error:
                 record.update(
                     status="failed", error_type=type(error).__name__, error=str(error)
@@ -282,6 +327,11 @@ def worker(directory, configuration, rows):
             record.update(
                 elapsed_seconds=time.perf_counter() - started, finished_at=utc_now()
             )
+            if "ocr_reused_from" in record:
+                # Original OCR time plus this detection, comparable with full runs.
+                record["elapsed_seconds"] = (record["pipeline_seconds"] or 0) + (
+                    record["detection"]["seconds"] or 0
+                )
             write_json(
                 directory / "rows" / f"{row['key'].replace(':', '-')}.json", record
             )
@@ -318,11 +368,16 @@ def retain_interrupted_progress(directory):
         checkpoint.unlink()
 
 
-def run_configuration(directory, configuration, rows, cancel=None):
+def run_configuration(
+    directory, configuration, rows, cancel=None, provenance_record=None, reuse_from=None
+):
     """Recycle local workers every four images, retaining crashes as failed attempts.
 
     Setting ``cancel`` (a threading.Event) stops the worker; the image in
-    progress stays unrecorded and is scanned again on resume."""
+    progress stays unrecorded and is scanned again on resume. With
+    ``reuse_from`` (a folder of evaluation runs) and the run's
+    ``provenance_record``, images with an earlier OCR result of the same OCR
+    identity only run detection (``ocr_reuse``)."""
     directory.mkdir(parents=True, exist_ok=True)
     (directory / "rows").mkdir(exist_ok=True)
     retain_interrupted_progress(directory)
@@ -331,6 +386,19 @@ def run_configuration(directory, configuration, rows, cancel=None):
         for row in rows
         if not (directory / "rows" / f"{row['key'].replace(':', '-')}.json").exists()
     ]
+    reuse = (
+        ocr_reuse.matching(
+            remaining,
+            ocr_reuse.candidates(
+                reuse_from,
+                CONFIGURATIONS[configuration],
+                provenance_record,
+                exclude=directory.parent,
+            ),
+        )
+        if reuse_from is not None
+        else {}
+    )
     invocation = {
         "started_at": utc_now(),
         "planned_images": len(remaining),
@@ -340,8 +408,11 @@ def run_configuration(directory, configuration, rows, cancel=None):
     context = multiprocessing.get_context("spawn")
     while remaining:
         chunk = remaining[:4] if is_local(configuration) else remaining
+        chunk_reuse = {
+            row["key"]: reuse[row["key"]] for row in chunk if row["key"] in reuse
+        }
         process = context.Process(
-            target=worker, args=(str(directory), configuration, chunk)
+            target=worker, args=(str(directory), configuration, chunk, chunk_reuse)
         )
         worker_started = time.perf_counter()
         process.start()
@@ -424,6 +495,13 @@ def build_parser():
         type=Path,
         help="JSON file freezing an ordered subset of entry ids from the dataset",
     )
+    parser.add_argument(
+        "--reuse-ocr-from",
+        type=Path,
+        metavar="RUNS_DIR",
+        help="Reuse OCR results of earlier evaluation runs in RUNS_DIR when OCR "
+        "settings, OCR sources and the image are identical; detection runs again",
+    )
     return parser
 
 
@@ -461,7 +539,12 @@ def main(argv=None, cancel=None):
         if cancel is not None and cancel.is_set():
             break
         run_configuration(
-            directory / configuration, configuration, manifest["selection"], cancel
+            directory / configuration,
+            configuration,
+            manifest["selection"],
+            cancel,
+            provenance_record=manifest["provenance"],
+            reuse_from=args.reuse_ocr_from,
         )
     return 0
 

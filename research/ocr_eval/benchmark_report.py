@@ -41,6 +41,20 @@ def score_result(reference, result):
     }
 
 
+def reuse_lines(summary):
+    reused = summary["ocr_reused"]
+    if not reused["images"]:
+        return []
+    return [
+        f"OCR reused from earlier runs for {reused['images']} of {summary['images']} "
+        "images (same OCR settings, OCR sources and image); detection ran again. "
+        "Their OCR time and cost are the original figures and count in the totals; "
+        f"about ${reused['estimated_usd_not_spent_again']:.2f} of OCR cost was not "
+        "spent again.",
+        "",
+    ]
+
+
 def summarize(rows):
     """Keep image success denominators fixed; distinguish macro and word-weighted coverage.
 
@@ -86,6 +100,12 @@ def summarize(rows):
             )
         ),
         "unattempted": len(rows) - len(attempted),
+        "ocr_reused": {
+            "images": sum(bool(r.get("ocr_reused_from")) for r in rows),
+            "estimated_usd_not_spent_again": sum(
+                r.get("ocr_reused_usd") or 0.0 for r in rows
+            ),
+        },
         "referenced": len(referenced),
         "scored": len(scored),
         "unscored_completed": sum(
@@ -353,6 +373,13 @@ def report(directory):
                 elif row["score"]["total"] != row["reference_words"]:
                     raise ValueError(f"Reference word count changed: {row['key']}")
             cost = row.get("cost", {})
+            # Reused OCR keeps its original cost in the totals (comparable with
+            # full runs); this is the part that was not paid again.
+            row["ocr_reused_usd"] = (
+                cost.get("estimated_usd") or 0.0
+                if row.get("ocr_reused_from") and not is_local(configuration)
+                else 0.0
+            )
             row["cost_estimated_usd"] = (
                 0.0
                 if is_local(configuration) and row["status"] != "unattempted"
@@ -473,6 +500,7 @@ def markdown(data):
             "",
             f"Runner host (provider inference runs remotely): {provenance.get('platform', 'platform unavailable')}; {cpu}; {physical} physical / {logical} logical CPUs; {memory_text}.",
             "",
+            *reuse_lines(values["summary"]),
             "| Category/subset | N | Scored / failed | Word coverage | Exact word coverage | Mean image coverage | ≥80% images | 100% images | Full-reference pass | Image seconds total / mean | API estimate USD total / mean |",
             "| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |",
         ]
