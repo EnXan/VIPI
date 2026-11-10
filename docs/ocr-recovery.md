@@ -8,6 +8,12 @@ ownership.
 
 ## Recovery flow
 
+![VIPI reads the original with OCR and checks quality signals. With a signal, a visual model reviews the reading, a rotation or contrast fix and a 2x upscale are kept only if they improve it. Every image then gets a 1.5x probe for missing letters and, if large or with small text, a tile pass. The final OCR text goes to the injection check.](../assets/diagrams/vipi-ocr-recovery.svg)
+
+The diagram numbers follow the steps below. Steps 3–5 run only after a quality
+signal; the missing-letter probe and the tile pass run for every image that
+meets their conditions.
+
 1. Run native OCR on the original and group boxed local OCR using the reviewed
    PDFMiner geometry rules. Preserve full-page cloud transcription as returned.
 2. Evaluate the selected research signals: empty/short text, aggregate low

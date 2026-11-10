@@ -1,0 +1,131 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 60 1040 400" role="img" aria-labelledby="title desc">
+  <title id="title">How VIPI recovers text that OCR missed</title>
+  <desc id="desc">VIPI first reads the original image with OCR and checks the result for quality signals such as empty text, low confidence, small text, unusual symbols, low contrast or rare words. Without a signal, the visual review and the 2x upscale are skipped. With a signal, a visual decision model answers whether text is missing, whether the image detail is enough and which fix is supported; a rotation or contrast fix is kept only if it improves the reading. A signaled original of up to 8 megapixels is then compared with a 2x bicubic reading, kept only if the model prefers it and no confident word is lost. Every image with confident words gets a 1.5x Lanczos probe that can insert missing letters. Images with a side over 2000 pixels or text under 12 pixels are read again in 1024-pixel tiles, kept only if every earlier word is retained. The final OCR text goes to the injection check.</desc>
+  <defs>
+    <style>
+      .bg { fill: #FFFFFF; stroke: rgba(11,12,16,.12); }
+      .dot { fill: rgba(11,12,16,.10); }
+      .card { fill: #F2F3F5; stroke: rgba(11,12,16,.16); }
+      .ink { fill: #0B0C10; }
+      .wire { fill: none; stroke: #5C616C; stroke-width: 1.5; }
+      .dash { fill: none; stroke: #5C616C; stroke-width: 1.5; stroke-dasharray: 5 4; }
+      .head { fill: #5C616C; }
+      .title { fill: #0B0C10; font: 500 17px "Geist", "Helvetica Neue", Arial, sans-serif; letter-spacing: -0.01em; }
+      .title-inv { fill: #F2F3F5; font: 500 17px "Geist", "Helvetica Neue", Arial, sans-serif; letter-spacing: -0.01em; }
+      .mono { fill: #5C616C; font: 500 10px "Geist Mono", ui-monospace, Menlo, Consolas, monospace; letter-spacing: .06em; }
+      .step { fill: #0B0C10; font: 500 10px "Geist Mono", ui-monospace, Menlo, Consolas, monospace; letter-spacing: .08em; }
+      .mono-inv { fill: #A3A8B2; font: 500 10px "Geist Mono", ui-monospace, Menlo, Consolas, monospace; letter-spacing: .06em; }
+      .step-inv { fill: #F2F3F5; font: 500 10px "Geist Mono", ui-monospace, Menlo, Consolas, monospace; letter-spacing: .08em; }
+      .review { fill: #F5A524; }
+      @media (prefers-color-scheme: dark) {
+        .bg { fill: #121318; stroke: rgba(242,243,245,.12); }
+        .dot { fill: rgba(242,243,245,.09); }
+        .card { fill: #0B0C10; stroke: rgba(242,243,245,.16); }
+        .ink { fill: #F2F3F5; }
+        .wire, .dash { stroke: #A3A8B2; }
+        .head { fill: #A3A8B2; }
+        .title, .step { fill: #F2F3F5; }
+        .title-inv, .step-inv { fill: #0B0C10; }
+        .mono { fill: #A3A8B2; }
+        .mono-inv { fill: #5C616C; }
+      }
+    </style>
+    <pattern id="raster" width="24" height="24" patternUnits="userSpaceOnUse" x="12" y="12">
+      <circle class="dot" cx="12" cy="12" r="1.2"/>
+    </pattern>
+  </defs>
+
+  <rect class="bg" x="0.5" y="60.5" width="1039" height="399" rx="4"/>
+  <rect x="1" y="61" width="1038" height="398" rx="4" fill="url(#raster)"/>
+
+  <!-- Row 1 -->
+  <rect class="card" x="24.5" y="100.5" width="130" height="130" rx="4"/>
+  <text class="step" x="40" y="126">INPUT</text>
+  <text class="title" x="40" y="154">Original</text>
+  <text class="mono" x="40" y="180">AS SUPPLIED</text>
+  <text class="mono" x="40" y="196">≤ 40 MP LOCALLY</text>
+
+  <path class="wire" d="M155 165H178"/>
+  <path class="head" d="M186 165l-9-5v10z"/>
+
+  <rect class="card" x="186.5" y="100.5" width="170" height="130" rx="4"/>
+  <text class="step" x="202" y="126">01 · READ</text>
+  <text class="title" x="202" y="154">Native OCR</text>
+  <text class="mono" x="202" y="180">ORIGINAL IMAGE</text>
+  <text class="mono" x="202" y="196">GROUPED INTO LINES</text>
+
+  <path class="wire" d="M357 165H380"/>
+  <path class="head" d="M388 165l-9-5v10z"/>
+
+  <rect class="card" x="388.5" y="100.5" width="190" height="130" rx="4"/>
+  <text class="step" x="404" y="126">02 · CHECK</text>
+  <text class="title" x="404" y="154">Quality signals</text>
+  <text class="mono" x="404" y="180">EMPTY · LOW CONFIDENCE</text>
+  <text class="mono" x="404" y="196">SMALL TEXT · SYMBOLS</text>
+  <text class="mono" x="404" y="212">CONTRAST · RARE WORDS</text>
+
+  <path class="wire" d="M579 165H632"/>
+  <path class="head" d="M640 165l-9-5v10z"/>
+  <rect class="review" x="586" y="138" width="8" height="8"/>
+  <text class="mono" x="599" y="146">SIGNAL</text>
+
+  <rect class="card" x="640.5" y="100.5" width="180" height="130" rx="4"/>
+  <text class="step" x="656" y="126">03 · ASSESS</text>
+  <text class="title" x="656" y="154">Visual review</text>
+  <text class="mono" x="656" y="180">TEXT MISSING?</text>
+  <text class="mono" x="656" y="196">ENOUGH DETAIL?</text>
+  <text class="mono" x="656" y="212">WHICH FIX?</text>
+
+  <path class="wire" d="M821 165H844"/>
+  <path class="head" d="M852 165l-9-5v10z"/>
+
+  <rect class="card" x="852.5" y="100.5" width="164" height="130" rx="4"/>
+  <text class="step" x="868" y="126">04 · CORRECT</text>
+  <text class="title" x="868" y="154">Fix and compare</text>
+  <text class="mono" x="868" y="180">ROTATE · CONTRAST</text>
+  <text class="mono" x="868" y="196">KEEP IF IMPROVED</text>
+
+  <!-- Row 2, read right to left -->
+  <path class="wire" d="M934 231V292"/>
+  <path class="head" d="M934 300l-5-9h10z"/>
+
+  <rect class="card" x="852.5" y="300.5" width="164" height="130" rx="4"/>
+  <text class="step" x="868" y="326">05 · UPSCALE</text>
+  <text class="title" x="868" y="354">2× bicubic</text>
+  <text class="mono" x="868" y="380">UP TO 8 MP</text>
+  <text class="mono" x="868" y="396">MODEL PREFERS IT</text>
+  <text class="mono" x="868" y="412">NO WORD LOST</text>
+
+  <path class="wire" d="M852 365H829"/>
+  <path class="head" d="M821 365l9-5v10z"/>
+
+  <rect class="card" x="640.5" y="300.5" width="180" height="130" rx="4"/>
+  <text class="step" x="656" y="326">06 · INSERT</text>
+  <text class="title" x="656" y="354">Missing letters</text>
+  <text class="mono" x="656" y="380">1.5× LANCZOS PROBE</text>
+  <text class="mono" x="656" y="396">HIGHER CONFIDENCE</text>
+  <text class="mono" x="656" y="412">SAME WORD POSITION</text>
+
+  <path class="wire" d="M640 365H587"/>
+  <path class="head" d="M579 365l9-5v10z"/>
+
+  <rect class="card" x="388.5" y="300.5" width="190" height="130" rx="4"/>
+  <text class="step" x="404" y="326">07 · TILES</text>
+  <text class="title" x="404" y="354">Source tiles</text>
+  <text class="mono" x="404" y="380">SIDE &gt; 2000 PX</text>
+  <text class="mono" x="404" y="396">OR TEXT &lt; 12 PX</text>
+  <text class="mono" x="404" y="412">KEEP IF NO WORD LOST</text>
+
+  <path class="wire" d="M388 365H365"/>
+  <path class="head" d="M357 365l9-5v10z"/>
+
+  <rect class="ink" x="186" y="300" width="171" height="131" rx="4"/>
+  <text class="step-inv" x="202" y="326">08 · RESULT</text>
+  <text class="title-inv" x="202" y="354">Final OCR text</text>
+  <text class="mono-inv" x="202" y="380">TO INJECTION CHECK</text>
+
+  <!-- No signal: skip review, correction and upscale -->
+  <path class="dash" d="M483 231V266H730V292"/>
+  <path class="head" d="M730 300l-5-9h10z"/>
+  <text class="mono" x="606" y="286" text-anchor="middle">NO SIGNAL · SKIP 03–05</text>
+</svg>
