@@ -67,5 +67,8 @@ git push origin v0.6.1
 ```
 
 The `v*` tag starts CI, builds distributions and publishes to PyPI through
-Trusted Publishing. A merge alone does not publish. Verify the tag workflow
-and publication; never reuse a published version.
+Trusted Publishing. After publication, the workflow creates the GitHub release
+for the tag with generated notes since the previous `vX.Y.Z` tag and marks it
+as Latest; an existing release for the tag is left unchanged. A merge alone
+does not publish. Verify the tag workflow, the PyPI publication and the GitHub
+release; never reuse a published version.
