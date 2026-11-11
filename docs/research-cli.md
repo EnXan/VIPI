@@ -119,7 +119,7 @@ uv run python -m research.ocr_eval.benchmark_report DIRECTORY --output FILE
 | `DIRECTORY` | both | Required. `benchmark`: a new run directory or a matching one to resume (failed attempts are kept). `benchmark_report`: a retained benchmark directory. |
 | `--configuration NAME...` | `benchmark` | Required; one or more evaluation configurations (see above), run one after another. |
 | `--selection-file FILE` | `benchmark` | JSON file that freezes an ordered subset of entry IDs from the dataset. Default: all entries. |
-| `--reuse-ocr-from RUNS_DIR` | `benchmark` | Reuse OCR results of earlier evaluation runs in this folder when OCR settings, OCR sources and the image are identical; detection runs again. |
+| `--reuse-ocr-from RUNS_DIR` | `benchmark` | Reuse earlier OCR when image bytes, OCR/review settings, sources and packages match; also reuse successful detection when detector settings, product sources and packages match. |
 | `--output FILE` | `benchmark_report` | Required; write the JSON report here and a Markdown sibling, without inference. |
 
 A successful `benchmark` exit means attempts were recorded, not that all scans

@@ -1,4 +1,4 @@
-"""Shared concurrency limits for the pipeline, CLI and web."""
+"""Validate OCR engine worker counts and their shared CPU budget."""
 
 DEFAULT_WORKERS = 4
 MAX_WORKERS = 8

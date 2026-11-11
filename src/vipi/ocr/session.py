@@ -79,7 +79,6 @@ class OcrSession:
             self.root / "ocr",
             1,
             "cpu",
-            native_pipeline=True,
         )
 
     @property

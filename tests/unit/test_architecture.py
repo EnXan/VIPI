@@ -92,10 +92,6 @@ def test_direct_detection_uses_evidence_without_files(tmp_path, monkeypatch):
             calls.append(state)
             return {"status": "completed", "probability": 0.8}
 
-    def unexpected(*args):
-        pytest.fail("Direct detection must not load a saved run")
-
-    monkeypatch.setattr("vipi.detection.pipeline.load_evidence", unexpected)
     result = detect(
         evidence,
         options=ScanOptions().detection_options(),

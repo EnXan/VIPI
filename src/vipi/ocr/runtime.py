@@ -81,18 +81,6 @@ def validate_session_providers(backend, providers):
         )
 
 
-def backend_options():
-    return [
-        {"id": "cpu", "label": "CPU", "available": True},
-        {
-            "id": "coreml",
-            "label": "Apple CoreML · experimental",
-            "available": coreml_available(),
-        },
-        {"id": "cuda", "label": "NVIDIA CUDA", "available": cuda_available()},
-    ]
-
-
 def rapid_runtime_params(backend, threads, directory):
     params = {
         "EngineConfig.onnxruntime.intra_op_num_threads": threads,

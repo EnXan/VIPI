@@ -162,14 +162,7 @@ def scanner_runtime(tmp_path, monkeypatch, scanner_decisions):
     monkeypatch.chdir(tmp_path)
     monkeypatch.setenv("XDG_CACHE_HOME", str(tmp_path / "cache"))
     monkeypatch.setattr("vipi.ocr.session.validate_model", lambda *args, **kwargs: None)
-    # Keep real image decoding, orchestration, persistence, assembly and detection;
-    # replace inference and limit views so tests do not require model weights.
-    from vipi.ocr.transforms import views_for_size
-
-    monkeypatch.setattr(
-        "vipi.ocr.pipeline.production_passes_for_size",
-        lambda *args: [(views_for_size(*args)[0], "unchanged")],
-    )
+    # Keep real decoding, recovery, persistence and detection; replace inference.
 
     class Engine:
         def recognize(self, raster):
@@ -424,10 +417,6 @@ def test_direct_scan_accepts_bytes_and_does_not_reload_ocr_json(
 ):
     provider, _ = scanner_runtime
 
-    def unexpected(*args):
-        pytest.fail("The scanner must pass its OCR result directly to detection")
-
-    monkeypatch.setattr("vipi.detection.pipeline.load_evidence", unexpected)
     events = []
     result = scan_image(
         image(tmp_path / "label.png").read_bytes(),

@@ -10,7 +10,7 @@ from PIL import Image
 from research.ocr_eval import benchmark
 from research.ocr_eval import benchmark_report
 from research.ocr_eval.benchmark_report import grouped, score_result, summarize
-from research.ocr_eval.evaluation.metrics import evaluate
+from research.ocr_eval.evaluation.metrics import compare_words
 
 
 def test_worker_uses_selected_product_configuration_and_keeps_failures(
@@ -312,9 +312,7 @@ def test_final_score_matches_existing_evaluator_and_leaves_unlocated_text_unscor
         "regions": [],
     }
     result = {"text": step["text"], "regions": [], "variants": [step]}
-    expected = evaluate(reference, result["text"], [], [step], include_effects=False)[
-        "final"
-    ]
+    expected, _, _ = compare_words(reference, result["text"], [])
     actual = score_result(reference, result)
     assert actual["matched"] == expected["matched"]
     assert actual["exact_matched"] == expected["exact"]["matched"]

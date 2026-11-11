@@ -1,354 +1,175 @@
-"""Schedule detector checks over frozen OCR readings and persist their verdicts."""
+"""Check final OCR text with one detector and persist its verdict."""
 
 from concurrent.futures import CancelledError, ThreadPoolExecutor, as_completed
-import json
 import time
-from pathlib import Path
 
-from .comparison import comparison
-from .context import validate_context
-from .evidence import build_evidence, chunks, digest, load_evidence
+from .evidence import build_evidence, chunks
 from .policy import INSTRUCTIONS, POLICY_VERSION, state
 from .providers import create_provider
 from .providers.prompt_guard import MODEL_DIR
 from vipi.storage.detection import DetectionStore
 from vipi.cancellation import check_cancelled
-from vipi.config import LOCAL_DECISION_PROVIDERS
+from vipi.config import CLOUD_DECISION_PROVIDERS, LOCAL_DETECTORS
 from .verdict import probability, summarize, validate_thresholds
 
-COMPARISON_PROVIDERS = ("jev", "openai", "prompt-guard")
-TEXT_PROVIDERS = (*COMPARISON_PROVIDERS, *LOCAL_DECISION_PROVIDERS)
-TEXT_CLASSIFIERS = (*TEXT_PROVIDERS, "compare", "off")
+TEXT_PROVIDERS = (*CLOUD_DECISION_PROVIDERS, *LOCAL_DETECTORS)
 
 
-def classifier_names(options):
-    if "text_classifiers" in options:
-        return options["text_classifiers"]
-    name = options["text_classifier"]
-    if name == "compare":
-        return list(COMPARISON_PROVIDERS)
-    if name == "off":
-        return []
-    return [name]
-
-
-def settings(
-    *,
-    text_classifier="jev",
-    text_classifiers=None,
-    image_check="off",
-    context_check="off",
-    context=None,
-    thresholds=None,
-    reuse=True,
-):
-    if (
-        text_classifier not in TEXT_CLASSIFIERS
-        or image_check not in {"off", "openai"}
-        or context_check not in {"off", "openai"}
-    ):
-        raise ValueError("Choose supported detector modes.")
-    selected = None
-    if text_classifiers is not None:
-        if not isinstance(text_classifiers, list) or any(
-            not isinstance(name, str) or name not in TEXT_PROVIDERS
-            for name in text_classifiers
-        ):
-            raise ValueError("Choose supported text classifiers as a list.")
-        selected = [name for name in TEXT_PROVIDERS if name in text_classifiers]
-        text_classifier = (
-            selected[0] if len(selected) == 1 else "compare" if selected else "off"
-        )
-    if text_classifier == image_check == context_check == "off":
-        raise ValueError("Select at least one detector check.")
-    if not isinstance(reuse, bool):
-        raise ValueError("reuse must be a boolean.")
+def settings(*, text_classifier="jev", thresholds=None):
+    if text_classifier not in TEXT_PROVIDERS:
+        raise ValueError("Choose a supported text detector.")
     return {
         "text_classifier": text_classifier,
-        **({"text_classifiers": selected} if selected is not None else {}),
-        "image_check": image_check,
-        "context_check": context_check,
-        "context": validate_context(context),
         "thresholds": validate_thresholds(thresholds),
-        "reuse": reuse,
     }
 
 
 def jobs_for(evidence, options):
-    names = classifier_names(options)
+    name = options["text_classifier"]
     jobs = []
     for reading in evidence["readings"]:
-        for name in names:
-            parts = (
-                [
-                    {
-                        "text": reading["text"],
-                        "start": 0,
-                        "end": len(reading["text"]),
-                        "partial_context": False,
-                    }
-                ]
-                if name == "prompt-guard"
-                else list(chunks(reading["text"]))
-            )
-            for part in parts:
-                jobs.append(
-                    {
-                        "provider": name,
-                        "signal": name,
-                        "reading_id": reading["id"],
-                        "source_ids": [x["id"] for x in reading["sources"]],
-                        **part,
-                        "evidence": {"text": part["text"]},
-                    }
-                )
-    if options["image_check"] == "openai":
-        jobs.append(
-            {
-                "provider": "openai",
-                "signal": "image",
-                "reading_id": None,
-                "source_ids": ["input"],
-                "evidence": {"kind": "original_image"},
-                "partial_context": False,
-            }
+        parts = (
+            [
+                {
+                    "text": reading["text"],
+                    "start": 0,
+                    "end": len(reading["text"]),
+                    "partial_context": False,
+                }
+            ]
+            if name == "prompt-guard"
+            else chunks(reading["text"])
         )
-    if options["context_check"] == "openai":
-        # Use the same final OCR text as the text detectors; never include variants.
-        joined = json.dumps(
-            [{"reading_id": x["id"], "text": x["text"]} for x in evidence["readings"]],
-            ensure_ascii=False,
-        )
-        for part in chunks(joined):
+        for part in parts:
             jobs.append(
                 {
-                    "provider": "openai",
-                    "signal": "context",
-                    "reading_id": None,
-                    "source_ids": ["input", *[x["id"] for x in evidence["readings"]]],
+                    "id": f"{len(jobs) + 1:04d}",
+                    "provider": name,
+                    "signal": name,
+                    "reading_id": reading["id"],
+                    "source_ids": [source["id"] for source in reading["sources"]],
                     **part,
-                    "evidence": {
-                        "kind": "original_image_and_final_ocr",
-                        "serialized_readings": part["text"],
-                    },
+                    "evidence": {"text": part["text"]},
                 }
             )
-    for i, job in enumerate(jobs):
-        job["id"] = f"{i + 1:04d}"
-    return jobs, [
-        *names,
-        *(["image"] if options["image_check"] == "openai" else []),
-        *(["context"] if options["context_check"] == "openai" else []),
-    ]
+    return jobs
 
 
-def cached_answers(directory):
-    saved = {}
-    for path in sorted(
-        (Path(directory) / "detection").glob("*/answers.jsonl"),
-        key=lambda x: x.stat().st_mtime,
-    ):
-        for line in path.read_text(encoding="utf-8").splitlines():
-            try:
-                result = json.loads(line)
-                if result.get("status") == "completed":
-                    probability(result.get("probability"))
-                    saved[result["fingerprint"]] = result
-            except (ValueError, KeyError):
-                continue
-    return saved
-
-
-def _check_job(
-    job,
-    evidence,
-    image,
-    options,
-    prepared,
-    providers,
-    errors,
-    saved,
-    store,
-    cancel_event,
-):
-    """Execute or replay one check against the already frozen evidence."""
+def _check_job(job, provider, error, store, cancel_event):
+    """Execute one text check against the already frozen evidence."""
     check_cancelled(cancel_event)
-    provider = providers.get(job["provider"])
-    context = {} if job["provider"] == "prompt-guard" else options["context"]
-    payload = state(job["evidence"], context)
-    with_image = job["signal"] in {"image", "context"}
-    fingerprint = digest(
-        {
-            "schema_version": 2,
-            "evidence_scope": "final_ocr",
-            "provider": job["provider"],
-            "identity": provider.identity if provider else None,
-            "policy": INSTRUCTIONS,
-            "policy_version": POLICY_VERSION,
-            "signal": job["signal"],
-            "payload": payload,
-            "image": evidence["image_hash"] if with_image else None,
-            "context_hash": prepared["context_hash"],
-        }
-    )
-    base = {key: value for key, value in job.items() if key not in {"text", "evidence"}}
-    base.update(
-        fingerprint=fingerprint,
+    answer = {
+        key: value for key, value in job.items() if key not in {"text", "evidence"}
+    }
+    answer.update(
         policy_version=POLICY_VERSION,
-        context_hash=prepared["context_hash"],
         probability=None,
         model=provider.model if provider else None,
         status="error",
-        replayed=False,
     )
-    if provider and fingerprint in saved:
-        old = saved[fingerprint]
-        base.update(
-            {
-                key: value
-                for key, value in old.items()
-                if key not in base
-                or key in {"probability", "status", "model", "partial_context"}
-            }
-        )
-        base.update(
-            replayed=True,
-            replayed_from=old.get("check_id"),
-            latency_seconds=0.0,
-        )
-        return base
-    check_started = time.perf_counter()
+    started = time.perf_counter()
     store.emit("check_started", active_check=job["id"], active_signal=job["signal"])
     check_cancelled(cancel_event)
     try:
-        if not provider:
-            raise ValueError(errors[job["provider"]])
-        if with_image and image is None:
-            raise ValueError(
-                "Original input raster is missing; image check cannot run."
-            )
-        answer = provider.check(payload, image if with_image else None)
-        if answer.get("status") == "completed":
-            probability(answer.get("probability"))
-        base.update(answer)
-    except Exception as error:
-        base.update(
+        if provider is None:
+            raise ValueError(error)
+        result = provider.check(state(job["evidence"]))
+        if result.get("status") == "completed":
+            probability(result.get("probability"))
+        answer.update(result)
+    except Exception as failure:
+        answer.update(
             status="error",
-            error=str(error),
-            attempts=getattr(error, "attempts", 0),
-            cost_uncertain=getattr(error, "attempts", 0) > 0,
+            error=str(failure),
+            attempts=getattr(failure, "attempts", 0),
+            cost_uncertain=getattr(failure, "attempts", 0) > 0,
         )
-    base["latency_seconds"] = time.perf_counter() - check_started
-    return base
-
-
-def _save_answer(answer, evidence, options, prepared, store):
-    """Apply the current threshold policy and persist one provider answer."""
-    if answer["signal"] == "context" and not prepared["context_available"]:
-        answer["partial_context"] = True
-    single = summarize(
-        [answer],
-        [answer["signal"]],
-        options["thresholds"],
-        evidence_complete=evidence["ocr_complete"]
-        and (bool(evidence["readings"]) or not classifier_names(options)),
-    )
-    answer.update(verdict=single["verdict"], check_id=store.id)
-    store.save_answer(answer)
+    answer["latency_seconds"] = time.perf_counter() - started
+    return answer
 
 
 def detect(
     evidence,
-    image=None,
     *,
     options=None,
-    saved_answers=None,
     model_dir=MODEL_DIR,
     store=None,
     on_event=None,
     provider_factory=None,
     cancel_event=None,
 ):
-    """Check final OCR evidence, preserving replay, cancellation and partial answers."""
+    """Check final OCR evidence, preserving cancellation and partial answers."""
     options = settings(**(options or {}))
     store = store or DetectionStore(on_event=on_event, run_id=evidence["run_id"])
     factory = provider_factory or (lambda name: create_provider(name, model_dir))
     started = time.perf_counter()
+    name = options["text_classifier"]
+    signals = [name]
     try:
         check_cancelled(cancel_event)
-        jobs, signals = jobs_for(evidence, options)
-        prepared = {
-            "schema_version": 2,
-            "evidence_scope": "final_ocr",
-            "policy_version": POLICY_VERSION,
-            "instructions": INSTRUCTIONS,
-            "context_hash": digest(options["context"]),
-            "context_available": bool(options["context"].get("task", "").strip()),
-            "options": options,
-            "evidence": evidence,
-            "jobs": jobs,
-        }
-        store.save_document("inputs.json", prepared)
+        jobs = jobs_for(evidence, options)
+        store.save_document(
+            "inputs.json",
+            {
+                "schema_version": 3,
+                "evidence_scope": "final_ocr",
+                "policy_version": POLICY_VERSION,
+                "instructions": INSTRUCTIONS,
+                "options": options,
+                "evidence": evidence,
+                "jobs": jobs,
+            },
+        )
         store.emit(
             "detection_started",
             state="running",
             total=len(jobs),
             evidence_scope="final_ocr",
             signals=signals,
-            context_available=prepared["context_available"],
         )
-        saved = (saved_answers or {}) if options["reuse"] else {}
-        providers, errors = {}, {}
-        for name in dict.fromkeys(x["provider"] for x in jobs):
+        provider, error = None, None
+        if jobs:
             check_cancelled(cancel_event)
             try:
-                providers[name] = factory(name)
-            except Exception as error:
-                errors[name] = str(error)
-
-        with (
-            ThreadPoolExecutor(max_workers=4, thread_name_prefix="detector-api") as api,
-            ThreadPoolExecutor(
-                max_workers=1, thread_name_prefix="detector-local"
-            ) as local,
-        ):
+                provider = factory(name)
+            except Exception as failure:
+                error = str(failure)
+        with ThreadPoolExecutor(
+            max_workers=1 if name == "prompt-guard" else 4,
+            thread_name_prefix="detector",
+        ) as pool:
             futures = [
-                (local if job["provider"] == "prompt-guard" else api).submit(
-                    _check_job,
-                    job,
-                    evidence,
-                    image,
-                    options,
-                    prepared,
-                    providers,
-                    errors,
-                    saved,
-                    store,
-                    cancel_event,
-                )
+                pool.submit(_check_job, job, provider, error, store, cancel_event)
                 for job in jobs
             ]
             for future in as_completed(futures):
                 try:
-                    _save_answer(future.result(), evidence, options, prepared, store)
+                    answer = future.result()
                 except CancelledError:
                     continue
+                summary = summarize(
+                    [answer],
+                    signals,
+                    options["thresholds"],
+                    evidence_complete=evidence["ocr_complete"]
+                    and bool(evidence["readings"]),
+                )
+                answer.update(verdict=summary["verdict"], check_id=store.id)
+                store.save_answer(answer)
         check_cancelled(cancel_event)
-        answers = sorted(store.results, key=lambda x: x["id"])
-        complete = evidence["ocr_complete"] and (
-            bool(evidence["readings"]) or not classifier_names(options)
-        )
+        answers = sorted(store.results, key=lambda answer: answer["id"])
         summary = summarize(
-            answers, signals, options["thresholds"], evidence_complete=complete
+            answers,
+            signals,
+            options["thresholds"],
+            evidence_complete=evidence["ocr_complete"] and bool(evidence["readings"]),
         )
         result = {
-            "schema_version": 2,
+            "schema_version": 3,
             "evidence_scope": "final_ocr",
             "run_id": evidence["run_id"],
             "check_id": store.id,
             "policy_version": POLICY_VERSION,
-            "context_available": prepared["context_available"],
-            "context_hash": prepared["context_hash"],
             "input_hash": evidence["input_hash"],
             "ocr_complete": evidence["ocr_complete"],
             "readings": len(evidence["readings"]),
@@ -356,7 +177,6 @@ def detect(
             "thresholds": options["thresholds"],
             "answers": answers,
             **summary,
-            "comparison": comparison(answers),
             "elapsed_seconds": time.perf_counter() - started,
         }
         store.save_document("result.json", result)
@@ -386,33 +206,6 @@ def detect(
         raise
 
 
-def detect_saved_run(
-    run_directory,
-    *,
-    options=None,
-    model_dir=MODEL_DIR,
-    store=None,
-    on_event=None,
-    provider_factory=None,
-    cancel_event=None,
-):
-    """Load persisted evidence for replay; direct checks use detect(evidence)."""
-    options = settings(**(options or {}))
-    directory = Path(run_directory)
-    evidence, image = load_evidence(directory)
-    store = store or DetectionStore(directory, on_event)
-    return detect(
-        evidence,
-        image,
-        options=options,
-        model_dir=model_dir,
-        store=store,
-        saved_answers=cached_answers(directory) if options["reuse"] else {},
-        provider_factory=provider_factory,
-        cancel_event=cancel_event,
-    )
-
-
 def detect_ocr(ocr, *, options=None, provider_factory=None, on_event=None):
     """Use a typed OCR result directly; persistence follows its artifact location."""
     from vipi.results import DetectionResult
@@ -421,9 +214,9 @@ def detect_ocr(ocr, *, options=None, provider_factory=None, on_event=None):
     store = DetectionStore(ocr.artifacts, on_event, run_id=ocr.run_id)
     payload = detect(
         evidence,
-        ocr.image,
         options=options,
         store=store,
         provider_factory=provider_factory,
+        on_event=on_event,
     )
     return DetectionResult.from_dict(payload)

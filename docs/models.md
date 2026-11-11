@@ -15,8 +15,7 @@ keeps model identifiers, override rules and hardware estimates.
 
 RapidOCR runs the local PP-OCRv6 models through ONNX Runtime. All local profiles
 also prepare `ch_PP-LCNet_x0_25_textline_ori_cls_mobile`, the native text-line
-orientation classifier. Production uses RapidOCR's native pipeline; the legacy
-research transform control disables its classification stage.
+orientation classifier. All local scans use RapidOCR's native pipeline.
 
 ## Cloud components
 
@@ -57,7 +56,7 @@ choices, not a measured quality ranking across profiles.
 ## Hardware
 
 **Most figures below are planning estimates, not tested minimum requirements.**
-Only the Apple Silicon figure for `speed` was measured. The estimates do not
+The Apple Silicon figures for `speed` and `quality` were measured. The estimates do not
 guarantee compatibility, completion or performance. They assume one image at a
 time, unquantized decision models and each profile's default shared
 review/detector model.

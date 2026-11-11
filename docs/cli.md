@@ -77,7 +77,8 @@ setting prevents fallback to the file. See [`.env.example`](../.env.example).
 The `ocr` extra supplies local OCR and shared image operations. Local decision
 models and Prompt Guard additionally need `detector-local`. Local PP-OCRv6 runs
 through ONNX on CPU in the public scanner; decision models select available
-CUDA, Apple MPS or CPU. The research tools expose additional OCR backends.
+CUDA, Apple MPS or CPU. Research scan configurations use the same OCR execution
+path as the public scanner.
 Cloud recovery can submit additional transformed images and make billable OCR
 and decision requests. Reports retain actual usage and unknown costs as unknown.
 

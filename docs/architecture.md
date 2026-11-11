@@ -1,6 +1,7 @@
 # Architecture
 
-Accepted package boundaries are recorded in [ADR 0002](../adr-code/0002-product-and-research-boundaries.md).
+Accepted package boundaries and removal of retired scan paths are recorded in
+[ADR 0067](../adr-code/0067-remove-retired-scan-paths.md).
 The public scan contract is recorded in [ADR 0003](../adr-code/0003-public-cli-contract.md).
 The current OCR profile and evaluation boundary are recorded in [ADR 0044](../adr-code/0044-product-research-recovery.md).
 Research module ownership and dataset distribution are recorded in
@@ -21,7 +22,7 @@ the research web UI are not included in the wheel.
 | `vipi.scanner` | A shared image scan and sequential scans of selected inputs |
 | `vipi.inputs` | File discovery and immutable Git branch-diff inputs |
 | `vipi.ocr` | Transformations, OCR engines, assembly and reusable model sessions |
-| `vipi.detection` | Evidence, provider checks, score policies and saved-run replay |
+| `vipi.detection` | Final-text evidence, one selected detector and score policy |
 | `vipi.results` | `OcrResult`, `DetectionResult` and `ScanResult` at component boundaries |
 | `vipi.config` | Public defaults, validated `ScanOptions`, cache paths and credential resolution |
 | `vipi.model_setup` | Explicit preparation of the release-pinned models |
@@ -45,12 +46,11 @@ across an image selection. Scans continue to save input copies, transformed
 images and reproducible detection artifacts; partial OCR failures retain their
 artifact location in the report.
 
-The detector's `detect(evidence, image=...)` path can operate in memory without
-filesystem artifacts. `detect_ocr()` consumes an `OcrResult` directly, avoiding a
-JSON write/read handoff. `detect_saved_run()` is the explicit adapter for loading
-previous runs and replaying compatible provider answers. Both adapters share the
-same detection and verdict implementation. Only final OCR text enters text
-detectors; dataset references never become classifier evidence.
+The detector's `detect(evidence)` path operates in memory without filesystem
+artifacts. `detect_ocr()` consumes an `OcrResult` directly and persists its checks
+beside the OCR artifacts. One selected detector checks only final OCR text;
+dataset references never become classifier evidence. Evaluation reuse of complete
+OCR/detection results belongs to `research.ocr_eval.ocr_reuse`.
 
 ## OCR implementation
 
@@ -83,15 +83,14 @@ The selected recovery workflow lives in `vipi.ocr.recovery`:
 `OcrSession` and research evaluation import this implementation directly.
 Local engines and the factory stay in `engines`, hosted adapters in `cloud`,
 and their existing recognition contract in `types`. Raster transforms,
-multi-view assembly and per-run API cost estimates stay in `vipi.ocr`. The
-workbench owns batch-level performance summaries in `reporting`.
-`vipi.ocr.pipeline` supports the workbench's native baseline and fixed-transform
-comparison profiles. `vipi.local_decisions` owns
+multi-view assembly and per-run API cost estimates stay in `vipi.ocr`.
+`research.ocr_eval.benchmark_report` owns dataset scoring and aggregate reports;
+`research.evaluate` owns baseline comparisons. `vipi.local_decisions` owns
 the prepared Clef-Flash/d1 runtimes reused by OCR review and injection detection.
 
 See [Product OCR recovery](ocr-recovery.md) for the recovery stages and measured
 limits, [CLI usage](cli.md) for execution modes and model selection, and
-[ADR 0045](../adr-code/0045-shared-ocr-recovery-ownership.md) for package ownership.
+[ADR 0067](../adr-code/0067-remove-retired-scan-paths.md) for package ownership.
 
 ## Research boundary
 
@@ -112,8 +111,9 @@ initializers and model metadata imports do not load inference frameworks.
 - `research/curation/`: dataset validation, labeling store and image
   generators.
 
-OCR and detector stores keep their distinct states. Shared atomic writes, hashes
-and event iteration are consolidated.
+OCR and detector stores keep their distinct states and emit progress through
+callbacks while persisting events. Atomic JSON writes and hashes are shared;
+the workbench polls its scan/evaluation services.
 Persisted JSON schemas and run directory layouts are shared across the product
 and research tools. The evaluation dataset (`catalog.json`, `vocabulary.json`,
 `images/`) lives in `research/dataset/`, downloaded from the Hugging Face
@@ -122,10 +122,15 @@ evaluation code ([ADR 0053](../adr-code/0053-one-evaluation-dataset.md)).
 
 ## Dependencies and tests
 
-`ocr` and `ocr-cuda` select alternative OCR runtimes. `detector-local` supplies
-Prompt Guard and its model-download client. `research` supplies Flask for the
-local workbench; `test` supplies pytest and Ruff. The published CLI does not
-install Flask by selecting `ocr`.
+`ocr` and `ocr-cuda` select alternative ONNX OCR runtimes and shared image,
+layout and quality-signal dependencies. `detector-local` supplies PyTorch,
+Transformers, the local decision models and Prompt Guard's runtime dependencies.
+`research` supplies Flask for the local workbench; `test` supplies pytest and
+Ruff. Cloud installation with `ocr` requires neither PyTorch nor TensorFlow.
+
+The retired fixed-transform pipeline, detector image/context/comparison modes,
+saved-run detector replay and old per-view evaluation aggregators are removed.
+Retained experiment operators remain under `research/ocr_eval/experiments/`.
 
 Tests are grouped into `tests/unit`, `tests/integration` and `tests/research`.
 Boundary tests prevent imports from the product into research/web frameworks and

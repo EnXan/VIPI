@@ -159,7 +159,6 @@ def extract(
             local_engine = create_engine(
                 model,
                 Path(models_dir),
-                native_pipeline=True,
                 backend=backend,
                 threads=1,
             )

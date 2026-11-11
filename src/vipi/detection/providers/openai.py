@@ -1,6 +1,5 @@
-"""Decisions API predicate checks for text, images and combined evidence."""
+"""Decisions API predicate checks for final OCR text."""
 
-import base64
 import json
 
 from vipi.config import api_key
@@ -13,25 +12,16 @@ class Decisions:
     name = "openai"
     model = "gpt-6-luna"
     identity = model
-    native = False
 
     def __init__(self, *, transport=post_json):
         self.key = api_key("OPENAI_API_KEY")
         self.transport = transport
 
-    def check(self, state, image=None):
+    def check(self, state):
         if not self.key:
             raise ValueError("Set OPENAI_API_KEY for Decisions.")
         text = json.dumps(state, ensure_ascii=False, sort_keys=True)
         content = [{"type": "input_text", "text": text}]
-        if image:
-            content.append(
-                {
-                    "type": "input_image",
-                    "image_url": "data:image/png;base64,"
-                    + base64.b64encode(image).decode("ascii"),
-                }
-            )
         raw, meta = self.transport(
             "https://api.openai.com/v1/decisions",
             self.key,

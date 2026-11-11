@@ -7,9 +7,9 @@ uv sync --extra ocr --extra detector-local --extra research --extra test
 ```
 
 `uv run` uses the synchronized `.venv` without activation. Use `uv add` and
-`uv remove` for dependencies and keep `uv.lock` synchronized. Additional OCR
-model environments are described in the
-[research CLI reference](research-cli.md#separate-model-environments).
+`uv remove` for dependencies and keep `uv.lock` synchronized. Tests and lint
+need no downloaded models, dataset or API keys. Prepare models and download the
+dataset only when running scans or the workbench.
 
 ## Commands and checks
 
@@ -22,6 +22,11 @@ uv run vipi scan image.png --ocr-mode balanced
 uv run python -m research.download
 uv run python -m research.workbench serve
 ```
+
+This example prepares Balanced. In the workbench, open **Change settings** and
+select **This computer** and **Balanced** before scanning. Its default is Quality
+with Clef-Flash; use `uv run vipi setup`
+to prepare those models instead, after checking the [hardware guide](models.md).
 
 The CLI and the workbench use the platform user cache for models and scan
 runs; evaluation runs go to the repository's ignored `runs/evaluations/`.
@@ -57,13 +62,13 @@ to the previous version; preserve clearly historical references. The version
 command updates `pyproject.toml` and `uv.lock`.
 
 After the version PR merges and CI passes, update `main` and push an annotated
-tag matching `uv version --short`. For version 0.7.1:
+tag matching `uv version --short`. For version 0.7.2:
 
 ```bash
 git switch main
 git pull --ff-only
-git tag -a v0.7.1 -m "Release v0.7.1"
-git push origin v0.7.1
+git tag -a v0.7.2 -m "Release v0.7.2"
+git push origin v0.7.2
 ```
 
 The `v*` tag starts CI, builds distributions and publishes to PyPI through
