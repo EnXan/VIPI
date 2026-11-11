@@ -124,10 +124,14 @@ def create_app(
                 request.form.get("configuration", DEFAULT_CONFIGURATION),
                 threshold,
             )
-        except ValueError as error:
-            return jsonify(error=str(error)), 400
-        except RuntimeError as error:
-            return jsonify(error=str(error)), 409
+        except ValueError:
+            app.logger.exception("Scan request rejected")
+            return jsonify(
+                error="Choose a supported configuration and a threshold from 0 to 100."
+            ), 400
+        except RuntimeError:
+            app.logger.exception("Scan could not start")
+            return jsonify(error="A scan is already running."), 409
         return jsonify(id=job.id), 202
 
     @app.get("/api/scans/<identifier>")
@@ -148,11 +152,14 @@ def create_app(
     # Evaluate a configuration
 
     def evaluation_error(error):
+        app.logger.exception("Evaluation request failed")
         if isinstance(error, KeyError):
             return jsonify(error="Evaluation run not found."), 404
         if isinstance(error, RuntimeError):
-            return jsonify(error=str(error)), 409
-        return jsonify(error=str(error)), 400
+            return jsonify(error="This evaluation is already running."), 409
+        return jsonify(
+            error="Evaluation request rejected. Check the configuration, dataset and test-split confirmation; see the server log for details."
+        ), 400
 
     @app.get("/api/evaluations")
     def evaluation_runs():

@@ -43,11 +43,16 @@ def register_routes(app, store, pinned_catalog=None):
         return pinned["catalog"]
 
     def failure(error, status=400):
+        app.logger.exception("Dataset request failed")
         if isinstance(error, DraftMissing):
-            return jsonify(error=str(error)), 409
+            return jsonify(
+                error="No dataset found. Run: uv run python -m research.download"
+            ), 409
         if isinstance(error, KeyError):
             return jsonify(error="Entry not found."), 404
-        return jsonify(error=str(error)), status
+        return jsonify(
+            error="Dataset request rejected. Check the entry and vocabulary values; see the server log for details."
+        ), status
 
     def body():
         data = request.get_json(silent=True)
@@ -71,16 +76,13 @@ def register_routes(app, store, pinned_catalog=None):
             if request.args.get("changed") == "1":
                 try:
                     only = store.changed_ids(downloaded())
-                except (OSError, ValueError, KeyError) as error:
-                    return failure(
-                        ValueError(
-                            "Your changes are found by comparing with the "
-                            "downloaded revision on Hugging Face, which could "
-                            f"not be read ({type(error).__name__}). Check the "
-                            "network connection once."
-                        ),
-                        503,
+                except (OSError, ValueError, KeyError):
+                    app.logger.exception(
+                        "Downloaded dataset revision could not be read"
                     )
+                    return jsonify(
+                        error="The downloaded revision on Hugging Face could not be read. Check the network connection and try again."
+                    ), 503
             return jsonify(
                 store.listing(
                     request.args.get("status", "all"),

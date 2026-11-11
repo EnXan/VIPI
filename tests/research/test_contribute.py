@@ -295,6 +295,27 @@ def test_dataset_page_rejects_missing_images_and_source(draft_dir, tmp_path):
     assert catalog(draft_dir) == before
 
 
+def test_contribution_errors_do_not_expose_internal_details(
+    draft_dir, tmp_path, monkeypatch, caplog
+):
+    detail = "/private/dataset/secret: provider-token"
+
+    def fail(*args, **kwargs):
+        raise ValueError(detail)
+
+    monkeypatch.setattr(contribute, "add_images", fail)
+    monkeypatch.setattr(contribute, "upload", fail)
+    client = page_client(draft_dir)
+    responses = [
+        client.post("/api/curation/images", data=image_form(tmp_path, "coral")),
+        client.get("/api/curation/submission"),
+    ]
+    for response in responses:
+        assert response.status_code == 400
+        assert detail not in response.get_data(as_text=True)
+    assert detail in caplog.text
+
+
 def submission_data(**extra):
     return {
         "changes": {"added": ["a"], "changed": [], "removed": []},
