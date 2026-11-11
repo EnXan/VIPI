@@ -1,7 +1,7 @@
 # Documentation
 
 - [Repository working agreement](../AGENTS.md) and [decision records](../adr-code/README.md)
-- [CLI usage, Secrets, PR scans and platform status](cli.md)
+- [CLI usage, Secrets, PR scans, limitations and platform status](cli.md)
 - [Models, overrides and hardware estimates](models.md)
 - [Architecture and package boundaries](architecture.md)
 - [OCR recovery flow and measured limits](ocr-recovery.md)

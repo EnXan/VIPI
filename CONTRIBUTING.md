@@ -3,6 +3,8 @@
 Thanks for helping improve VIPI. Contributions are welcome through GitHub pull
 requests.
 
+## Evaluation dataset
+
 Evaluation images and labels are contributed through pull requests on the
 [Hugging Face dataset](https://huggingface.co/datasets/EnXan/VIPI-evaluation),
 where maintainers review them together before merging. Follow the

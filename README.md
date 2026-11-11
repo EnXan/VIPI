@@ -17,7 +17,7 @@
   <a href="https://github.com/EnXan/VIPI/blob/main/docs/cli.md#platform-validation-status"><img alt="OS Support: macOS | Linux | Windows" src="https://img.shields.io/badge/OS-macOS%20%7C%20Linux%20%7C%20Windows-0B0C10?labelColor=5C616C"></a>
 </p>
 
-Images can carry instructions that people overlook but AI models read. VIPI
+Images can carry harmful instructions that people overlook but AI models read. VIPI
 finds the text in an image, including text that standard OCR misses, and checks
 it for prompt injections. It scans single images, folders and committed image
 changes.
@@ -29,15 +29,12 @@ changes.
 - **Agents with image input:** check screenshots before an agent decides or acts
   on them.
 
-<p align="center">
-  <img src="https://raw.githubusercontent.com/EnXan/VIPI/main/assets/diagrams/vipi-scan-flow.svg" alt="VIPI scans an image before it reaches an AI agent. Clean images continue to the agent; for images with findings, your workflow reports, blocks or allows them." width="900">
-</p>
-
 ## Quick start
 
 Requires Python 3.12 and [uv](https://docs.astral.sh/uv/getting-started/installation/).
 
-**Local:** images never leave your machine.
+### Local
+**Images never leave your machine**. Be aware that local mode downloads several gigabytes of models during `vipi setup` and has hardware requirements as stated in [Models and hardware](https://github.com/EnXan/VIPI/blob/main/docs/models.md).
 
 ```bash
 uv tool install --python 3.12 'vipi-scanner[ocr,detector-local]'
@@ -45,9 +42,18 @@ vipi setup --ocr-mode balanced
 vipi scan image.png --ocr-mode balanced --output report.json
 ```
 
-**Cloud:** hosted OCR and decisions. Set `GOOGLE_CLOUD_API_KEY` and
-`OPENAI_API_KEY` in the environment or an ignored `.env`
-([example](https://github.com/EnXan/VIPI/blob/main/.env.example)).
+Choose a profile; use the same one for `setup` and `scan`:
+
+```text
+vipi setup --ocr-mode {quality|balanced|speed}
+vipi scan image.png --ocr-mode {quality|balanced|speed} --output report.json
+```
+
+### Cloud
+Hosted OCR pipeline and injection detection. The defaults are Google OCR and OpenAI's decision API for injection detection.
+Set only the API keys for the providers you use
+([keys](https://github.com/EnXan/VIPI/blob/main/docs/cli.md#credentials-and-local-models),
+[`.env` example](https://github.com/EnXan/VIPI/blob/main/.env.example)).
 
 ```bash
 uv tool install --python 3.12 'vipi-scanner[ocr]'
@@ -55,17 +61,28 @@ vipi setup --modus cloud
 vipi scan image.png --modus cloud --output report.json
 ```
 
-Run `setup` with the same options you scan with. A bare `vipi setup` also
-downloads the large `quality` model. If `vipi` is not on `PATH`, run
-`uv tool update-shell` and restart the terminal.
+Choose providers per scan:
 
-## Models at a glance
+```text
+vipi scan image.png --modus cloud \
+  --ocr-provider {google|openai|mistral} \
+  --decision-provider {openai|jev} \
+  --output report.json
+```
 
-Every scan runs up to three steps; step 2 runs only when the OCR result is
-uncertain. The mode decides who provides the models.
+If `vipi` is not on `PATH`, run `uv tool update-shell` and restart the terminal.
+
+## How it works (Overview)
+
+Every scan runs up to three steps. OCR reads the text in the image. If the
+result is unclear, a visual model compares it with the image; when text is
+missing, VIPI reads the image again rotated, with more contrast or upscaled. A
+detector then checks the final text for prompt injections and reports a finding
+at a score of 80 or more. The mode decides who provides the models: local runs
+them on your machine, cloud calls the providers' APIs.
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/EnXan/VIPI/main/assets/diagrams/vipi-scan-pipeline.svg" alt="VIPI reads the text of an image with OCR, has a visual model review uncertain OCR and re-reads the image if text is missing, then checks the final text for prompt injections. The scan ends clean (exit 0), with an injection (exit 1) or incomplete (exit 2)." width="900">
+  <img src="https://raw.githubusercontent.com/EnXan/VIPI/main/assets/diagrams/vipi-scan-pipeline.svg" alt="VIPI reads the text of an image with OCR, has a visual model review unclear OCR and re-reads the image if text is missing, then checks the final text for prompt injections. The scan ends clean (exit 0), with an injection (exit 1) or incomplete (exit 2). Below each step are its local and cloud models." width="900">
 </p>
 
 <details>
@@ -87,16 +104,14 @@ model IDs and pinned revisions are in [Models and hardware](https://github.com/E
 
 </details>
 
-## Latest results
+## Performance
 
-Development split of the
-[VIPI evaluation dataset](https://huggingface.co/datasets/EnXan/VIPI-evaluation):
-227 images with a prompt injection, 223 benign, default threshold 80.
-
-- **Detection rate:** injection images reported as an injection. Higher is better.
-- **False positive rate:** benign images wrongly reported. Lower is better.
-- **Words recognized:** words in the images VIPI recognized, tolerating a
-  small typo. Higher is better.
+How well VIPI currently reads text in images and detects prompt injections,
+measured on the publicly available
+[VIPI evaluation dataset](https://huggingface.co/datasets/EnXan/VIPI-evaluation).
+New images are welcome: they help us test VIPI more thoroughly, and other
+projects can use the dataset to evaluate their own OCR or injection detection.
+See [contributing to the dataset](https://github.com/EnXan/VIPI/blob/main/CONTRIBUTING.md#evaluation-dataset).
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/EnXan/VIPI/main/assets/diagrams/vipi-results.svg" alt="Bar charts of detection rate, false positive rate and words recognized: cloud configurations detect 74 to 85 percent of injections with 0.4 to 4.5 percent false positives and recognize 85 to 88 percent of words; local configurations detect 15 to 19 percent with 0 to 2.2 percent false positives and recognize 70 to 77 percent of words. Exact values and models are in the expandable tables below." width="900">
@@ -128,12 +143,21 @@ Development split of the
 ## Usage
 
 ```bash
-vipi scan label.png screenshot.jpg
-vipi scan ./images --verbose --output report.json
+vipi scan label.png screenshot.jpg                       # single images
+vipi scan ./images --verbose --output report.json        # folder, print OCR text, save JSON report
 vipi scan ./images --exclude 'generated/' --exclude '*.webp'
-vipi scan . --diff origin/main --output report.json
-vipi scan image.png --modus cloud --detector openai --threshold 90
+vipi scan . --diff origin/main --output report.json      # only images changed since origin/main
+vipi scan image.png --threshold 90                       # stricter finding threshold
+
+# other detector: prepare it first, scans never download models
+vipi setup --ocr-mode balanced --detector prompt-guard
+vipi scan ./images --ocr-mode balanced --detector prompt-guard
+vipi scan image.png --modus cloud --detector jev
 ```
+
+For permanent exclusions, copy
+[`.vipiignore.example`](https://github.com/EnXan/VIPI/blob/main/.vipiignore.example)
+to `.vipiignore`.
 
 | Format | Extensions | Notes |
 | :-- | :-- | :-- |
@@ -141,27 +165,18 @@ vipi scan image.png --modus cloud --detector openai --threshold 90
 | JPEG | `.jpg`, `.jpeg` | EXIF orientation is applied |
 | WebP | `.webp` | Static images only; animated WebPs are rejected |
 
-Extensions are matched case-insensitively. Local inputs are limited to 40
-megapixels; hosted inputs follow provider limits. Other file types in scanned
-folders or diffs are skipped and listed in the report.
-
-A score at or above the threshold (default 80/100) is a finding. Scores are not
-calibrated probabilities, and a score below the threshold does not prove an
-image is safe. Cloud scans can make additional billable requests.
-
-| Exit code | Result |
-| :-- | :-- |
-| <img src="https://raw.githubusercontent.com/EnXan/VIPI/main/assets/readme/status-clean.svg" width="10" height="10" alt=""> `0` | Scan complete, no findings |
-| <img src="https://raw.githubusercontent.com/EnXan/VIPI/main/assets/readme/status-injection.svg" width="10" height="10" alt=""> `1` | Injection found, every image completed |
-| <img src="https://raw.githubusercontent.com/EnXan/VIPI/main/assets/readme/status-review.svg" width="10" height="10" alt=""> `2` | Error or incomplete scan; wins over findings |
+A score at or above the threshold (default 80) is a finding. Size limits,
+skipped files and what a score does not tell you are in
+[Limitations](https://github.com/EnXan/VIPI/blob/main/docs/cli.md#limitations).
 
 Every option, credential and report field is in the
 [CLI reference](https://github.com/EnXan/VIPI/blob/main/docs/cli.md).
 
 ## GitHub Actions
 
-Scan the images a pull request adds or changes. This example uses the local
-`balanced` profile with Meta Prompt Guard as the injection detector:
+Scan the images a pull request adds or changes. This example uses cloud mode
+with the default providers, Google Cloud Vision for OCR and OpenAI for
+decisions:
 
 ```yaml
 name: VIPI image scan
@@ -179,11 +194,10 @@ jobs:
           fetch-depth: 0
       - uses: EnXan/VIPI@v0.7.4
         with:
-          modus: local
-          ocr-mode: balanced
-          detector: prompt-guard
+          modus: cloud
         env:
-          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          GOOGLE_CLOUD_API_KEY: ${{ secrets.GOOGLE_CLOUD_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always()
         with:
@@ -191,10 +205,17 @@ jobs:
           path: vipi-report.json
 ```
 
-The runner needs enough memory for the chosen models, and Prompt Guard requires
-accepted model terms on Hugging Face. Fork PRs normally get no secrets. For
-hosted models, set `modus: cloud` and the provider keys; see
+> **Note:** Local mode is not recommended on standard GitHub-hosted runners.
+> They have no GPU and too little memory for the local models, so scans can
+> take very long or fail. In our test on a standard runner, `balanced` took
+> about 9 minutes for two images, plus 2 minutes of setup; `quality` could not
+> even load its model. Self-hosted or larger runners with enough memory,
+> ideally with a GPU, can run local mode, but it remains slower than cloud mode.
+
+Other providers are set with `ocr-provider` and `decision-provider` and need
+their own keys; see
 [Action inputs](https://github.com/EnXan/VIPI/blob/main/docs/cli.md#github-action).
+Fork PRs normally get no secrets, so their scans cannot reach the providers.
 
 ## Documentation
 
