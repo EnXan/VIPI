@@ -10,7 +10,7 @@ from PIL import Image
 from research.ocr_eval import benchmark
 from research.ocr_eval import benchmark_report
 from research.ocr_eval.benchmark_report import grouped, score_result, summarize
-from research.ocr_eval.evaluation.metrics import evaluate
+from research.ocr_eval.evaluation.metrics import compare_words
 
 
 def test_worker_uses_selected_product_configuration_and_keeps_failures(
@@ -312,9 +312,7 @@ def test_final_score_matches_existing_evaluator_for_ordered_text():
         "regions": [],
     }
     result = {"text": step["text"], "regions": [], "variants": [step]}
-    expected = evaluate(reference, result["text"], [], [step], include_effects=False)[
-        "final"
-    ]
+    expected, _, _ = compare_words(reference, result["text"], [])
     actual = score_result(reference, result)
     assert actual["matched"] == expected["matched"]
     assert actual["exact_matched"] == expected["exact"]["matched"]
@@ -363,7 +361,7 @@ def test_group_conflicts_are_reported_without_failing_the_reference():
     score = score_result(reference, result)
     assert score["matched"] == score["total"] == 2
     # Positions only diagnose merged groups; they do not change the score, so
-    # providers with and without word positions are scored alike (ADR 0067).
+    # providers with and without word positions are scored alike (ADR 0068).
     assert score["group_conflicts"] == 1
     assert score["valid"] is True
 

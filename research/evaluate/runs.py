@@ -389,7 +389,7 @@ def rescore(run_id, root=benchmark.ROOT, *, runs_directory=DEFAULT_RUNS_DIRECTOR
     Runs no inference. Rewrites the run's report and replaces only the metrics,
     the scoring-code hashes and the report hash in its summary and in its saved
     baseline, if there is one; every other field, including hand-recorded
-    host and execution details, is kept (ADR 0067)."""
+    host and execution details, is kept (ADR 0068)."""
     root = Path(root)
     directory = run_directory(run_id, root, runs_directory)
     summary_path = directory / "summary.json"

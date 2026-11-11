@@ -10,13 +10,12 @@ class Jev:
     name = "jev"
     model = JEV_MODEL
     identity = model
-    native = False
 
     def __init__(self, *, transport=post_json):
         self.key = api_key("TYPESAFE_API_KEY", "JEV_API_KEY")
         self.transport = transport
 
-    def check(self, state, image=None):
+    def check(self, state):
         if not self.key:
             raise ValueError("Set TYPESAFE_API_KEY for Jev.")
         raw, meta = self.transport(

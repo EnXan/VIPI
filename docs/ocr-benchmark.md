@@ -34,7 +34,7 @@ region-group conflicts. Full-reference passes therefore equal the tolerant
 local and 408 cloud; exact-word coverage and exact whole-image completion are
 different metrics.
 
-The README credits failures as zero across all 31,140 words / 1,113 entries:
+The historical README credited failures as zero across all 31,140 words / 1,113 entries:
 local tolerant coverage is 69.46%, cloud 85.38%. The full generated tables also
 show scored-only word coverage (cloud 86.38%) and mean-image coverage (84.48%).
 Keep these denominators explicit when comparing figures.
@@ -146,7 +146,7 @@ Use the existing [evaluation v4 rules](../research/ocr_eval/README.md), without
 giving reference text to OCR or visual decision providers. Score only the final
 selected output. References without a reading order are matched region by
 region in the final text, without word positions, so OCR without positions is
-scored like every other provider ([ADR 0067](../adr-code/0067-position-free-benchmark-scoring.md)).
+scored like every other provider ([ADR 0068](../adr-code/0068-position-free-benchmark-scoring.md)).
 
 - **Word coverage:** tolerant matched reference words divided by all reference
   words in scored entries. This is word-weighted; long references weigh more.

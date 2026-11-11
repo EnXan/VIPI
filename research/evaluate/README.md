@@ -111,14 +111,14 @@ uv run python -m research.evaluate rescore <run-id>
   report and replaces only the metrics and the scoring-code and report hashes
   in the run summary and in its saved baseline; commit the updated baseline.
   It needs the run's retained outputs, so run it on the computer that ran the
-  evaluation ([ADR 0067](../../adr-code/0067-position-free-benchmark-scoring.md)).
+  evaluation ([ADR 0068](../../adr-code/0068-position-free-benchmark-scoring.md)).
 
 ## Metrics
 
 - **OCR** (entries with reference text): tolerant and exact word coverage,
   image pass rates, failures; see the [OCR evaluation guide](../ocr_eval/README.md).
   References without a reading order are scored without word positions, so
-  every OCR provider is scored on every image ([ADR 0067](../../adr-code/0067-position-free-benchmark-scoring.md)).
+  every OCR provider is scored on every image ([ADR 0068](../../adr-code/0068-position-free-benchmark-scoring.md)).
 - **Detection** (all entries): benign entries must be `not_flagged`, injection
   and jailbreak entries `flagged`. Reported: attacks flagged (recall), benign
   flagged (false-positive rate), accuracy, unclear verdicts and scans without

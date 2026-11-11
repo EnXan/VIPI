@@ -31,50 +31,14 @@ def evaluation_policy():
         "benchmark_unordered_regions": (
             "benchmark scores match each region in the final text without word "
             "positions; group conflicts are reported but do not prevent passing "
-            "(ADR 0067)"
+            "(ADR 0068)"
         ),
         "reference_scope": "annotated reference only, not necessarily all visible image text",
     }
 
 
-EFFECT_LABELS = {
-    "scaling": "Scaling",
-    "rotation": "Rotation",
-    "tiling": "Tiling",
-    "grayscale": "Grayscale",
-    "clahe": "CLAHE",
-    "inverted": "Inversion",
-    "threshold": "Threshold",
-    "color-contrast": "Color contrast",
-}
-
-
 def tokens(text):
     return re.findall(r"\w+|[^\w\s]", unicodedata.normalize("NFKC", text).casefold())
-
-
-def ordered_matches(expected, observed):
-    """Exact LCS with bitsets; return reference positions, never penalize insertions."""
-    masks = {}
-    for index, token in enumerate(expected):
-        masks[token] = masks.get(token, 0) | (1 << index)
-    rows = [0]
-    for token in observed:
-        union = rows[-1] | masks.get(token, 0)
-        rows.append(union & ~(union - ((rows[-1] << 1) | 1)))
-    i, j, matched = len(expected) - 1, len(observed) - 1, set()
-    while i >= 0 and j >= 0:
-        if expected[i] == observed[j]:
-            matched.add(i)
-            i -= 1
-            j -= 1
-        elif (rows[j] & ((1 << (i + 1)) - 1)).bit_count() == (
-            rows[j + 1] & ((1 << (i + 1)) - 1)
-        ).bit_count():
-            j -= 1
-        else:
-            i -= 1
-    return matched
 
 
 def box_overlap(a, b):
@@ -170,11 +134,9 @@ def region_group_conflicts(reference, observations):
     return conflicts
 
 
-def region_matches(
-    reference, observations, *, word_mode=False, exact=False, cache=None
-):
+def region_matches(reference, observations, *, exact=False, cache=None):
     """One-to-one token matching in overlapping input-coordinate word regions."""
-    tokenize = words if word_mode else tokens
+    tokenize = words
     expected = [
         (token, bounds(region["input_polygon"]))
         for region in reference["regions"]
@@ -196,22 +158,14 @@ def region_matches(
             for token, box in observed
             if box_overlap(bounds(region["input_polygon"]), box) >= 0.5
         ]
-        matched = (
-            word_matches(unit, local, exact=exact, cache=cache)
-            if word_mode
-            else ordered_matches(unit, local)
-        )
+        matched = word_matches(unit, local, exact=exact, cache=cache)
         ordered_positions.update(offset + index for index in matched)
         offset += len(unit)
     for index, (token, box) in enumerate(expected):
         scores = [
             (box_overlap(box, candidate), j)
             for j, (text, candidate) in enumerate(observed)
-            if (
-                word_distance(token, text, exact=exact, cache=cache) is not None
-                if word_mode
-                else text == token
-            )
+            if word_distance(token, text, exact=exact, cache=cache) is not None
         ]
         edges.append(
             [j for score, j in sorted(scores, reverse=True) if score >= 0.5]
@@ -241,7 +195,7 @@ def unordered_text_matches(reference, text, *, exact=False, cache=None):
     Each region keeps its word order and may appear anywhere in the text; the
     order between regions is ignored and every OCR word covers at most one
     reference word. Longer regions claim their words first, then reference
-    order breaks ties, so the result is deterministic (ADR 0067).
+    order breaks ties, so the result is deterministic (ADR 0068).
     """
     units = [words(region["text"]) for region in reference["regions"]]
     offsets = [sum(len(unit) for unit in units[:index]) for index in range(len(units))]
@@ -270,23 +224,6 @@ def score(expected, matched):
     }
 
 
-def compare(reference, text, regions):
-    """Legacy normalized exact-token comparison for historical experiments."""
-    if reference["reading_order_known"]:
-        expected = tokens(reference["text"])
-        matched = ordered_matches(expected, tokens(text))
-    else:
-        if not reference["regions"]:
-            raise ValueError("Unordered references require annotated word regions.")
-        expected, matched = region_matches(reference, regions)
-    result = score(expected, matched)
-    conflicts = region_group_conflicts(reference, regions)
-    if conflicts:
-        result["valid"] = False
-        result["group_conflicts"] = conflicts
-    return result, expected, matched
-
-
 def compare_words(reference, text, regions, *, cache=None):
     if reference["reading_order_known"]:
         expected, observed = words(reference["text"]), words(text)
@@ -295,10 +232,8 @@ def compare_words(reference, text, regions, *, cache=None):
     else:
         if not reference["regions"]:
             raise ValueError("Unordered references require annotated word regions.")
-        expected, matched = region_matches(
-            reference, regions, word_mode=True, cache=cache
-        )
-        _, exact = region_matches(reference, regions, word_mode=True, exact=True)
+        expected, matched = region_matches(reference, regions, cache=cache)
+        _, exact = region_matches(reference, regions, exact=True)
     conflicts = region_group_conflicts(reference, regions)
     result = score(expected, matched)
     result["exact"] = score(expected, exact)
@@ -307,218 +242,3 @@ def compare_words(reference, text, regions, *, cache=None):
         result["exact"]["valid"] = False
         result["group_conflicts"] = conflicts
     return result, expected, matched
-
-
-def effect_summary(evaluations, variants):
-    by_view = {(step["view_id"], step["filter"]): step for step in variants}
-    original = next(step["view_id"] for step in variants if step["index"] == 1)
-    effects = {
-        key: {
-            "id": key,
-            "label": label,
-            "comparisons": 0,
-            "improved": 0,
-            "unchanged": 0,
-            "worse": 0,
-            "recovered": 0,
-            "delta_sum": 0.0,
-        }
-        for key, label in EFFECT_LABELS.items()
-    }
-    for step in variants:
-        transform = step["transformation"]
-        if step["filter"] != "unchanged":
-            effect = step["filter"]
-            baseline = by_view.get((step["view_id"], "unchanged"))
-            if baseline is None:
-                # Reduced profiles can contain a filtered view without its control.
-                continue
-        elif transform.get("crop"):
-            effect, baseline = "tiling", by_view[(original, "unchanged")]
-        elif transform.get("rotation"):
-            effect, baseline = "rotation", by_view[(original, "unchanged")]
-        elif step["view_id"] != original:
-            effect, baseline = "scaling", by_view[(original, "unchanged")]
-        else:
-            continue
-        current, before = evaluations[step["id"]], evaluations[baseline["id"]]
-        delta = current["coverage"] - before["coverage"]
-        item = effects[effect]
-        item["comparisons"] += 1
-        item["improved" if delta > 0 else "worse" if delta < 0 else "unchanged"] += 1
-        item["recovered"] += int(current["valid"] and not before["valid"])
-        item["delta_sum"] += delta
-    return list(effects.values())
-
-
-def evaluate(reference, text, regions, variants, *, include_effects=True):
-    evaluations, all_matched, cache = {}, set(), {}
-    for step in variants:
-        result, expected, matched = compare_words(
-            reference, step["text"], step["regions"], cache=cache
-        )
-        evaluations[step["id"]] = result
-        all_matched.update(matched)
-    final_regions = (
-        regions
-        if reference["reading_order_known"]
-        else final_observations(regions, variants)
-    )
-    final, expected, final_matched = compare_words(
-        reference, text, final_regions, cache=cache
-    )
-    best = max(
-        variants, key=lambda step: (evaluations[step["id"]]["matched"], -step["index"])
-    )
-    best_score = evaluations[best["id"]]
-    if reference["reading_order_known"]:
-        detection = final if final["matched"] > best_score["matched"] else best_score
-    else:
-        detection = score(expected, all_matched | final_matched)
-        # Geometry diagnostics may combine distinct locations across views.
-        # Literal fidelity is measured on actual texts, not an invented union.
-        detection["exact"] = max(
-            [final["exact"], *(value["exact"] for value in evaluations.values())],
-            key=lambda value: value["matched"],
-        )
-    return {
-        "version": EVALUATION_VERSION,
-        "reference": reference,
-        "policy": evaluation_policy(),
-        "method": "ordered_words"
-        if reference["reading_order_known"]
-        else "word_regions",
-        "valid": final["valid"],
-        "detection": detection,
-        "final": final,
-        "original": evaluations[variants[0]["id"]],
-        "best_step_id": best["id"],
-        "best_label": best["label"],
-        "valid_step_ids": [
-            step["id"] for step in variants if evaluations[step["id"]]["valid"]
-        ],
-        "steps": evaluations,
-        "effects": effect_summary(evaluations, variants) if include_effects else [],
-    }
-
-
-def word_summary(items):
-    completed = [item for item in items if item["state"] == "completed"]
-    processed = [
-        item
-        for item in items
-        if item["state"] == "failed"
-        or (item["state"] == "completed" and isinstance(item.get("valid"), bool))
-    ]
-    exact = [
-        item
-        for item in items
-        if (item["state"] == "completed" and isinstance(item.get("exact_valid"), bool))
-        or (
-            item["state"] == "failed"
-            and item.get("evaluation_version") == EVALUATION_VERSION
-        )
-    ]
-    coverage = [
-        item["coverage"]
-        for item in completed
-        if item.get("coverage") is not None
-        and item.get("evaluation_version") == EVALUATION_VERSION
-    ]
-    fidelity = [
-        item["exact_coverage"]
-        for item in completed
-        if item.get("exact_coverage") is not None
-    ]
-    return {
-        "pass_rate": sum(item.get("valid") is True for item in processed)
-        / len(processed)
-        if processed
-        else None,
-        "mean_word_coverage": sum(coverage) / len(coverage) if coverage else None,
-        "exact_valid": sum(item.get("exact_valid") is True for item in exact),
-        "exact_evaluated": len(exact),
-        "exact_pass_rate": sum(item.get("exact_valid") is True for item in exact)
-        / len(exact)
-        if exact
-        else None,
-        "mean_exact_word_coverage": sum(fidelity) / len(fidelity) if fidelity else None,
-    }
-
-
-def category_summary(items):
-    groups = {}
-    for item in items:
-        groups.setdefault(item["category"], []).append(item)
-    categories = []
-    for category, records in sorted(groups.items()):
-        valid = sum(
-            item["state"] == "completed" and item.get("valid") is True
-            for item in records
-        )
-        invalid = sum(
-            item["state"] == "completed" and item.get("valid") is False
-            for item in records
-        )
-        errors = sum(item["state"] == "failed" for item in records)
-        processed = valid + invalid + errors
-        categories.append(
-            {
-                "id": category,
-                "total": len(records),
-                "valid": valid,
-                "invalid": invalid,
-                "errors": errors,
-                "pending": sum(
-                    item["state"] in {"queued", "running"} for item in records
-                ),
-                "cancelled": sum(item["state"] == "cancelled" for item in records),
-                "processed": processed,
-                "success_rate": valid / processed if processed else None,
-                **word_summary(records),
-            }
-        )
-    return categories
-
-
-def summarize(items):
-    effects = {
-        key: {
-            "id": key,
-            "label": label,
-            "comparisons": 0,
-            "improved": 0,
-            "unchanged": 0,
-            "worse": 0,
-            "recovered": 0,
-            "delta_sum": 0.0,
-        }
-        for key, label in EFFECT_LABELS.items()
-    }
-    for item in items:
-        for effect in item.get("effects", []):
-            for key in (
-                "comparisons",
-                "improved",
-                "unchanged",
-                "worse",
-                "recovered",
-                "delta_sum",
-            ):
-                effects[effect["id"]][key] += effect[key]
-    return {
-        "total": len(items),
-        **word_summary(items),
-        "valid": sum(
-            item["state"] == "completed" and item.get("valid") is True for item in items
-        ),
-        "invalid": sum(
-            item["state"] == "completed" and item.get("valid") is False
-            for item in items
-        ),
-        "errors": sum(item["state"] == "failed" for item in items),
-        "pending": sum(item["state"] in {"queued", "running"} for item in items),
-        "cancelled": sum(item["state"] == "cancelled" for item in items),
-        "effects": list(effects.values()),
-        "categories": category_summary(items),
-    }

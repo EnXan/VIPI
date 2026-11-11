@@ -43,41 +43,12 @@ class RapidEngine:
         *,
         backend=DEFAULT_BACKEND,
         threads=1,
-        native_pipeline=False,
     ):
         validate_backend(model, backend)
         validate_model(model, directory, verify=True)
         prepare_backend(backend)
         from rapidocr import RapidOCR
-        from rapidocr.ch_ppocr_det.utils import DetPreProcess
-        from rapidocr.ch_ppocr_rec import TextRecOutput
         from rapidocr.utils.typings import LangDet, LangRec, ModelType, OCRVersion
-
-        class StrictRapidOCR(RapidOCR):
-            def run_ocr_steps(self, image, op_record):
-                # Empty detection is valid. Inference/cropping/recognition failures propagate.
-                op_record["padding_1"] = {"top": 0, "left": 0}
-                detection = self.text_det(image)
-                if detection.boxes is None:
-                    return detection, None, TextRecOutput(), []
-                crops = self.crop_text_regions(image, detection.boxes)
-                recognition = self.recognize_txt(crops)
-                return detection, None, recognition, crops
-
-            def build_final_output(
-                self, image, detection, classification, recognition, crops, operations
-            ):
-                from rapidocr.ch_ppocr_cls import TextClsOutput
-
-                return super().build_final_output(
-                    image, detection, TextClsOutput(), recognition, crops, operations
-                )
-
-        class RasterPreprocess(DetPreProcess):
-            def resize(self, image):
-                h, w = image.shape[:2]
-                size = (max(32, round(w / 32) * 32), max(32, round(h / 32) * 32))
-                return cv2.resize(image, size, interpolation=cv2.INTER_LINEAR)
 
         det, rec, cls = [directory / FILES[key]["file"] for key in REQUIRED[model]]
         v6_size = {
@@ -88,11 +59,7 @@ class RapidEngine:
         }
         model_type = v6_size[model]
         params = {
-            "Global.use_cls": False,
-            "Global.use_preprocess_img": False,
-            "Global.use_vertical_padding": False,
             "Global.return_word_box": True,
-            "Global.text_score": 0.0,
             "Global.log_level": "error",
             "Det.model_path": str(det.resolve()),
             "Rec.model_path": str(rec.resolve()),
@@ -106,16 +73,7 @@ class RapidEngine:
             "Cls.ocr_version": OCRVersion.PPOCRV5,
             **rapid_runtime_params(backend, threads, directory),
         }
-        self.native_pipeline = native_pipeline
-        if native_pipeline:
-            for key in (
-                "Global.use_cls",
-                "Global.use_preprocess_img",
-                "Global.use_vertical_padding",
-                "Global.text_score",
-            ):
-                params.pop(key)
-        self.ocr = (RapidOCR if native_pipeline else StrictRapidOCR)(params=params)
+        self.ocr = RapidOCR(params=params)
         self.runtime = {
             "backend": backend,
             "threads_per_worker": threads,
@@ -123,25 +81,18 @@ class RapidEngine:
         }
         validate_session_providers(backend, self.runtime["providers"])
         detector = self.ocr.text_det
-        # The default detector adds an implicit 960/1500/2000 resize. Here only
-        # network-required multiples of 32 are applied and recorded explicitly.
-        if not native_pipeline:
-            detector.get_preprocess = lambda _: RasterPreprocess(
-                mean=detector.mean, std=detector.std
-            )
         self.detector_shapes = []
-        if native_pipeline:
-            shapes, session = self.detector_shapes, detector.session
+        shapes, session = self.detector_shapes, detector.session
 
-            class RecordedSession:
-                def __getattr__(self, name):
-                    return getattr(session, name)
+        class RecordedSession:
+            def __getattr__(self, name):
+                return getattr(session, name)
 
-                def __call__(self, tensor):
-                    shapes.append(list(tensor.shape))
-                    return session(tensor)
+            def __call__(self, tensor):
+                shapes.append(list(tensor.shape))
+                return session(tensor)
 
-            detector.session = RecordedSession()
+        detector.session = RecordedSession()
         self.recognizer_shapes = []
         original_resize = self.ocr.text_rec.resize_norm_img
 
@@ -156,8 +107,7 @@ class RapidEngine:
 
     def recognize(self, image: Image.Image) -> dict:
         self.recognizer_shapes.clear()
-        if hasattr(self, "detector_shapes"):
-            self.detector_shapes.clear()
+        self.detector_shapes.clear()
         result = self.ocr(cv2.cvtColor(np.asarray(image), cv2.COLOR_RGB2BGR))
         regions = []
         texts = getattr(result, "txts", None) or ()
@@ -180,42 +130,31 @@ class RapidEngine:
             else:
                 regions.append(box_region(text, boxes[i], scores[i], "line", str(i)))
         prep = self.ocr.text_det.preprocess_op
-        tensor_w = max(32, round(image.width / 32) * 32)
-        tensor_h = max(32, round(image.height / 32) * 32)
-        native = getattr(self, "native_pipeline", False)
-        native_metadata = {}
-        if native:
-            from importlib.metadata import version
-            from omegaconf import OmegaConf
+        from importlib.metadata import version
+        from omegaconf import OmegaConf
 
-            native_metadata["native_configuration"] = json.loads(
-                json.dumps(
-                    OmegaConf.to_container(
-                        self.ocr.cfg, resolve=True, enum_to_str=True
-                    ),
-                    default=str,
-                )
+        native_configuration = json.loads(
+            json.dumps(
+                OmegaConf.to_container(self.ocr.cfg, resolve=True, enum_to_str=True),
+                default=str,
             )
-            native_metadata["detector_tensors"] = list(self.detector_shapes)
-            native_metadata["package_versions"] = {
-                name: version(name) for name in ("rapidocr", "onnxruntime")
-            }
+        )
         return {
             "text": "\n".join(texts),
             "regions": regions,
             "preprocessing": {
-                "detector_input": None if native else [tensor_w, tensor_h],
-                "resize": "RapidOCR native preprocessing"
-                if native
-                else "OpenCV INTER_LINEAR to nearest multiple of 32 (minimum 32)",
+                "detector_input": None,
+                "resize": "RapidOCR native preprocessing",
                 "mean": prep.mean.tolist(),
                 "std": prep.std.tolist(),
                 "recognizer_inputs": list(self.recognizer_shapes),
-                "orientation_classifier": bool(self.ocr.cfg.Global.use_cls)
-                if native
-                else False,
-                "pipeline": "RapidOCR native" if native else "VIPI RapidOCR adapter",
-                **native_metadata,
+                "orientation_classifier": bool(self.ocr.cfg.Global.use_cls),
+                "pipeline": "RapidOCR native",
+                "native_configuration": native_configuration,
+                "detector_tensors": list(self.detector_shapes),
+                "package_versions": {
+                    name: version(name) for name in ("rapidocr", "onnxruntime")
+                },
                 **getattr(self, "runtime", {}),
             },
         }
@@ -227,7 +166,6 @@ def create_engine(
     *,
     backend=DEFAULT_BACKEND,
     threads=1,
-    native_pipeline=False,
 ) -> OcrEngine:
     """Create a local or hosted OCR adapter without changing its native contract."""
     validate_backend(model, backend)
@@ -248,5 +186,4 @@ def create_engine(
         directory,
         backend=backend,
         threads=threads,
-        native_pipeline=native_pipeline,
     )

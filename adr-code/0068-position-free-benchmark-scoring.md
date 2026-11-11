@@ -1,4 +1,4 @@
-# 0067 — Position-free scoring of unordered references in evaluation runs
+# 0068 — Position-free scoring of unordered references in evaluation runs
 
 Status: accepted, 2026-11-11.
 

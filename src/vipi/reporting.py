@@ -47,7 +47,7 @@ def file_record(result):
     remote = [
         a
         for a in detection.answers
-        if a.get("provider") in {"jev", "openai"} and not a.get("replayed")
+        if a.get("provider") in {"jev", "openai"}
     ]
     ocr_fee = ocr.cost.get("estimated_usd")
     return {

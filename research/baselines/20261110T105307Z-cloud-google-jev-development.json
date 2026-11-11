@@ -16,9 +16,9 @@
       "entries": 450,
       "selection_sha256": "990d6948fe291a21505c1d539aad2ef21a31ee427c8e79602605108cb35b3ff0",
       "metric_sha256": {
-        "research/ocr_eval/evaluation/metrics.py": "4993f8665fc4859d942081699ce605fb6e06844fb33d82978651a30ed1849bd8",
+        "research/ocr_eval/evaluation/metrics.py": "ecbcfe88ef3d858f7042a652ed53a524ced90c1f62d68dbef105df93377e67fd",
         "research/ocr_eval/evaluation/words.py": "a0eadefe98360804ebd23e77cb40a5b1131c469ca44e1d6ca16eef6e8a18bd99",
-        "research/ocr_eval/benchmark_report.py": "cebf9fac0ab083fed348b058469ed1c6e0a1f1146fe11f8ef3396c2058d4b4fd"
+        "research/ocr_eval/benchmark_report.py": "6909779bcd658c7786e3c37d28a311f7cae2537ecde4a9daccc6c7f4acb3a5f6"
       }
     },
     "configuration": {
@@ -175,7 +175,7 @@
     }
   },
   "local_artifacts": "runs/evaluations/20261110T105307Z-cloud-google-jev-development",
-  "report_sha256": "506734b372ce676a7780acd269f84917fe0941c23b02e1dccefaae6733c16885",
+  "report_sha256": "42b2dfa5aa3c317ec449c2563d81f253b17290486d55bd8c7b6b43156006a97a",
   "reused": {
     "images": 450,
     "with_detection": 0,

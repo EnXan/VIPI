@@ -37,7 +37,10 @@ def test_rapid_models_are_loaded_before_provider_check():
 def test_partial_word_boxes_do_not_drop_recognized_line_text():
     box = [[0, 0], [90, 0], [90, 20], [0, 20]]
 
+    from omegaconf import OmegaConf
+
     class OCR:
+        cfg = OmegaConf.create({"Global": {"use_cls": True}})
         text_det = SimpleNamespace(
             preprocess_op=SimpleNamespace(
                 mean=np.array([0.5] * 3), std=np.array([0.5] * 3)
@@ -55,6 +58,7 @@ def test_partial_word_boxes_do_not_drop_recognized_line_text():
     engine = RapidEngine.__new__(RapidEngine)
     engine.ocr = OCR()
     engine.recognizer_shapes = []
+    engine.detector_shapes = []
     result = engine.recognize(Image.new("RGB", (100, 30)))
     assert result["regions"][0]["text"] == "keep all text"
     assert result["regions"][0]["level"] == "line"

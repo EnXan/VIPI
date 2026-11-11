@@ -28,7 +28,7 @@ def score_result(reference, result):
     Ordered references compare the text in reading order. Unordered references
     match each annotated region in the text without word positions, so every
     OCR provider is scored on every image; positions only report group
-    conflicts as a diagnostic (ADR 0067)."""
+    conflicts as a diagnostic (ADR 0068)."""
     if reference["reading_order_known"]:
         final, _, _ = compare_words(reference, result["text"], result["regions"])
         exact = final["exact"]
@@ -289,7 +289,7 @@ def report(directory):
     from .benchmark import ROOT
 
     # Scoring reads only retained outputs, so changed scoring code may rescore
-    # them; the report records the scoring sources it used (ADR 0067).
+    # them; the report records the scoring sources it used (ADR 0068).
     complete_selection = selection()
     complete_by_key = {row["key"]: row for row in complete_selection}
     selected_keys = [row["key"] for row in manifest["selection"]]

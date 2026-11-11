@@ -9,8 +9,6 @@ SIGNALS = {
     "openai",
     "prompt-guard",
     *LOCAL_DECISION_PROVIDERS,
-    "image",
-    "context",
 }
 
 
@@ -39,13 +37,9 @@ def validate_thresholds(value=None):
     if not isinstance(signals, dict) or set(signals) - SIGNALS:
         raise ValueError("Unknown threshold signal.")
     for item in signals.values():
-        if isinstance(item, dict) and set(item) == {"threshold"}:
-            probability(item["threshold"])
-            continue
-        if not isinstance(item, dict) or set(item) != {"low", "high"}:
-            raise ValueError("Each threshold requires low and high, or threshold.")
-        if probability(item["low"]) >= probability(item["high"]):
-            raise ValueError("Threshold low must be less than high.")
+        if not isinstance(item, dict) or set(item) != {"threshold"}:
+            raise ValueError("Each signal requires a threshold.")
+        probability(item["threshold"])
     return value
 
 
@@ -59,10 +53,9 @@ def summarize(results, signals, thresholds, *, evidence_complete=True):
             if x.get("status") == "completed" and x.get("probability") is not None
         ]
         limits = thresholds.get("signals", {}).get(signal)
-        high = limits.get("threshold", limits.get("high")) if limits else None
-        low = limits.get("threshold", limits.get("low")) if limits else None
+        threshold = limits["threshold"] if limits else None
         verdict = "unclear"
-        if limits and any(x >= high for x in scores):
+        if limits and any(x >= threshold for x in scores):
             verdict = "flagged"
         elif (
             limits
@@ -70,7 +63,7 @@ def summarize(results, signals, thresholds, *, evidence_complete=True):
             and answers
             and len(scores) == len(answers)
             and not any(x.get("partial_context") for x in answers)
-            and all(x < low for x in scores)
+            and all(x < threshold for x in scores)
         ):
             verdict = "not_flagged"
         per_signal[signal] = {
@@ -86,7 +79,6 @@ def summarize(results, signals, thresholds, *, evidence_complete=True):
         if verdicts and all(x == "not_flagged" for x in verdicts)
         else "unclear"
     )
-    # A disagreement requires review even if every selected check completed.
     return {
         "verdict": verdict,
         "review_required": verdict != "not_flagged",

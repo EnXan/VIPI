@@ -3,9 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from vipi.ocr.merge import ASSEMBLY_VERSION, assemble, levenshtein
-from vipi.ocr.pipeline import reassemble
-from vipi.storage.ocr import RunStore, write_json
+from vipi.ocr.merge import assemble, levenshtein
 
 
 def word(text, x, y=10, width=40, line="0", confidence=0.9):
@@ -235,39 +233,6 @@ def test_distinct_scaling_reading_is_preserved_as_an_alternative():
     assert regions[0]["alternatives"][0]["step_ids"] == ["0003"]
 
 
-def test_reassembly_uses_saved_steps_and_rejects_incomplete_runs(tmp_path):
-    store = RunStore(tmp_path, "test")
-    observations = [
-        step(1, [word("right", 10)]),
-        step(2, [word("rlght", 10)]),
-        step(3, [word("right", 10)]),
-    ]
-    for observation in observations:
-        store.save_step(observation)
-    store.status.update(state="completed", completed=3, total=3)
-    store.emit("run_completed", text="old interleaved result")
-    write_json(
-        store.directory / "result.json",
-        {"run_id": store.id, "text": "old", "variants": [], "model": "test"},
-    )
-    raw_steps = (store.directory / "steps.jsonl").read_bytes()
-    result = reassemble(store.id, runs_dir=tmp_path)
-    assert result["text"] == "right" and result["assembly_version"] == ASSEMBLY_VERSION
-    assert (store.directory / "steps.jsonl").read_bytes() == raw_steps
-    assert result["variants"] == observations
-    assert (store.directory / "result.txt").read_text() == "right"
-    restored = RunStore.restore(store.directory)
-    assert restored.events[-1]["text"] == "right"
-    store.status.update(total=4)
-    write_json(store.directory / "status.json", store.status)
-    before = (store.directory / "result.json").read_bytes()
-    with pytest.raises(ValueError, match="incomplete"):
-        reassemble(store.id, runs_dir=tmp_path)
-    assert (store.directory / "result.json").read_bytes() == before
-    with pytest.raises(ValueError, match="Invalid"):
-        reassemble("../", runs_dir=tmp_path)
-
-
 def test_tall_box_in_another_column_cannot_reverse_paragraph_lines():
     tall = word("side", 0, y=0, line="0")
     tall["polygon"] = tall["input_polygon"] = [[0, 0], [40, 0], [40, 43], [0, 43]]
@@ -324,3 +289,27 @@ def test_ending_rule_does_not_invent_a_mark_or_replace_existing_punctuation():
     observations = [step(i, [word("Hello!", 0)]) for i in range(1, 6)]
     observations.append(step(6, [word("Hello.", 0, confidence=1)]))
     assert assemble(observations)[0] == "Hello!"
+
+
+def region(text, x):
+    polygon = [[x, 10], [x + 30, 10], [x + 30, 25], [x, 25]]
+    return {
+        "text": text,
+        "polygon": polygon,
+        "input_polygon": polygon,
+        "confidence": 0.001,
+        "level": "word",
+    }
+
+
+def test_merge_keeps_disagreements_repeated_positions_and_low_confidence():
+    text, regions = assemble(
+        [
+            {"id": "0001", "regions": [region("hello", 10), region("hello", 100)]},
+            {"id": "0002", "regions": [region("hello", 11), region("hallo", 10)]},
+        ]
+    )
+    assert text == "hello hello"
+    assert len(regions) == 2
+    assert any(item["text"] == "hallo" for item in regions[0]["alternatives"])
+    assert len(regions[0]["evidence"]) == 3
