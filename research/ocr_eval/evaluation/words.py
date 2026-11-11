@@ -71,14 +71,21 @@ def word_distance(expected, observed, *, exact=False, cache=None):
 
 
 def word_matches(expected, observed, *, exact=False, cache=None):
+    """Indexes of the expected words covered by an ordered alignment."""
+    return word_alignment(expected, observed, exact=exact, cache=cache)[0]
+
+
+def word_alignment(expected, observed, *, exact=False, cache=None):
     """Ordered word alignment, allowing a word split into OCR fragments.
+
+    Return the covered expected indexes and the observed indexes they consumed.
 
     Each observation is consumed at most once. Extra OCR words are allowed.
     Prefer more covered words, then literal matches, then fewer spelling edits.
     Store reference positions as bitsets so memory grows with OCR word count,
     rather than the product of both sequence lengths.
     """
-    previous = [(0, 0, 0, 0)] * (len(observed) + 1)
+    previous = [(0, 0, 0, 0, 0)] * (len(observed) + 1)
     for index, target in enumerate(expected):
         current = previous.copy()
         value = target if exact else normalized(target)
@@ -97,15 +104,19 @@ def word_matches(expected, observed, *, exact=False, cache=None):
                 distance = word_distance(target, candidate, exact=exact, cache=cache)
                 if distance is None:
                     continue
-                count, literal, edits, positions = previous[start]
+                count, literal, edits, positions, used = previous[start]
                 proposal = (
                     count + 1,
                     literal + int(target == candidate),
                     edits - distance,
                     positions | (1 << index),
+                    used | (((1 << (end + 1 - start)) - 1) << start),
                 )
                 if proposal[:3] > current[end + 1][:3]:
                     current[end + 1] = proposal
         previous = current
-    positions = previous[-1][3]
-    return {i for i in range(len(expected)) if positions & (1 << i)}
+    positions, used = previous[-1][3], previous[-1][4]
+    return (
+        {i for i in range(len(expected)) if positions & (1 << i)},
+        {j for j in range(len(observed)) if used & (1 << j)},
+    )

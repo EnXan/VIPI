@@ -16,9 +16,9 @@
       "entries": 450,
       "selection_sha256": "990d6948fe291a21505c1d539aad2ef21a31ee427c8e79602605108cb35b3ff0",
       "metric_sha256": {
-        "research/ocr_eval/evaluation/metrics.py": "69dac5362c79d728b5655f0ff72b27797e65b7f216841e787b043a40d491dcb7",
-        "research/ocr_eval/evaluation/words.py": "3407e6d41f129857e94dc55cd55be69725f174f984227a48375e55eeba28ed9a",
-        "research/ocr_eval/benchmark_report.py": "24a70a06a7a1e23e40e987279bb8c07ef8fa2ce82354c20962b2c1de4a3a0531"
+        "research/ocr_eval/evaluation/metrics.py": "ecbcfe88ef3d858f7042a652ed53a524ced90c1f62d68dbef105df93377e67fd",
+        "research/ocr_eval/evaluation/words.py": "a0eadefe98360804ebd23e77cb40a5b1131c469ca44e1d6ca16eef6e8a18bd99",
+        "research/ocr_eval/benchmark_report.py": "6909779bcd658c7786e3c37d28a311f7cae2537ecde4a9daccc6c7f4acb3a5f6"
       }
     },
     "configuration": {
@@ -152,18 +152,18 @@
       "exact_reference_pass": 0.39770114942528734
     },
     "words": {
-      "matched": 10947,
-      "exact_matched": 9703,
+      "matched": 11051,
+      "exact_matched": 9753,
       "scored_total": 15796,
       "planned_total": 15796
     },
-    "word_weighted_coverage": 0.6930235502658901,
-    "word_weighted_exact_coverage": 0.6142694353000759,
-    "mean_image_coverage": 0.7836266571700113,
-    "mean_image_exact_coverage": 0.6922658149585267,
-    "all_planned_word_coverage_lower_bound": 0.6930235502658901,
-    "all_planned_exact_word_coverage_lower_bound": 0.6142694353000759,
-    "all_planned_mean_coverage_lower_bound": 0.7836266571700113,
+    "word_weighted_coverage": 0.6996074955684983,
+    "word_weighted_exact_coverage": 0.6174347936186376,
+    "mean_image_coverage": 0.7847991412444167,
+    "mean_image_exact_coverage": 0.6929975292414503,
+    "all_planned_word_coverage_lower_bound": 0.6996074955684983,
+    "all_planned_exact_word_coverage_lower_bound": 0.6174347936186376,
+    "all_planned_mean_coverage_lower_bound": 0.7847991412444167,
     "detection": {
       "attacks": {
         "images": 227,
@@ -210,7 +210,7 @@
     }
   },
   "local_artifacts": "runs/evaluations/20261110T162540Z-local-speed-prompt-guard-development",
-  "report_sha256": "c53a5e819e71d207ea956861bec2fc2e89cb68bee92872170229a96c9baaeaee",
+  "report_sha256": "f33d4e5b83a3510b7b0f5bba6125416313fe14f5f59d0d7df0a3546e6ad5be47",
   "reused": {
     "images": 0,
     "with_detection": 0,

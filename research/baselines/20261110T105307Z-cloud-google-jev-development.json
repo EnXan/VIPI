@@ -16,9 +16,9 @@
       "entries": 450,
       "selection_sha256": "990d6948fe291a21505c1d539aad2ef21a31ee427c8e79602605108cb35b3ff0",
       "metric_sha256": {
-        "research/ocr_eval/evaluation/metrics.py": "69dac5362c79d728b5655f0ff72b27797e65b7f216841e787b043a40d491dcb7",
-        "research/ocr_eval/evaluation/words.py": "3407e6d41f129857e94dc55cd55be69725f174f984227a48375e55eeba28ed9a",
-        "research/ocr_eval/benchmark_report.py": "24a70a06a7a1e23e40e987279bb8c07ef8fa2ce82354c20962b2c1de4a3a0531"
+        "research/ocr_eval/evaluation/metrics.py": "ecbcfe88ef3d858f7042a652ed53a524ced90c1f62d68dbef105df93377e67fd",
+        "research/ocr_eval/evaluation/words.py": "a0eadefe98360804ebd23e77cb40a5b1131c469ca44e1d6ca16eef6e8a18bd99",
+        "research/ocr_eval/benchmark_report.py": "6909779bcd658c7786e3c37d28a311f7cae2537ecde4a9daccc6c7f4acb3a5f6"
       }
     },
     "configuration": {
@@ -103,32 +103,32 @@
     "zero_word_references": 0,
     "group_conflict_images": 0,
     "counts": {
-      "at_least_80": 355,
-      "coverage_100": 297,
-      "reference_pass": 297,
-      "exact_100": 160,
-      "exact_reference_pass": 160
+      "at_least_80": 356,
+      "coverage_100": 299,
+      "reference_pass": 299,
+      "exact_100": 162,
+      "exact_reference_pass": 162
     },
     "image_rates": {
-      "at_least_80": 0.8160919540229885,
-      "coverage_100": 0.6827586206896552,
-      "reference_pass": 0.6827586206896552,
-      "exact_100": 0.367816091954023,
-      "exact_reference_pass": 0.367816091954023
+      "at_least_80": 0.8183908045977012,
+      "coverage_100": 0.6873563218390805,
+      "reference_pass": 0.6873563218390805,
+      "exact_100": 0.3724137931034483,
+      "exact_reference_pass": 0.3724137931034483
     },
     "words": {
-      "matched": 13805,
-      "exact_matched": 11997,
+      "matched": 13913,
+      "exact_matched": 12469,
       "scored_total": 15796,
       "planned_total": 15796
     },
-    "word_weighted_coverage": 0.8739554317548747,
-    "word_weighted_exact_coverage": 0.7594960749556849,
-    "mean_image_coverage": 0.8957759684292942,
-    "mean_image_exact_coverage": 0.7777542182594355,
-    "all_planned_word_coverage_lower_bound": 0.8739554317548747,
-    "all_planned_exact_word_coverage_lower_bound": 0.7594960749556849,
-    "all_planned_mean_coverage_lower_bound": 0.8957759684292942,
+    "word_weighted_coverage": 0.8807926057229678,
+    "word_weighted_exact_coverage": 0.7893770574829071,
+    "mean_image_coverage": 0.8973774709537635,
+    "mean_image_exact_coverage": 0.783397068295364,
+    "all_planned_word_coverage_lower_bound": 0.8807926057229678,
+    "all_planned_exact_word_coverage_lower_bound": 0.7893770574829071,
+    "all_planned_mean_coverage_lower_bound": 0.8973774709537636,
     "detection": {
       "attacks": {
         "images": 227,
@@ -175,7 +175,7 @@
     }
   },
   "local_artifacts": "runs/evaluations/20261110T105307Z-cloud-google-jev-development",
-  "report_sha256": "455a64c3113641074b7f7e1e74ad83d264be3015e0a35319f0b5ff5a5f8ae60d",
+  "report_sha256": "42b2dfa5aa3c317ec449c2563d81f253b17290486d55bd8c7b6b43156006a97a",
   "reused": {
     "images": 450,
     "with_detection": 0,

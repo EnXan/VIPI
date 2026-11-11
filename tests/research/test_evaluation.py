@@ -60,10 +60,12 @@ def test_final_line_box_cannot_move_words_to_other_reference_positions():
         "evidence": [],
         "additions": [],
     }
-    from research.ocr_eval.benchmark_report import score_result
+    from research.ocr_eval.evaluation.metrics import final_observations
 
-    result = score_result(
-        target, {"text": "world hello", "regions": [line], "variants": [source]}
+    # The positional research evaluation (ADR 0028) keeps words at their place;
+    # evaluation runs score these references without positions (ADR 0068).
+    result, _, _ = compare_words(
+        target, "world hello", final_observations([line], [source])
     )
     assert not result["valid"]
     assert result["matched"] == 0

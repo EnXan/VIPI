@@ -16,9 +16,9 @@
       "entries": 450,
       "selection_sha256": "990d6948fe291a21505c1d539aad2ef21a31ee427c8e79602605108cb35b3ff0",
       "metric_sha256": {
-        "research/ocr_eval/evaluation/metrics.py": "69dac5362c79d728b5655f0ff72b27797e65b7f216841e787b043a40d491dcb7",
-        "research/ocr_eval/evaluation/words.py": "3407e6d41f129857e94dc55cd55be69725f174f984227a48375e55eeba28ed9a",
-        "research/ocr_eval/benchmark_report.py": "24a70a06a7a1e23e40e987279bb8c07ef8fa2ce82354c20962b2c1de4a3a0531"
+        "research/ocr_eval/evaluation/metrics.py": "ecbcfe88ef3d858f7042a652ed53a524ced90c1f62d68dbef105df93377e67fd",
+        "research/ocr_eval/evaluation/words.py": "a0eadefe98360804ebd23e77cb40a5b1131c469ca44e1d6ca16eef6e8a18bd99",
+        "research/ocr_eval/benchmark_report.py": "6909779bcd658c7786e3c37d28a311f7cae2537ecde4a9daccc6c7f4acb3a5f6"
       }
     },
     "configuration": {
@@ -133,32 +133,32 @@
     "zero_word_references": 0,
     "group_conflict_images": 2,
     "counts": {
-      "at_least_80": 310,
+      "at_least_80": 311,
       "coverage_100": 262,
-      "reference_pass": 260,
+      "reference_pass": 262,
       "exact_100": 201,
       "exact_reference_pass": 201
     },
     "image_rates": {
-      "at_least_80": 0.7126436781609196,
+      "at_least_80": 0.7149425287356321,
       "coverage_100": 0.6022988505747127,
-      "reference_pass": 0.5977011494252874,
+      "reference_pass": 0.6022988505747127,
       "exact_100": 0.46206896551724136,
       "exact_reference_pass": 0.46206896551724136
     },
     "words": {
-      "matched": 11261,
-      "exact_matched": 10348,
+      "matched": 11423,
+      "exact_matched": 10484,
       "scored_total": 15796,
       "planned_total": 15796
     },
-    "word_weighted_coverage": 0.7129020005064574,
-    "word_weighted_exact_coverage": 0.6551025576095214,
-    "mean_image_coverage": 0.8107697637393706,
-    "mean_image_exact_coverage": 0.7398784893556786,
-    "all_planned_word_coverage_lower_bound": 0.7129020005064574,
-    "all_planned_exact_word_coverage_lower_bound": 0.6551025576095214,
-    "all_planned_mean_coverage_lower_bound": 0.8107697637393705,
+    "word_weighted_coverage": 0.7231577614585971,
+    "word_weighted_exact_coverage": 0.6637123322360091,
+    "mean_image_coverage": 0.8139365229626806,
+    "mean_image_exact_coverage": 0.7425345315449564,
+    "all_planned_word_coverage_lower_bound": 0.7231577614585971,
+    "all_planned_exact_word_coverage_lower_bound": 0.6637123322360091,
+    "all_planned_mean_coverage_lower_bound": 0.8139365229626807,
     "detection": {
       "attacks": {
         "images": 227,
@@ -205,7 +205,7 @@
     }
   },
   "local_artifacts": "runs/evaluations/20261110T170025Z-local-balanced-development",
-  "report_sha256": "d25908a3aa8535e1082c08c4c2f09d56ed92b09f3a477261cf56f867e3337ba4",
+  "report_sha256": "92c2cc7ef3ae5e3f1412c2888f6b518910c38dba50e958e09f3ce7f1f247b5ee",
   "reused": {
     "images": 0,
     "with_detection": 0,

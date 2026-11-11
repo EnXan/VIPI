@@ -12,32 +12,47 @@ import time
 
 from vipi.ocr.costs import cost_for_result, decisions_estimated_usd, DECISIONS_PRICING
 from .benchmark import catalog, digest, is_local, selection, utc_now
-from .evaluation.metrics import compare_words, final_observations
+from .evaluation.metrics import (
+    compare_words,
+    evaluation_policy,
+    final_observations,
+    region_group_conflicts,
+    score,
+    unordered_text_matches,
+)
 
 
 def score_result(reference, result):
-    """Use the existing evaluation-v4 final-output comparison, including geometry."""
-    if (
-        not reference["reading_order_known"]
-        and not result["regions"]
-        and result["text"].strip()
-    ):
-        return None
-    regions = (
-        result["regions"]
-        if reference["reading_order_known"]
-        else final_observations(result["regions"], result["variants"])
-    )
-    final, _, _ = compare_words(reference, result["text"], regions)
+    """Score the final OCR text with the evaluation-v4 word rules.
+
+    Ordered references compare the text in reading order. Unordered references
+    match each annotated region in the text without word positions, so every
+    OCR provider is scored on every image; positions only report group
+    conflicts as a diagnostic (ADR 0068)."""
+    if reference["reading_order_known"]:
+        final, _, _ = compare_words(reference, result["text"], result["regions"])
+        exact = final["exact"]
+        conflicts = final.get("group_conflicts", [])
+    else:
+        expected, matched = unordered_text_matches(reference, result["text"])
+        _, literal = unordered_text_matches(reference, result["text"], exact=True)
+        final, exact = score(expected, matched), score(expected, literal)
+        conflicts = (
+            region_group_conflicts(
+                reference, final_observations(result["regions"], result["variants"])
+            )
+            if result["regions"]
+            else []
+        )
     return {
         "matched": final["matched"],
         "total": final["total"],
         "coverage": final["coverage"],
         "valid": final["valid"],
-        "group_conflicts": len(final.get("group_conflicts", [])),
-        "exact_matched": final["exact"]["matched"],
-        "exact_coverage": final["exact"]["coverage"],
-        "exact_valid": final["exact"]["valid"],
+        "group_conflicts": len(conflicts),
+        "exact_matched": exact["matched"],
+        "exact_coverage": exact["coverage"],
+        "exact_valid": exact["valid"],
     }
 
 
@@ -273,12 +288,8 @@ def report(directory):
     manifest = json.loads((directory / "manifest.json").read_text())
     from .benchmark import ROOT
 
-    for filename, expected in manifest["provenance"]["source_hashes"].items():
-        if (
-            filename.startswith("research/ocr_eval/evaluation/")
-            and digest(ROOT / filename) != expected
-        ):
-            raise ValueError(f"Evaluation code changed since inference: {filename}")
+    # Scoring reads only retained outputs, so changed scoring code may rescore
+    # them; the report records the scoring sources it used (ADR 0068).
     complete_selection = selection()
     complete_by_key = {row["key"]: row for row in complete_selection}
     selected_keys = [row["key"] for row in manifest["selection"]]
@@ -344,10 +355,6 @@ def report(directory):
                 row["score"] = score_result(reference, result) if reference else None
                 if reference is None:
                     row["unscored_reason"] = "No reference text."
-                elif row["score"] is None:
-                    row["unscored_reason"] = (
-                        "Word locations required but missing from nonempty transcription."
-                    )
                 elif row["score"]["total"] == 0:
                     row["unscored_reason"] = "Reference has no scorable words."
                 elif row["score"]["total"] != row["reference_words"]:
@@ -414,12 +421,14 @@ def report(directory):
         "scoring_seconds": time.perf_counter() - started,
         "selection": manifest["selection"],
         "selection_filter": selection_filter,
-        "evaluation_policy": manifest["evaluation_policy"],
+        "evaluation_policy": evaluation_policy(),
         "decision_pricing": DECISIONS_PRICING,
         "postprocessing_sources": {
             name: digest(ROOT / name)
             for name in (
                 "research/ocr_eval/benchmark_report.py",
+                "research/ocr_eval/evaluation/metrics.py",
+                "research/ocr_eval/evaluation/words.py",
                 "src/vipi/ocr/costs.py",
             )
         },
