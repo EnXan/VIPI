@@ -63,10 +63,10 @@ review/detector model.
 
 | Mode/profile | CPU-only (estimate) | Accelerated alternative | Free disk before setup (estimate) |
 | --- | --- | --- | --- |
-| `cloud` | Modern 64-bit CPU, about 4 cores and 8 GB RAM; assumption, no model runs locally | No GPU required; internet access needed | About 15 GB |
-| Local `speed` / `fast` | Modern 64-bit CPU, about 4 cores and 24 GB RAM | **Measured:** Apple M2 with 16 GB unified memory ([benchmark](ocr-benchmark.md#measured-run-12-november-2026)). Estimate: CUDA GPU with 16 GB VRAM and 16 GB host RAM | About 25 GB |
-| Local `balanced` | Modern 64-bit CPU, about 4 cores and 24 GB RAM | Estimate: Apple Silicon with 16 GB unified memory, as `speed` loads the same d1 model; or CUDA GPU with 16 GB VRAM and 16 GB host RAM | About 25 GB |
-| Local `quality` | Modern 64-bit CPU, about 8 cores and 48 GB RAM | **Measured:** Apple M4 Pro with 48 GB unified memory (450 images, development split). Estimate: CUDA GPU with 24 GB VRAM and 32 GB host RAM | About 45 GB |
+| `cloud` | Modern 64-bit CPU, about 4 cores and 8 GB RAM; assumption, no model runs locally | No GPU required; internet access needed | About 1 GB |
+| Local `speed` / `fast` | Modern 64-bit CPU, about 4 cores and 24 GB RAM | **Measured:** Apple M2 with 16 GB unified memory ([benchmark](ocr-benchmark.md#measured-run-12-november-2026)). Estimate: CUDA GPU with 16 GB VRAM and 16 GB host RAM | About 12 GB |
+| Local `balanced` | Modern 64-bit CPU, about 4 cores and 24 GB RAM | Estimate: Apple Silicon with 16 GB unified memory, as `speed` loads the same d1 model; or CUDA GPU with 16 GB VRAM and 16 GB host RAM | About 12 GB |
+| Local `quality` | Modern 64-bit CPU, about 8 cores and 48 GB RAM | **Measured:** Apple M4 Pro with 48 GB unified memory (450 images, development split). Estimate: CUDA GPU with 24 GB VRAM and 32 GB host RAM | About 25 GB |
 
 The model cards state no memory requirements. The estimates derive from the
 upstream model sizes at the pinned revisions and VIPI's loading precision:
@@ -86,8 +86,11 @@ about 15 s per image). CPU-only inference, especially Clef-Flash, can be very sl
 same d1 model as `balanced`.
 
 Larger images, longer OCR text or overrides loading a second decision model can
-need more memory. Disk estimates cover the runtime and selected weights; allow
-extra space for download caches and saved scans. Accelerator figures describe
+need more memory. Disk estimates add the selected decision model files (d1
+6.25 GB, Clef-Flash 19 GB), all OCR models (measured 0.17 GB) and the Python
+runtime (measured under 1 GB on macOS; CUDA builds of PyTorch on Linux/Windows
+add several GB). Allow extra space for download caches and saved scans, which
+grow with every stored run. Accelerator figures describe
 capacity only, not verified backend support. CUDA requires a compatible
 CUDA-enabled PyTorch build; source-checkout defaults use CPU Torch wheels on
 Linux/Windows. Cloud mode still processes images locally but hosts the models.

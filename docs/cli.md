@@ -143,6 +143,18 @@ For local execution, ensure sufficient runner memory and authorized access to
 any gated weights. Fork PRs normally lack secrets. A finding returns 1 and an
 incomplete scan returns 2; upload reports with `if: always()` to retain either.
 
+## Limitations
+
+- **Inputs:** static PNG, JPEG and WebP only; extensions are matched
+  case-insensitively and animated images are rejected. Local scans accept up to
+  40 megapixels; cloud scans follow the provider's limits.
+- **Other files:** unsupported files in scanned folders or diffs are skipped and
+  listed in the report; an unsupported file named explicitly is an error.
+- **Scores:** scores are operating thresholds, not calibrated attack
+  probabilities. A score below the threshold does not prove an image is safe.
+- **Cost:** cloud scans can make additional billable requests when OCR is
+  unclear and the image is reviewed or read again.
+
 ## Results and storage
 
 | Exit code | Meaning |
@@ -152,7 +164,6 @@ incomplete scan returns 2; upload reports with `if: always()` to retain either.
 | `2` | Invalid settings, missing runtime/models/keys, provider failure, unreadable input, interruption or incomplete evidence |
 
 Errors take precedence. Empty final OCR text is incomplete, not a clean result.
-Scores are operating thresholds, not calibrated attack probabilities.
 Explicit unsupported files are errors. Directory scans record unsupported files
 as skipped and exclude `.git`, `.venv*`, `node_modules`, `__pycache__`, directory
 symlinks and VIPI's cache. Image symlinks are errors.
