@@ -152,6 +152,56 @@ def test_scan_requests_are_validated_and_one_workload_runs_at_a_time(tmp_path):
     release.set()
 
 
+@pytest.mark.parametrize("exception,status", [(ValueError, 400), (RuntimeError, 409)])
+def test_scan_request_errors_keep_internal_details_in_the_log(
+    tmp_path, monkeypatch, caplog, exception, status
+):
+    from research.workbench.scans import ScanService
+
+    detail = "/private/model-cache/secret: provider-token"
+
+    def fail(*args, **kwargs):
+        raise exception(detail)
+
+    monkeypatch.setattr(ScanService, "start", fail)
+    response = upload(create_app(repository_root=tmp_path).test_client())
+    assert response.status_code == status
+    assert detail not in response.get_data(as_text=True)
+    assert detail in caplog.text
+
+
+@pytest.mark.parametrize(
+    "exception,status", [(ValueError, 400), (OSError, 400), (RuntimeError, 409)]
+)
+def test_evaluation_errors_keep_internal_details_in_the_log(
+    tmp_path, monkeypatch, caplog, exception, status
+):
+    detail = "/private/evaluations/secret: provider-token"
+
+    def fail(*args, **kwargs):
+        raise exception(detail)
+
+    monkeypatch.setattr(evaluations.EvaluationService, "plan", fail)
+    monkeypatch.setattr(evaluations.EvaluationService, "start", fail)
+    client = create_app(repository_root=tmp_path).test_client()
+    responses = (
+        [
+            client.get("/api/evaluations/setup"),
+            client.post("/api/evaluations", json={}),
+            client.post("/api/evaluations/example/resume"),
+        ]
+        if exception is not RuntimeError
+        else [
+            client.post("/api/evaluations", json={}),
+            client.post("/api/evaluations/example/resume"),
+        ]
+    )
+    for response in responses:
+        assert response.status_code == status
+        assert detail not in response.get_data(as_text=True)
+    assert detail in caplog.text
+
+
 @pytest.fixture
 def evaluation_client(tmp_path, monkeypatch):
     """The workbench with simulated evaluation runs in ``tmp_path``."""

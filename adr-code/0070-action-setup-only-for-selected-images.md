@@ -1,4 +1,4 @@
-# ADR 0069: Action prepares models only for selected images, without a model cache
+# ADR 0070: Action prepares models only for selected images, without a model cache
 
 Status: Accepted, 2026-11-11.
 

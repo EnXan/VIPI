@@ -135,7 +135,7 @@ See the [complete workflow example](../README.md#github-actions).
 
 The Action installs from the selected tag/commit, checks the scan selection
 and prepares the requested models only when it contains images; models are
-downloaded each run and not cached ([ADR 0069](../adr-code/0069-action-setup-only-for-selected-images.md)).
+downloaded each run and not cached ([ADR 0070](../adr-code/0070-action-setup-only-for-selected-images.md)).
 PR events scan images added/modified at the PR commit relative to the
 actual base, with `paths` restricting scope. Use checkout `fetch-depth: 0`.
 Outside PR events it scans all images under `paths`, unless `base-ref` is set.

@@ -595,6 +595,44 @@ def test_run_request_validation_and_dry_run_start_nothing(run_root):
     assert not (root / "runs").exists()
 
 
+@pytest.mark.parametrize(
+    "identifier",
+    [
+        "",
+        ".",
+        "..",
+        "../escape",
+        "/tmp/escape",
+        "a/b",
+        "a\\b",
+        "C:escape",
+        "a\x00b",
+        None,
+        1,
+    ],
+)
+def test_run_directory_rejects_paths_instead_of_ids(tmp_path, identifier):
+    with pytest.raises(ValueError, match="Invalid run ID"):
+        runs.run_directory(identifier, tmp_path)
+
+
+def test_run_directory_rejects_symlinks_outside_the_runs_folder(tmp_path):
+    base = tmp_path / "runs/evaluations"
+    base.mkdir(parents=True)
+    outside = tmp_path / "runs/evaluations-other"
+    outside.mkdir()
+    (base / "escape").symlink_to(outside, target_is_directory=True)
+    with pytest.raises(ValueError, match="Invalid run ID"):
+        runs.run_directory("escape", tmp_path)
+
+
+def test_run_directory_preserves_single_component_names_and_custom_root(tmp_path):
+    name = "20261111-local-speed_ä.v1"
+    custom = tmp_path / "custom"
+    assert runs.run_directory(name, tmp_path, custom) == custom / name
+    assert not custom.exists()
+
+
 def test_test_split_summary_is_marked_as_confirmation(run_root):
     root, _rows, _calls, _state = run_root
     runs.run("local-speed", "test", root=root, run_id="t", confirm_test=True)

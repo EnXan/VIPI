@@ -10,6 +10,7 @@ run directory until ``save_baseline`` copies the summary into the repository.
 from datetime import datetime, timezone
 import hashlib
 import json
+import os
 from pathlib import Path
 import subprocess
 import threading
@@ -225,9 +226,19 @@ def summary_document(request, report, operations):
 
 
 def run_directory(run_id, root=benchmark.ROOT, runs_directory=DEFAULT_RUNS_DIRECTORY):
-    if not run_id or "/" in run_id or run_id.startswith("."):
+    if (
+        not isinstance(run_id, str)
+        or not run_id
+        or run_id.startswith(".")
+        or any(character in run_id for character in ("/", "\\", ":", "\x00"))
+    ):
         raise ValueError("Invalid run ID.")
-    return (Path(root) / runs_directory / run_id).resolve()
+    base = (Path(root) / runs_directory).resolve()
+    directory = (base / run_id).resolve()
+    # Include the separator so a sibling with the same prefix cannot pass.
+    if not str(directory).startswith(str(base) + os.sep):
+        raise ValueError("Invalid run ID.")
+    return directory
 
 
 def write_report(directory, configuration, entries, executed, operations):

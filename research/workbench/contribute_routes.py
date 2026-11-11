@@ -71,8 +71,11 @@ def register(app, store):
                         content=form.get("content", ""),
                         source=source,
                     )
-            except ValueError as error:
-                return jsonify(error=str(error).replace(f"{folder}/", "")), 400
+            except ValueError:
+                app.logger.exception("Image contribution rejected")
+                return jsonify(
+                    error="Images could not be added. Use PNG, JPEG or WEBP images and provide the label, content, dataset, license and provenance; see the server log for details."
+                ), 400
         names = {str(path): path.name for path in paths}
         return jsonify(
             added=[entry["id"] for entry in added],
@@ -84,8 +87,11 @@ def register(app, store):
     def submission(message, dry_run):
         try:
             data = contribute.upload(store.directory, message, dry_run=dry_run)
-        except ValueError as error:
-            return jsonify(error=str(error)), 400
+        except ValueError:
+            app.logger.exception("Dataset submission rejected")
+            return jsonify(
+                error="Changes could not be submitted. Check that there are valid local changes; see the server log for details."
+            ), 400
         except (OSError, KeyError) as error:
             return remote_failure(error)
         return jsonify(plan(data))
