@@ -47,27 +47,66 @@ runs:
         enable-cache: true
         cache-dependency-glob: ${{ github.action_path }}/uv.lock
 
-    - name: Cache VIPI models
-      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-      with:
-        path: |
-          ${{ runner.temp }}/vipi-cache/vipi/ocr
-          ${{ runner.temp }}/vipi-cache/vipi/prompt-guard
-          ${{ runner.temp }}/vipi-cache/vipi/decisions
-        key: ${{ runner.os }}-vipi-${{ inputs.modus }}-${{ inputs.detector }}-${{ inputs.ocr-mode }}-${{ inputs.decision-provider }}-${{ github.action_ref }}
-        restore-keys: |
-          ${{ runner.os }}-vipi-${{ inputs.modus }}-${{ inputs.detector }}-${{ inputs.ocr-mode }}-${{ inputs.decision-provider }}-
-
     - name: Install VIPI with OCR
       shell: bash
       run: uv sync --project "$GITHUB_ACTION_PATH" --locked --extra ocr
 
+    - name: Select images
+      id: select
+      shell: bash
+      env:
+        VIPI_PATHS: ${{ inputs.paths }}
+        VIPI_BASE_REF: ${{ inputs.base-ref }}
+        XDG_CACHE_HOME: ${{ runner.temp }}/vipi-cache
+      run: |
+        if [[ -z "${VIPI_PATHS//$'\n'/}" ]]; then
+          echo "The paths input must contain at least one path." >&2
+          exit 2
+        fi
+        base_ref="$VIPI_BASE_REF"
+        if [[ "$GITHUB_EVENT_NAME" == "pull_request" || "$GITHUB_EVENT_NAME" == "pull_request_target" ]]; then
+          base_ref="${GITHUB_BASE_REF:-}"
+          if [[ -z "$base_ref" ]]; then
+            echo "Could not determine the pull request base branch." >&2
+            exit 2
+          fi
+        fi
+        diff_ref=""
+        if [[ -n "$base_ref" ]]; then
+          diff_ref="origin/$base_ref"
+        fi
+        echo "diff=$diff_ref" >> "$GITHUB_OUTPUT"
+        # Reuse the scanner's selection so models are prepared only when needed.
+        VIPI_DIFF="$diff_ref" uv run --project "$GITHUB_ACTION_PATH" python - <<'PY'
+        import os
+        import sys
+        from pathlib import Path
+
+        from vipi.config import cache_directory
+        from vipi.inputs import select_images
+
+        paths = [Path(path) for path in os.environ["VIPI_PATHS"].split("\n") if path]
+        try:
+            selection = select_images(
+                paths, diff=os.environ["VIPI_DIFF"] or None, excluded=[cache_directory()]
+            )
+            count = len(selection.images)
+        except Exception as error:
+            # The scan fails with the same selection error before loading models.
+            print(f"Image selection failed: {error}", file=sys.stderr)
+            count = 0
+        print(f"Selected images: {count}")
+        with open(os.environ["GITHUB_OUTPUT"], "a") as output:
+            output.write(f"images={count}\n")
+        PY
+
     - name: Install local decision dependencies
-      if: inputs.modus == 'local'
+      if: inputs.modus == 'local' && steps.select.outputs.images != '0'
       shell: bash
       run: uv sync --project "$GITHUB_ACTION_PATH" --locked --extra ocr --extra detector-local
 
     - name: Prepare scan models
+      if: steps.select.outputs.images != '0'
       shell: bash
       env:
         VIPI_DETECTOR: ${{ inputs.detector }}
@@ -93,7 +132,7 @@ runs:
       shell: bash
       env:
         VIPI_PATHS: ${{ inputs.paths }}
-        VIPI_BASE_REF: ${{ inputs.base-ref }}
+        VIPI_DIFF: ${{ steps.select.outputs.diff }}
         VIPI_DETECTOR: ${{ inputs.detector }}
         VIPI_THRESHOLD: ${{ inputs.threshold }}
         VIPI_OCR_MODE: ${{ inputs.ocr-mode }}
@@ -108,11 +147,6 @@ runs:
           [[ -n "$path" ]] && paths+=("$path")
         done <<< "$VIPI_PATHS"
 
-        if [[ ${#paths[@]} -eq 0 ]]; then
-          echo "The paths input must contain at least one path." >&2
-          exit 2
-        fi
-
         args=("${paths[@]}" --modus "$VIPI_MODUS" --detector "$VIPI_DETECTOR" --threshold "$VIPI_THRESHOLD" --output "$VIPI_REPORT_PATH")
         if [[ "$VIPI_MODUS" == "local" ]]; then
           args+=(--ocr-mode "$VIPI_OCR_MODE")
@@ -122,16 +156,8 @@ runs:
         if [[ -n "$VIPI_DECISION_PROVIDER" ]]; then
           args+=(--decision-provider "$VIPI_DECISION_PROVIDER")
         fi
-        base_ref="$VIPI_BASE_REF"
-        if [[ "$GITHUB_EVENT_NAME" == "pull_request" || "$GITHUB_EVENT_NAME" == "pull_request_target" ]]; then
-          base_ref="${GITHUB_BASE_REF:-}"
-          if [[ -z "$base_ref" ]]; then
-            echo "Could not determine the pull request base branch." >&2
-            exit 2
-          fi
-        fi
-        if [[ -n "$base_ref" ]]; then
-          args+=(--diff "origin/$base_ref")
+        if [[ -n "$VIPI_DIFF" ]]; then
+          args+=(--diff "$VIPI_DIFF")
         fi
 
         echo "report-path=$VIPI_REPORT_PATH" >> "$GITHUB_OUTPUT"
