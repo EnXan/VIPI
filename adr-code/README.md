@@ -42,6 +42,7 @@ Temporary planning and review queues belong in `.llm-plans/`.
 | [0066](0066-parallel-evaluations.md) | Parallel evaluations in the workbench, with a warning before local runs overlap |
 | [0067](0067-remove-retired-scan-paths.md) | Product/research boundaries and shared recovery without retired scan paths (replaces 0002 and 0045) |
 | [0068](0068-position-free-benchmark-scoring.md) | Position-free scoring of unordered references in evaluation runs, and offline rescoring |
+| [0069](0069-workbench-request-boundaries.md) | Confined evaluation paths, fixed HTTP error messages and image previews without blob URLs |
 
 When revising an agreed decision, write its replacement with a summary of the
 old ADR (identifier, decision, rationale and reason for revision), then delete

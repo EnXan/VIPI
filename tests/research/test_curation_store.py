@@ -161,6 +161,24 @@ def test_missing_draft_route_reports_how_to_create_it(tmp_path):
     assert client.get("/api/curation/entries").status_code == 409
 
 
+@pytest.mark.parametrize("missing", [False, True])
+def test_dataset_errors_do_not_expose_internal_details(
+    client, monkeypatch, caplog, missing
+):
+    from research.curation.store import DraftMissing
+
+    detail = "/private/dataset/secret: provider-token"
+
+    def fail(*args, **kwargs):
+        raise (DraftMissing if missing else ValueError)(detail)
+
+    monkeypatch.setattr(CurationStore, "listing", fail)
+    response = client.get("/api/curation/entries")
+    assert response.status_code == (409 if missing else 400)
+    assert detail not in response.get_data(as_text=True)
+    assert detail in caplog.text
+
+
 def test_dropped_entries_only_appear_under_dropped_and_count_as_done(store):
     store.update("typo", {"curation": {"decision": "drop", "reason": "duplicate"}})
     for status in ("all", "unreviewed", "reviewed"):

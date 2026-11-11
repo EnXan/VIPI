@@ -123,8 +123,11 @@ function chooseImage(file) {
   showError('');
   state.image = file;
   const preview = $('input-preview');
-  if (preview.src) URL.revokeObjectURL(preview.src);
-  preview.src = URL.createObjectURL(file);
+  const reader = new FileReader();
+  reader.onload = () => {
+    if (state.image === file) preview.src = reader.result;
+  };
+  reader.readAsDataURL(file);
   preview.hidden = false;
   $('file-label').textContent = file.name || 'Pasted image';
   $('scan-status').textContent = 'Ready to scan.';

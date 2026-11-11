@@ -98,7 +98,7 @@ uv run python -m research.evaluate rescore RUN_ID [--runs-dir DIR]
 | `CONFIGURATION` | `status`, `run` | Required: `local-speed`, `local-balanced`, `local-quality-clef-flash`, `local-speed-prompt-guard`, `local-balanced-prompt-guard`, `local-quality-prompt-guard`, `cloud-google`, `cloud-openai`, `cloud-mistral`, `cloud-google-jev`, `cloud-openai-jev` or `cloud-mistral-jev`. |
 | `--split SPLIT` | `status`, `run` | `development` (default) or `test`. |
 | `--confirm-test-split` | `run` | Required for the one-time confirmation run on the test split. |
-| `--run-id ID` | `run` | Resume this run; default: a new run ID. |
+| `--run-id ID` | `run` | Resume this run; default: a new run ID. Must be one directory name without a leading dot, slash, backslash, colon or NUL; its resolved path must stay inside the runs directory. |
 | `--runs-dir DIR` | `run`, `save-baseline`, `rescore` | Folder of evaluation runs. Default `runs/evaluations`. |
 | `--dry-run` | `run` | Show the plan, including how many images would be reused, without scanning. |
 | `--no-reuse-ocr` | `run` | Scan every image from scratch instead of reusing earlier OCR and detection results. |
