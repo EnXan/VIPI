@@ -212,9 +212,7 @@ jobs:
 
 Other providers are set with `ocr-provider` and `decision-provider` and need
 their own keys; see the
-[Action inputs](https://github.com/EnXan/vipi-action#inputs).
-The former `EnXan/VIPI@v0.x` Action is no longer maintained; switch to
-`EnXan/vipi-action@v1`.
+[Action configuration](https://github.com/EnXan/vipi-action#configuration).
 Fork PRs normally get no secrets, so their scans cannot reach the providers.
 
 ## Workbench
