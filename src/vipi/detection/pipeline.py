@@ -151,8 +151,7 @@ def detect(
                     [answer],
                     signals,
                     options["thresholds"],
-                    evidence_complete=evidence["ocr_complete"]
-                    and bool(evidence["readings"]),
+                    evidence_complete=evidence["ocr_complete"],
                 )
                 answer.update(verdict=summary["verdict"], check_id=store.id)
                 store.save_answer(answer)
@@ -162,7 +161,7 @@ def detect(
             answers,
             signals,
             options["thresholds"],
-            evidence_complete=evidence["ocr_complete"] and bool(evidence["readings"]),
+            evidence_complete=evidence["ocr_complete"],
         )
         result = {
             "schema_version": 3,
@@ -173,7 +172,6 @@ def detect(
             "input_hash": evidence["input_hash"],
             "ocr_complete": evidence["ocr_complete"],
             "readings": len(evidence["readings"]),
-            "missing_text_evidence": not evidence["readings"],
             "thresholds": options["thresholds"],
             "answers": answers,
             **summary,
@@ -184,7 +182,7 @@ def detect(
             "detection_completed",
             state="completed",
             verdict=result["verdict"],
-            review_required=result["review_required"],
+            injection_probability=result["injection_probability"],
             active_check=None,
             active_signal=None,
         )

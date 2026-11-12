@@ -68,7 +68,7 @@ def scan(
     started = time.perf_counter()
     root = cache_directory()
     report = {
-        "schema_version": 1,
+        "schema_version": 2,
         "detector": detector,
         "threshold": threshold,
         "evidence_scope": "final_ocr",

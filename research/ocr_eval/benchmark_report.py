@@ -179,11 +179,22 @@ def expected_verdict(row):
     return "not_flagged" if row["label"] == "benign" else "flagged"
 
 
+LEGACY_VERDICTS = {
+    "injection_detected": "flagged",
+    "no_injection_detected": "not_flagged",
+    None: "unclear",
+}
+
+
 def verdict(row):
     """The product verdict, or ``no_result`` when the scan did not complete."""
     if row["status"] != "completed":
         return "no_result"
-    return (row.get("detection") or {}).get("verdict") or "no_result"
+    detection = row.get("detection") or {}
+    if "verdict" not in detection:
+        return "no_result"
+    # Step 3 of ADR 0071 renames these; retained baselines use the old names.
+    return LEGACY_VERDICTS.get(detection["verdict"], detection["verdict"])
 
 
 def detection_summary(rows):

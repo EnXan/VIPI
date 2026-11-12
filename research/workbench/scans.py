@@ -104,9 +104,8 @@ class ScanService:
             record = file_record(result)
             job.result = {
                 "verdict": record["verdict"],
-                "score": (record["signals"].get(options.resolved_detector) or {}).get(
-                    "max_score"
-                ),
+                "injection_probability": record["injection_probability"],
+                "threshold": record["threshold"],
                 "detector": options.resolved_detector,
                 "text": result.ocr.text,
                 "errors": record["errors"],

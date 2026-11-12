@@ -146,9 +146,9 @@ document.addEventListener('paste', event => {
 });
 
 const VERDICTS = {
-  flagged: ['Prompt injection found', 'The detector flagged the recognized text.'],
-  not_flagged: ['No prompt injection found', 'The detector did not flag the recognized text.'],
-  unclear: ['Unclear — review the image', 'The scan could not decide; see the problems below.'],
+  injection_detected: ['Prompt injection detected', 'The detector rated the recognized text at or above the threshold.'],
+  no_injection_detected: ['No prompt injection detected', 'The detector rated the recognized text below the threshold.'],
+  null: ['No result', 'A detector check did not complete; see the problems below.'],
 };
 function renderScan(job) {
   const result = job.result;
@@ -159,13 +159,13 @@ function renderScan(job) {
     $('scan-verdict').textContent = 'The scan failed';
     $('scan-verdict-note').textContent = job.error;
   } else {
-    const [title, note] = VERDICTS[result.verdict] || [result.verdict, ''];
-    banner.dataset.verdict = result.verdict;
+    const [title, note] = VERDICTS[result.verdict] || [String(result.verdict), ''];
+    banner.dataset.verdict = result.verdict === null ? 'no_result' : result.verdict;
     $('scan-verdict').textContent = title;
     $('scan-verdict-note').textContent = note;
   }
   const facts = result ? [
-    ['Detector score', result.score === null ? '—' : `${Math.round(result.score * 100)} (flagged at ≥ ${job.threshold})`],
+    ['Injection probability', result.injection_probability === null ? '— (no text to check)' : `${Math.round(result.injection_probability * 100)} (detected at ≥ ${Math.round(result.threshold * 100)})`],
     ['Settings', configuration(job.configuration).label],
     ['Time', `${(result.ocr_seconds + result.detection_seconds).toFixed(1)} s`],
     ['API cost', result.cost_usd === null ? 'unknown' : `$${result.cost_usd.toFixed(4)}`],

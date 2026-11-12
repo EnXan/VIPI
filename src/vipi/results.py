@@ -64,14 +64,14 @@ class OcrResult:
 
 @dataclass(frozen=True)
 class DetectionResult:
-    verdict: str
-    review_required: bool
+    verdict: str | None
+    injection_probability: float | None
+    threshold: float | None
     signals: dict
     answers: list[dict]
     check_id: str
     elapsed_seconds: float
     ocr_complete: bool
-    missing_text_evidence: bool
 
     @classmethod
     def from_dict(cls, data):
@@ -84,10 +84,10 @@ class DetectionResult:
             for answer in self.answers
             if answer["status"] != "completed"
         ]
-        if not self.ocr_complete or self.missing_text_evidence:
-            errors.append("No complete final OCR text evidence is available.")
-        if self.verdict == "unclear" and not errors:
-            errors.append("Detector evidence is incomplete; review is required.")
+        if not self.ocr_complete:
+            errors.append("The final OCR text is not available.")
+        if self.verdict is None and not errors:
+            errors.append("The detector produced no verdict (no threshold set).")
         return errors
 
 

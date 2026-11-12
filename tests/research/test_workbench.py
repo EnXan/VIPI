@@ -24,7 +24,7 @@ def wait(predicate, seconds=5):
     raise AssertionError("condition not reached")
 
 
-def fake_scanner(tmp_path, verdict="flagged", fail=False):
+def fake_scanner(tmp_path, verdict="injection_detected", fail=False):
     calls = []
 
     def scan(image, *, options, on_event):
@@ -43,8 +43,9 @@ def fake_scanner(tmp_path, verdict="flagged", fail=False):
         on_event({"type": "detection_started"})
         detection = SimpleNamespace(
             verdict=verdict,
-            review_required=verdict != "not_flagged",
-            signals={options.resolved_detector: {"max_score": 0.91}},
+            injection_probability=0.91,
+            threshold=0.8,
+            signals={},
             answers=[],
             check_id="c1",
             elapsed_seconds=0.5,
@@ -114,8 +115,8 @@ def test_scan_reports_verdict_score_text_and_ocr_passes(tmp_path):
     job_id = started.json["id"]
     wait(lambda: client.get(f"/api/scans/{job_id}").json["state"] == "done")
     job = client.get(f"/api/scans/{job_id}").json
-    assert job["result"]["verdict"] == "flagged"
-    assert job["result"]["score"] == 0.91
+    assert job["result"]["verdict"] == "injection_detected"
+    assert job["result"]["injection_probability"] == 0.91
     assert job["result"]["text"] == "Hello"
     assert job["steps"][0]["label"] == "upright"
     assert client.get(job["steps"][0]["image_url"]).data == b"png"

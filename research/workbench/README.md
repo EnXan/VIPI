@@ -39,7 +39,7 @@ The default is the product default: local, Quality, threshold 80.
 ## Scan an image
 
 Choose, drop or paste an image and press **Scan image**. The result shows the
-verdict (prompt injection found, not found, or unclear), the detector score,
+verdict (prompt injection detected, not detected, or no result), the injection probability,
 time and API cost, the recognized text and, under **OCR passes**, every image
 variant the scanner read with its text.
 
