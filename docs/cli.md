@@ -142,9 +142,6 @@ actual base branch, with `paths` restricting scope; use checkout
 from the PR. A detection returns 1 and an incomplete scan returns 2; upload
 reports with `if: always()` to retain either.
 
-`action.yml` in this repository (`EnXan/VIPI@v0.x`) is deprecated and will be
-removed in a later release.
-
 ## Limitations
 
 - **Inputs:** static PNG, JPEG and WebP only; extensions are matched

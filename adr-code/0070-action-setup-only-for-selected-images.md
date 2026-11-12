@@ -4,7 +4,7 @@ Status: Accepted, 2026-11-11.
 
 ## Context and sources
 
-The composite Action in [`action.yml`](../action.yml) installed VIPI, restored an
+The composite Action in [`action.yml`](https://github.com/EnXan/VIPI/blob/v0.10.0/action.yml) installed VIPI, restored an
 `actions/cache` entry for `$RUNNER_TEMP/vipi-cache`, ran `vipi setup` and then
 `vipi scan`. Evidence from `.github/workflows/vipi-scan.yml` runs on 2026-11-10
 (local, balanced, prompt-guard):

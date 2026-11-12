@@ -8,7 +8,7 @@
 
 <p align="center">
   <b>Scan images for prompt injections before an AI agent reads them.</b><br>
-  A Python CLI and GitHub Action. Runs fully local or with hosted providers.
+  A Python CLI and a <a href="https://github.com/EnXan/vipi-action">GitHub Action</a>. Runs fully local or with hosted providers.
 </p>
 
 <p align="center">
@@ -212,8 +212,7 @@ jobs:
 
 Other providers are set with `ocr-provider` and `decision-provider` and need
 their own keys; see the
-[Action inputs](https://github.com/EnXan/vipi-action#inputs).
-`EnXan/VIPI@v0.x` still works but is deprecated.
+[Action configuration](https://github.com/EnXan/vipi-action#configuration).
 Fork PRs normally get no secrets, so their scans cannot reach the providers.
 
 ## Workbench

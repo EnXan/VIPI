@@ -2,13 +2,13 @@
 
 Status: Accepted, 2026-11-12; implemented: `--list-only` (0.10.0),
 [`EnXan/vipi-action`](https://github.com/EnXan/vipi-action) v1.0.0, self-scan
-workflow switched; removal of `action.yml` here pending. Replaces the installation part of
+workflow switched, `action.yml` removed from this repository. Replaces the installation part of
 [ADR 0070](0070-action-setup-only-for-selected-images.md); its rule that models
 are prepared only for a non-empty selection, without a model cache, stays.
 
 ## Context and sources
 
-The Action is [`action.yml`](../action.yml) at the root of this repository and
+The Action is [`action.yml`](https://github.com/EnXan/VIPI/blob/v0.10.0/action.yml) at the root of this repository and
 is used as `EnXan/VIPI@vX.Y.Z`. It installs VIPI from its own checkout
 (`uv sync --project "$GITHUB_ACTION_PATH" --locked`), so every package tag is
 also an Action release. Its selection step imports the internal
@@ -54,10 +54,9 @@ The maintainer decided on 2026-11-12 to publish the Action on the Marketplace
   before OCR and lists files as `not_scanned`. An optional input installs VIPI
   from a Git ref to test unreleased package changes. A real cloud scan is a
   separate, manual and paid job.
-- **This repository.** `vipi-scan.yml` uses `EnXan/vipi-action@v1`.
-  `action.yml` here gets a deprecation note, keeps working for existing
-  `EnXan/VIPI@v0.x` references (tags are not moved) and is removed in a later
-  minor release announced in the README.
+- **This repository.** `vipi-scan.yml` uses `EnXan/vipi-action@v1`, and
+  `action.yml` is removed here. The in-repository Action had no known users,
+  so there is no deprecation period and no migration note.
 
 ## Alternatives and consequences
 
