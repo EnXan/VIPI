@@ -1,6 +1,8 @@
 # ADR 0073: GitHub Action in its own repository, installed from PyPI
 
-Status: Accepted, 2026-11-12; `--list-only` implemented, Action repository pending. Replaces the installation part of
+Status: Accepted, 2026-11-12; implemented: `--list-only` (0.10.0),
+[`EnXan/vipi-action`](https://github.com/EnXan/vipi-action) v1.0.0, self-scan
+workflow switched; removal of `action.yml` here pending. Replaces the installation part of
 [ADR 0070](0070-action-setup-only-for-selected-images.md); its rule that models
 are prepared only for a non-empty selection, without a model cache, stays.
 
@@ -41,6 +43,10 @@ The maintainer decided on 2026-11-12 to publish the Action on the Marketplace
   selected file as `status: selected`. Exit code 2 for selection errors,
   otherwise 0. The Action uses it instead of importing internals, so the
   selection that decides model setup is the scan's own selection.
+- **Defaults.** `modus` defaults to `cloud` in the new Action (`local` before):
+  standard hosted runners cannot load the local `quality` model, so the
+  default now works on them once provider keys are set. Changing a default
+  after `v1` would need `v2`.
 - **Tests.** The Action repository gets a workflow that runs on PRs and on
   `workflow_dispatch`, without secrets or model downloads: fixture Git
   repositories created in the job, assertions on the report. Cases where images
@@ -73,6 +79,11 @@ contract. ADR 0070's cache decision is unchanged.
 `--list-only` is covered by integration tests in this repository: no provider
 or OCR session is created and no key is needed, selected files have status
 `selected`, the report status is `listed`, selection errors exit 2, and diff
-exclusions apply. Still to validate in the Action repository: the fixture workflow on
-GitHub-hosted runners; one manual cloud run before the first Marketplace
-release.
+exclusions apply. In the Action repository, the fixture workflow passed on
+GitHub-hosted Ubuntu runners for v1.0.0 (empty diff, base-branch rules, a
+branch-only rule change, the `exclude` input; about 10–13 seconds per case).
+
+Not validated: a real cloud scan through the new Action, the local-mode install
+with CPU PyTorch from PyPI (it only runs when local images are selected), and
+Windows or macOS runners. This repository's self-scan exercises the local path
+once a PR changes images.
