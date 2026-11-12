@@ -4,7 +4,8 @@
 
 ## Motivation
 
-<!-- Explain why the change is needed. Link a related issue if there is one. -->
+<!-- Explain why the change is needed. If it addresses an issue, reference it:
+`Closes #123` when this pull request resolves it, `Refs #123` when it is a step. -->
 
 ## Validation
 

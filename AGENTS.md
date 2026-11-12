@@ -82,6 +82,10 @@ git push origin v0.1.3
   and run the checks relevant to your change.
 - Complete the pull request template and summarize the change and validation
   performed.
+- Reference the GitHub issue in every pull request that addresses one: use
+  `Closes #N` when the pull request resolves it, so merging closes the issue,
+  and `Refs #N` when it is only a step toward it. Put the reference in the
+  Motivation section.
 - See [CONTRIBUTING.md](CONTRIBUTING.md) for contributor guidance and
   [development](docs/development.md) for setup, checks, and release instructions.
 
