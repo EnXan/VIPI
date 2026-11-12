@@ -90,26 +90,31 @@ def _parse_lines(lines, *, source):
     return rules
 
 
+COMMAND_LINE_SOURCE = "command line --exclude"
+
+
 class ExclusionRules:
     """File rules followed by command-line rules, with last-match precedence."""
 
-    def __init__(self, root, cli_patterns=()):
+    def __init__(self, root, cli_patterns=(), *, file_lines=None, file_source=None):
+        """Read `<root>/.vipiignore`, or use `file_lines` from another source."""
         self.root = Path(root)
         self.rules = []
-        config_path = self.root / ".vipiignore"
-        if config_path.exists():
-            try:
-                lines = config_path.read_text(encoding="utf-8").splitlines()
-            except (OSError, UnicodeError) as error:
-                raise ValueError(
-                    f"Could not read exclusion file {config_path}: {error}"
-                ) from error
-            self.rules.extend(_parse_lines(lines, source=config_path))
+        if file_lines is None:
+            config_path = self.root / ".vipiignore"
+            if config_path.exists():
+                try:
+                    file_lines = config_path.read_text(encoding="utf-8").splitlines()
+                except (OSError, UnicodeError) as error:
+                    raise ValueError(
+                        f"Could not read exclusion file {config_path}: {error}"
+                    ) from error
+                file_source = config_path
+        if file_lines is not None:
+            self.rules.extend(_parse_lines(file_lines, source=file_source))
 
         for index, pattern in enumerate(cli_patterns, 1):
-            rule = _parse_rule(
-                pattern, source="command line --exclude", line=index
-            )
+            rule = _parse_rule(pattern, source=COMMAND_LINE_SOURCE, line=index)
             if rule is None:
                 raise ValueError("--exclude requires a non-empty rule.")
             self.rules.append(rule)

@@ -62,13 +62,13 @@ to the previous version; preserve clearly historical references. The version
 command updates `pyproject.toml` and `uv.lock`.
 
 After the version PR merges and CI passes, update `main` and push an annotated
-tag matching `uv version --short`. For version 0.8.0:
+tag matching `uv version --short`. For version 0.9.0:
 
 ```bash
 git switch main
 git pull --ff-only
-git tag -a v0.8.0 -m "Release v0.8.0"
-git push origin v0.8.0
+git tag -a v0.9.0 -m "Release v0.9.0"
+git push origin v0.9.0
 ```
 
 The `v*` tag starts CI, builds distributions and publishes to PyPI through
