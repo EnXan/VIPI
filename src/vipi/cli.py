@@ -92,6 +92,18 @@ def print_summary(console, summary, exit_code):
     console.print(details)
 
 
+def print_selection(console, report):
+    for item in report["files"]:
+        console.print(Text(item["path"]))
+    summary = report["summary"]
+    label = "Selection incomplete" if report["exit_code"] else "Selection listed"
+    style = "bold red" if report["exit_code"] else "bold green"
+    console.print(Text(f"{'×' if report['exit_code'] else '✓'} {label}", style=style))
+    details = Text(f"{summary['selected']} images selected", style="bold")
+    details.append(f"  ·  {summary['skipped']} skipped", style="dim")
+    console.print(details)
+
+
 def print_error(console, message, *, path=None):
     line = Text("Error", style="bold red")
     if path is not None:
@@ -170,6 +182,11 @@ def build_parser():
     )
     command.add_argument(
         "--output", type=Path, metavar="FILE", help="Also save a JSON report"
+    )
+    command.add_argument(
+        "--list-only",
+        action="store_true",
+        help="Only list the images a scan would select; no models, providers or keys",
     )
     command.add_argument(
         "--verbose",
@@ -273,6 +290,7 @@ def main(argv=None):
                 output=args.output,
                 progress=lambda message: status.update(Text(message, style="cyan")),
                 on_result=on_result,
+                list_only=args.list_only,
             )
         for error in report["errors"]:
             message = error.get("error", error) if isinstance(error, dict) else error
@@ -280,7 +298,10 @@ def main(argv=None):
         for item in report["files"]:
             for error in item.get("errors", []):
                 print_error(error_console, error, path=item["path"])
-        print_summary(console, report["summary"], report["exit_code"])
+        if args.list_only:
+            print_selection(console, report)
+        else:
+            print_summary(console, report["summary"], report["exit_code"])
         if args.output:
             # The scanner rejects reports that would overwrite an input image.
             if report_overwrites_input(

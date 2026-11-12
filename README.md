@@ -192,7 +192,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
-      - uses: EnXan/VIPI@v0.9.0
+      - uses: EnXan/VIPI@v0.10.0
         with:
           modus: cloud
         env:

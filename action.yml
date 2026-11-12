@@ -81,33 +81,29 @@ runs:
           diff_ref="origin/$base_ref"
         fi
         echo "diff=$diff_ref" >> "$GITHUB_OUTPUT"
-        # Reuse the scanner's selection so models are prepared only when needed.
-        VIPI_DIFF="$diff_ref" uv run --project "$GITHUB_ACTION_PATH" python - <<'PY'
-        import os
-        import sys
-        from pathlib import Path
-
-        from vipi.config import cache_directory
-        from vipi.inputs import select_images
-
-        paths = [Path(path) for path in os.environ["VIPI_PATHS"].split("\n") if path]
-        rules = [rule for rule in os.environ["VIPI_EXCLUDE"].split("\n") if rule.strip()]
-        try:
-            selection = select_images(
-                paths,
-                diff=os.environ["VIPI_DIFF"] or None,
-                excluded=[cache_directory()],
-                exclude_patterns=rules,
-            )
-            count = len(selection.images)
-        except Exception as error:
-            # The scan fails with the same selection error before loading models.
-            print(f"Image selection failed: {error}", file=sys.stderr)
-            count = 0
-        print(f"Selected images: {count}")
-        with open(os.environ["GITHUB_OUTPUT"], "a") as output:
-            output.write(f"images={count}\n")
-        PY
+        # Use the scanner's own selection so models are prepared only when needed.
+        args=()
+        while IFS= read -r path; do
+          [[ -n "$path" ]] && args+=("$path")
+        done <<< "$VIPI_PATHS"
+        args+=(--list-only --output "$RUNNER_TEMP/vipi-selection.json")
+        if [[ -n "$diff_ref" ]]; then
+          args+=(--diff "$diff_ref")
+        fi
+        while IFS= read -r rule; do
+          [[ -n "${rule//[[:space:]]/}" ]] && args+=(--exclude="$rule")
+        done <<< "$VIPI_EXCLUDE"
+        rm -f "$RUNNER_TEMP/vipi-selection.json"
+        # Selection errors fail the scan step with the same message before models load.
+        uv run --project "$GITHUB_ACTION_PATH" vipi scan "${args[@]}" || true
+        count=0
+        if [[ -f "$RUNNER_TEMP/vipi-selection.json" ]]; then
+          count=$(uv run --project "$GITHUB_ACTION_PATH" python -c \
+            'import json, sys; print(len(json.load(open(sys.argv[1]))["files"]))' \
+            "$RUNNER_TEMP/vipi-selection.json")
+        fi
+        echo "Selected images: $count"
+        echo "images=$count" >> "$GITHUB_OUTPUT"
 
     - name: Install local decision dependencies
       if: inputs.modus == 'local' && steps.select.outputs.images != '0'

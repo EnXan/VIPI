@@ -26,13 +26,16 @@ def finish(report, started):
         "not_scanned": sum(item["status"] == "not_scanned" for item in files),
         "skipped": len(report["skipped"]),
     }
-    incomplete = report["errors"] or any(
-        item["status"] != "completed" for item in files
-    )
+    # A selection-only run is complete when selection itself had no errors.
+    listed = report.get("list_only", False)
+    done = "selected" if listed else "completed"
+    incomplete = report["errors"] or any(item["status"] != done for item in files)
     report["exit_code"] = (
         2 if incomplete else 1 if report["summary"]["detections"] else 0
     )
-    report["status"] = "incomplete" if incomplete else "completed"
+    report["status"] = (
+        "incomplete" if incomplete else "listed" if listed else "completed"
+    )
     report["elapsed_seconds"] = time.perf_counter() - started
     return report
 
