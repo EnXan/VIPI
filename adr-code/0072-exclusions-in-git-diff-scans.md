@@ -15,7 +15,7 @@ Diff scans ([`inputs/git.py`](../src/vipi/inputs/git.py)) read added, modified
 and type-changed images from Git objects between the merge base and `HEAD`.
 They do not read the worktree: uncommitted edits and missing worktree files do
 not matter. `select_images` rejects `--exclude` and any `.vipiignore` in the
-repository when `diff` is set. The GitHub Action ([`action.yml`](../action.yml))
+repository when `diff` is set. The GitHub Action ([`action.yml`](https://github.com/EnXan/VIPI/blob/v0.10.0/action.yml))
 uses diff scans for pull requests, so a repository with a `.vipiignore` cannot
 use the Action on PRs at all, and the Action has no input for exclusions.
 Requested in [issue #66](https://github.com/EnXan/VIPI/issues/66).
