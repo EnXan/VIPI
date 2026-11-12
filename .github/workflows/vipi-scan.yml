@@ -10,15 +10,19 @@ permissions:
 jobs:
   scan:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
 
       # The released Action, installing VIPI from this PR's commit.
-      - uses: EnXan/vipi-action@79711284e0ec0741d667bdc3184f9f6185f6e57b # v1.0.0
+      - uses: EnXan/vipi-action@78c36b1456007730e8d003ca0e9b9c3bdfdd9cd6 # v1.2.0
         with:
           vipi-ref: ${{ github.event.pull_request.head.sha }}
+          pr-comment: true
           detector: prompt-guard
           modus: local
           ocr-mode: balanced
