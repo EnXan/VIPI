@@ -174,7 +174,8 @@ Every option, credential and report field is in the
 
 ## GitHub Actions
 
-The Action lives in [EnXan/vipi-action](https://github.com/EnXan/vipi-action).
+The Action lives in [EnXan/vipi-action](https://github.com/EnXan/vipi-action)
+and is listed on the [GitHub Marketplace](https://github.com/marketplace/actions/vipi-visual-prompt-injection-scan).
 It scans the images a pull request adds or changes. Its default cloud mode uses
 Google Cloud Vision for OCR and OpenAI for decisions:
 
