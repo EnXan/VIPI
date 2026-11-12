@@ -84,6 +84,7 @@ request with `--dry-run` first.
 2. Make the smallest focused change that addresses the issue.
 3. Run the relevant checks and include their results in the pull request.
 4. Open a pull request targeting `main` and complete the pull request template.
+   Reference the issue with `Closes #N`, or `Refs #N` for a partial step.
 5. Respond to review feedback and make sure required checks pass before merge.
 
 The project uses automated checks and requires an approving review before a
