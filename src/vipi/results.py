@@ -43,6 +43,11 @@ class OcrResult:
             image=image,
         )
 
+    @property
+    def ocr_incomplete(self):
+        """Whether readable text is missing from the final text; None if not judged."""
+        return self.selection.get("ocr_incomplete")
+
     def to_dict(self):
         return {
             name: getattr(self, name)

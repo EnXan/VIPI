@@ -104,6 +104,7 @@ class ScanService:
             record = file_record(result)
             job.result = {
                 "verdict": record["verdict"],
+                "ocr_incomplete": record["ocr_incomplete"],
                 "injection_probability": record["injection_probability"],
                 "threshold": record["threshold"],
                 "detector": options.resolved_detector,

@@ -150,6 +150,11 @@ const VERDICTS = {
   no_injection_detected: ['No prompt injection detected', 'The detector rated the recognized text below the threshold.'],
   null: ['No result', 'A detector check did not complete; see the problems below.'],
 };
+const OCR_COMPLETENESS = {
+  true: 'Text may be missing from the OCR',
+  false: 'All legible text read',
+  null: 'Not judged',
+};
 function renderScan(job) {
   const result = job.result;
   $('scan-result').hidden = false;
@@ -164,7 +169,11 @@ function renderScan(job) {
     $('scan-verdict').textContent = title;
     $('scan-verdict-note').textContent = note;
   }
+  const missing = result && result.ocr_incomplete === true;
+  $('scan-ocr-note').hidden = !missing;
+  $('scan-ocr-note').textContent = missing ? `${OCR_COMPLETENESS.true}: the verdict only covers the recognized text.` : '';
   const facts = result ? [
+    ['OCR completeness', OCR_COMPLETENESS[result.ocr_incomplete]],
     ['Injection probability', result.injection_probability === null ? '— (no text to check)' : `${Math.round(result.injection_probability * 100)} (detected at ≥ ${Math.round(result.threshold * 100)})`],
     ['Settings', configuration(job.configuration).label],
     ['Time', `${(result.ocr_seconds + result.detection_seconds).toFixed(1)} s`],

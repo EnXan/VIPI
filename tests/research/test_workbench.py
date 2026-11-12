@@ -24,7 +24,9 @@ def wait(predicate, seconds=5):
     raise AssertionError("condition not reached")
 
 
-def fake_scanner(tmp_path, verdict="injection_detected", fail=False):
+def fake_scanner(
+    tmp_path, verdict="injection_detected", fail=False, ocr_incomplete=None
+):
     calls = []
 
     def scan(image, *, options, on_event):
@@ -58,6 +60,7 @@ def fake_scanner(tmp_path, verdict="injection_detected", fail=False):
             ocr_profile="product",
             variants=[{}],
             selection={},
+            ocr_incomplete=ocr_incomplete,
             cost={"estimated_usd": 0.0},
             text="Hello",
         )
@@ -117,6 +120,7 @@ def test_scan_reports_verdict_score_text_and_ocr_passes(tmp_path):
     job = client.get(f"/api/scans/{job_id}").json
     assert job["result"]["verdict"] == "injection_detected"
     assert job["result"]["injection_probability"] == 0.91
+    assert job["result"]["ocr_incomplete"] is None
     assert job["result"]["text"] == "Hello"
     assert job["steps"][0]["label"] == "upright"
     assert client.get(job["steps"][0]["image_url"]).data == b"png"

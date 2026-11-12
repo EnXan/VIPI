@@ -257,7 +257,11 @@ def test_orientation_route_recognizes_only_selected_orientation(tmp_path):
     assert len(result["variants"]) == 3
     assert result["variants"][1]["plan"]["orientation"] == "mirror-180"
     assert decider.orientation_calls == 1
-    assert len(result["selection"]["decisions"]) == 3
+    # The verified correction changed the text, so completeness is asked again.
+    assert len(result["selection"]["decisions"]) == 4
+    assert decider.gates == 2
+    assert result["selection"]["ocr_incomplete_source"] == "asked"
+    assert result["selection"]["ocr_incomplete"] is True
 
 
 def test_missing_text_without_supported_repair_is_not_marked_ready(tmp_path):
@@ -610,3 +614,74 @@ def test_decision_failure_keeps_saved_ocr_without_completed_result(tmp_path):
     assert store.snapshot()["state"] == "failed"
     assert len(store.snapshot()["variants"]) == 2
     assert not (store.directory / "result.json").exists()
+
+
+@pytest.mark.parametrize(
+    "completeness,reviewability,expected",
+    [
+        ("complete", "sufficient", False),
+        ("complete", "insufficient", None),
+        ("uncertain", "sufficient", None),
+        ("missing_text", "sufficient", True),
+    ],
+)
+def test_final_completeness_reuses_the_assessment_of_an_unchanged_text(
+    tmp_path, completeness, reviewability, expected
+):
+    source = tmp_path / "input.png"
+    Image.new("RGB", (400, 300), "white").save(source)
+    decider = Decider(completeness=completeness, reviewability=reviewability)
+    result = recovery_pipeline.extract(
+        source,
+        "ppocr-v6-tiny",
+        engine=Engine(),
+        decider=decider,
+        runs_dir=tmp_path / "runs",
+    )
+    assert decider.gates == 1
+    assert result["selection"]["ocr_incomplete_source"] == "reused"
+    assert result["selection"]["ocr_incomplete"] is expected
+
+
+def test_final_completeness_is_not_asked_when_no_review_ran(tmp_path, monkeypatch):
+    monkeypatch.setattr(
+        "vipi.ocr.recovery.selection.route_extended",
+        lambda *args: {"route": "no_signal", "signals": [], "unavailable": []},
+    )
+    source = tmp_path / "input.png"
+    Image.new("RGB", (400, 300), "white").save(source)
+    decider = Decider()
+    result = recovery_pipeline.extract(
+        source,
+        "ppocr-v6-tiny",
+        engine=Engine(),
+        decider=decider,
+        runs_dir=tmp_path / "runs",
+    )
+    assert decider.gates == 0
+    assert result["selection"]["ocr_incomplete"] is None
+    assert result["selection"]["ocr_incomplete_source"] == "not_reviewed"
+
+
+def test_failed_final_completeness_question_leaves_the_flag_unjudged(tmp_path):
+    class Failing(Decider):
+        def assess(self, original, attempt, directory):
+            if self.gates == 1:
+                self.gates += 1
+                raise RuntimeError("decision provider unavailable")
+            return super().assess(original, attempt, directory)
+
+    source = tmp_path / "input.png"
+    Image.new("RGB", (400, 300), "white").save(source)
+    decider = Failing(
+        {"0002": "improved"}, completeness="missing_text", repair="orientation"
+    )
+    result = recovery_pipeline.extract(
+        source,
+        "ppocr-v6-tiny",
+        engine=Engine(),
+        decider=decider,
+        runs_dir=tmp_path / "runs",
+    )
+    assert result["selection"]["ocr_incomplete"] is None
+    assert result["selection"]["ocr_incomplete_source"] == "error"

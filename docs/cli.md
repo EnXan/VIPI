@@ -176,6 +176,17 @@ OCR text is empty. An image without text calls no detector and is
 `no_injection_detected`. Long text is checked in chunks: any chunk at or above
 the threshold detects, all chunks below it do not. The report `schema_version`
 is 2.
+
+`ocr_incomplete` says whether readable image text is missing from the final OCR
+text: `true`, `false`, or `null` when it was not judged. When recovery kept the
+first reading, the visual review's existing completeness answer is reused
+(`missing_text` is `true`; `complete` with sufficient detail is `false`;
+anything else `null`). When recovery changed the final text, the same question
+is asked once more about the final text, which adds one visual-review call.
+Clear OCR needs no review, so the value is `null` and no call is added. If that
+extra call fails, the value is `null` and the reason is kept in the run's
+`selection.ocr_incomplete_error`. The summary counts `ocr_incomplete: true`
+files; exit codes ignore the flag.
 Explicit unsupported files are errors. Directory scans record unsupported files
 as skipped and exclude `.git`, `.venv*`, `node_modules`, `__pycache__`, directory
 symlinks and VIPI's cache. Image symlinks are errors.

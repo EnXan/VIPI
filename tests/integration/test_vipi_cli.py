@@ -344,6 +344,8 @@ def test_text_free_image_scans_without_injection(tmp_path, scanner_runtime, monk
     assert record["verdict"] == "no_injection_detected"
     assert record["injection_probability"] is None
     assert "review_required" not in record
+    assert "ocr_incomplete" in record
+    assert report["summary"]["ocr_incomplete"] == (record["ocr_incomplete"] is True)
     assert not record["errors"]
 
 
@@ -434,3 +436,15 @@ def test_direct_scan_accepts_bytes_and_does_not_reload_ocr_json(
     assert result.detection.verdict == "injection_detected"
     assert any(event["type"] == "run_completed" for event in events)
     assert any(event["type"] == "detection_completed" for event in events)
+
+
+def test_ocr_incomplete_is_counted_but_does_not_change_the_exit_code():
+    from vipi.reporting import finish
+
+    files = [
+        {"status": "completed", "verdict": "no_injection_detected", "ocr_incomplete": value}
+        for value in (True, False, None)
+    ]
+    report = finish({"files": files, "skipped": [], "errors": []}, 0)
+    assert report["summary"]["ocr_incomplete"] == 1
+    assert report["exit_code"] == 0
