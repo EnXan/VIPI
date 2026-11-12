@@ -1,7 +1,8 @@
 # ADR 0073: GitHub Action in its own repository, installed from PyPI
 
 Status: Accepted, 2026-11-12; implemented: `--list-only` (0.10.0),
-[`EnXan/vipi-action`](https://github.com/EnXan/vipi-action) v1.0.0, self-scan
+[`EnXan/vipi-action`](https://github.com/EnXan/vipi-action) v1.0.0 (listed on the
+[GitHub Marketplace](https://github.com/marketplace/actions/vipi-visual-prompt-injection-scan)), self-scan
 workflow switched, `action.yml` removed from this repository. Replaces the installation part of
 [ADR 0070](0070-action-setup-only-for-selected-images.md); its rule that models
 are prepared only for a non-empty selection, without a model cache, stays.
