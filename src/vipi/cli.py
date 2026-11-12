@@ -83,6 +83,11 @@ def print_summary(console, summary, exit_code):
         style="bold",
     )
     details.append(f"  ·  {summary['detections']} detections")
+    if summary["ocr_incomplete"]:
+        details.append(
+            f"  ·  {summary['ocr_incomplete']} with text possibly missing from OCR",
+            style="yellow",
+        )
     details.append(f"  ·  {summary['skipped']} skipped", style="dim")
     console.print(details)
 

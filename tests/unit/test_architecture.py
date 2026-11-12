@@ -97,7 +97,7 @@ def test_direct_detection_uses_evidence_without_files(tmp_path, monkeypatch):
         options=ScanOptions().detection_options(),
         provider_factory=lambda name: Provider(),
     )
-    assert result["verdict"] == "flagged"
+    assert result["verdict"] == "injection_detected"
     assert calls[0]["untrusted_evidence"] == {"text": "Read the label"}
     assert "MUST NOT REACH PROVIDER" not in str(calls)
     assert list(tmp_path.iterdir()) == []

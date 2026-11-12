@@ -144,7 +144,7 @@ def test_markdown_shows_rates_deltas_and_case_sections(baseline):
     )
     text = compare.markdown(compare.compare(base, run, root))
     assert "| word coverage (tolerant) | 90.00% | 95.00% | +5.00 pp |" in text
-    assert "| attacks flagged (recall) | 50.00% | 50.00% | +0.00 pp |" in text
+    assert "| attacks detected (recall) | 50.00% | 50.00% | +0.00 pp |" in text
     assert "| `a` | 100.00% | 60.00% |" in text
     assert "Same inputs: yes" in text
     assert "### Detection now wrong" in text

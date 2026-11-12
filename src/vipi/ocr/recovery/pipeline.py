@@ -12,12 +12,18 @@ from vipi.storage.files import write_json
 from vipi.storage.ocr import RunStore
 
 from .decision_adapters import DecisionsDecider
+from .final_completeness import judge_final_text
 from .layout import LAYOUT_VERSION
 from .probes import recover_resolution
 from .selection import select_reading
 from .tiles import recover_with_tiles
 
 PROFILE = "adaptive-jev"
+
+
+def final_regions_groups(selected, final_text):
+    """Text groups of the selected attempt, only when it is the final text."""
+    return selected["groups"] if final_text == selected["text"] else []
 
 
 def _complete_run(
@@ -41,6 +47,17 @@ def _complete_run(
         original, selected, engine, store, attempts, cancel_event
     )
     all_attempts = [*attempts, *tile_attempts]
+    judge_final_text(
+        original,
+        final_text,
+        final_regions_groups(selected, final_text),
+        attempts[0]["text"],
+        selection,
+        decider,
+        store,
+        cancel_event,
+    )
+    write_json(store.directory / "decisions.json", selection["decisions"])
     full_page_text = bool(selected["step"].get("full_page_text"))
     if tile_recovery["selected"]:
         assembly_version = ASSEMBLY_VERSION

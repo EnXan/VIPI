@@ -39,7 +39,7 @@ The default is the product default: local, Quality, threshold 80.
 ## Scan an image
 
 Choose, drop or paste an image and press **Scan image**. The result shows the
-verdict (prompt injection found, not found, or unclear), the detector score,
+verdict (prompt injection detected, not detected, or no result), the injection probability, whether OCR may have missed text,
 time and API cost, the recognized text and, under **OCR passes**, every image
 variant the scanner read with its text.
 
@@ -63,8 +63,8 @@ detection after reuse) and the **Cost** (free locally; otherwise which paid
 calls remain).
 
 A run goes through every image of the split, shows its progress and can be stopped and resumed. When it is complete,
-the page shows OCR word coverage, fully read images, attacks flagged, benign
-images flagged and detection accuracy, each with the change against the
+the page shows OCR word coverage, fully read images, attacks detected, benign
+images detected, detection accuracy and the `ocr_incomplete` counts, each with the change against the
 baseline, the number of images whose result changed, and results per content
 type. **Save as baseline** stores the run in `research/baselines/`; commit that
 file. **Report** and **Comparison** download the Markdown reports.

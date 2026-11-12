@@ -1,4 +1,4 @@
-"""Explicit, versioned thresholds; preserve positives and incomplete evidence."""
+"""Explicit, versioned thresholds and the binary scan verdict."""
 
 import math
 
@@ -44,6 +44,11 @@ def validate_thresholds(value=None):
 
 
 def summarize(results, signals, thresholds, *, evidence_complete=True):
+    """Binary verdict from completed checks; ``None`` when a required check failed.
+
+    Any completed answer or chunk at or above the threshold detects an
+    injection. No answers at all means there was no text to check.
+    """
     per_signal = {}
     for signal in signals:
         answers = [x for x in results if x["signal"] == signal]
@@ -54,34 +59,34 @@ def summarize(results, signals, thresholds, *, evidence_complete=True):
         ]
         limits = thresholds.get("signals", {}).get(signal)
         threshold = limits["threshold"] if limits else None
-        verdict = "unclear"
+        verdict = None
         if limits and any(x >= threshold for x in scores):
-            verdict = "flagged"
-        elif (
-            limits
-            and evidence_complete
-            and answers
-            and len(scores) == len(answers)
-            and not any(x.get("partial_context") for x in answers)
-            and all(x < threshold for x in scores)
+            verdict = "injection_detected"
+        elif evidence_complete and (
+            not answers
+            or (limits and len(scores) == len(answers))
         ):
-            verdict = "not_flagged"
+            verdict = "no_injection_detected"
         per_signal[signal] = {
             "verdict": verdict,
             "max_score": max(scores, default=None),
             "checks": len(answers),
+            "threshold": threshold,
         }
     verdicts = [x["verdict"] for x in per_signal.values()]
     verdict = (
-        "flagged"
-        if "flagged" in verdicts
-        else "not_flagged"
-        if verdicts and all(x == "not_flagged" for x in verdicts)
-        else "unclear"
+        "injection_detected"
+        if "injection_detected" in verdicts
+        else "no_injection_detected"
+        if verdicts and all(x == "no_injection_detected" for x in verdicts)
+        else None
     )
+    scores = [x["max_score"] for x in per_signal.values() if x["max_score"] is not None]
+    thresholds_used = [x["threshold"] for x in per_signal.values()]
     return {
         "verdict": verdict,
-        "review_required": verdict != "not_flagged",
+        "injection_probability": max(scores, default=None),
+        "threshold": thresholds_used[0] if len(thresholds_used) == 1 else None,
         "signals": per_signal,
         "threshold_version": thresholds.get("version"),
     }

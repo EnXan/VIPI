@@ -110,7 +110,7 @@ The report command runs no inference. It verifies the selected images/references
 evaluation sources and completed-output hashes before scoring. Its JSON contains
 per-image counts and aggregates; the Markdown sibling renders those aggregates.
 OCR rates use the entries with reference text; detection uses every entry
-(benign must not be flagged, injection and jailbreak must be).
+(benign must not be detected, injection and jailbreak must be).
 
 ### Scoped cloud confidence trial
 

@@ -136,11 +136,11 @@ def test_explicit_image_under_directory_alias_is_accepted(tmp_path):
 @pytest.mark.parametrize(
     "threshold,score,verdict",
     [
-        (0, 0, "flagged"),
-        (0.8, 0.8, "flagged"),
-        (0.8, 0.799, "not_flagged"),
-        (1, 1, "flagged"),
-        (1, 0.999, "not_flagged"),
+        (0, 0, "injection_detected"),
+        (0.8, 0.8, "injection_detected"),
+        (0.8, 0.799, "no_injection_detected"),
+        (1, 1, "injection_detected"),
+        (1, 0.999, "no_injection_detected"),
     ],
 )
 def test_single_threshold_boundaries(threshold, score, verdict):
@@ -154,7 +154,7 @@ def test_single_threshold_boundaries(threshold, score, verdict):
     )
     assert result["verdict"] == verdict
     incomplete = summarize([{"signal": "jev", "status": "error"}], ["jev"], limits)
-    assert incomplete["verdict"] == "unclear"
+    assert incomplete["verdict"] is None
 
 
 @pytest.fixture
@@ -328,7 +328,7 @@ def test_missing_credentials_still_write_an_error_report(tmp_path, monkeypatch):
     assert report["summary"]["not_scanned"] == 1
 
 
-def test_no_text_is_not_a_clean_scan(tmp_path, scanner_runtime, monkeypatch):
+def test_text_free_image_scans_without_injection(tmp_path, scanner_runtime, monkeypatch):
     class EmptyEngine:
         def recognize(self, raster):
             return {"text": "", "regions": []}
@@ -337,9 +337,16 @@ def test_no_text_is_not_a_clean_scan(tmp_path, scanner_runtime, monkeypatch):
         "vipi.ocr.engine_pool.create_engine", lambda *args, **kwargs: EmptyEngine()
     )
     report = scan([image(tmp_path / "blank.png")])
-    assert report["exit_code"] == 2
-    assert report["files"][0]["verdict"] == "unclear"
-    assert report["files"][0]["errors"]
+    record = report["files"][0]
+    assert report["exit_code"] == 0
+    assert report["schema_version"] == 2
+    assert record["status"] == "completed"
+    assert record["verdict"] == "no_injection_detected"
+    assert record["injection_probability"] is None
+    assert "review_required" not in record
+    assert "ocr_incomplete" in record
+    assert report["summary"]["ocr_incomplete"] == (record["ocr_incomplete"] is True)
+    assert not record["errors"]
 
 
 def test_missing_credentials_fail_before_ocr(tmp_path, monkeypatch):
@@ -426,6 +433,18 @@ def test_direct_scan_accepts_bytes_and_does_not_reload_ocr_json(
     assert isinstance(result, ScanResult)
     assert isinstance(result.ocr, OcrResult)
     assert isinstance(result.detection, DetectionResult)
-    assert result.detection.verdict == "flagged"
+    assert result.detection.verdict == "injection_detected"
     assert any(event["type"] == "run_completed" for event in events)
     assert any(event["type"] == "detection_completed" for event in events)
+
+
+def test_ocr_incomplete_is_counted_but_does_not_change_the_exit_code():
+    from vipi.reporting import finish
+
+    files = [
+        {"status": "completed", "verdict": "no_injection_detected", "ocr_incomplete": value}
+        for value in (True, False, None)
+    ]
+    report = finish({"files": files, "skipped": [], "errors": []}, 0)
+    assert report["summary"]["ocr_incomplete"] == 1
+    assert report["exit_code"] == 0

@@ -142,7 +142,7 @@ Outside PR events it scans all images under `paths`, unless `base-ref` is set.
 
 For hosted execution, set `modus: cloud` and provide the OCR and decision keys.
 For local execution, ensure sufficient runner memory and authorized access to
-any gated weights. Fork PRs normally lack secrets. A finding returns 1 and an
+any gated weights. Fork PRs normally lack secrets. A detection returns 1 and an
 incomplete scan returns 2; upload reports with `if: always()` to retain either.
 
 ## Limitations
@@ -152,8 +152,10 @@ incomplete scan returns 2; upload reports with `if: always()` to retain either.
   40 megapixels; cloud scans follow the provider's limits.
 - **Other files:** unsupported files in scanned folders or diffs are skipped and
   listed in the report; an unsupported file named explicitly is an error.
-- **Scores:** scores are operating thresholds, not calibrated attack
-  probabilities. A score below the threshold does not prove an image is safe.
+- **Scores:** thresholds are operating points and `injection_probability` is not a
+  calibrated attack probability. `no_injection_detected` means the detector
+  stayed below the threshold on the final OCR text; it does not prove the image
+  is safe, and it does not say whether OCR missed readable text.
 - **Cost:** cloud scans can make additional billable requests when OCR is
   unclear and the image is reviewed or read again.
 
@@ -161,11 +163,30 @@ incomplete scan returns 2; upload reports with `if: always()` to retain either.
 
 | Exit code | Meaning |
 | --- | --- |
-| `0` | All selected images completed without findings, including an empty selection |
-| `1` | At least one finding and all images completed |
-| `2` | Invalid settings, missing runtime/models/keys, provider failure, unreadable input, interruption or incomplete evidence |
+| `0` | All selected images completed without `injection_detected`, including an empty selection and images without text |
+| `1` | At least one `injection_detected` and all images completed |
+| `2` | Invalid settings, missing runtime/models/keys, detector or provider failure, refusal, missing threshold, unreadable input or interruption |
 
-Errors take precedence. Empty final OCR text is incomplete, not a clean result.
+Errors take precedence. Each file record has a `verdict`: `injection_detected`,
+`no_injection_detected`, or `null` when a required detector check did not
+complete (the file is then an error). `injection_probability` is the highest
+native detector probability over all completed checks and text chunks, reported
+next to the `threshold` that decides the verdict; it is `null` when the final
+OCR text is empty. An image without text calls no detector and is
+`no_injection_detected`. Long text is checked in chunks: any chunk at or above
+the threshold detects, all chunks below it do not. The report `schema_version`
+is 2.
+
+`ocr_incomplete` says whether readable image text is missing from the final OCR
+text: `true`, `false`, or `null` when it was not judged. When recovery kept the
+first reading, the visual review's existing completeness answer is reused
+(`missing_text` is `true`; `complete` with sufficient detail is `false`;
+anything else `null`). When recovery changed the final text, the same question
+is asked once more about the final text, which adds one visual-review call.
+Clear OCR needs no review, so the value is `null` and no call is added. If that
+extra call fails, the value is `null` and the reason is kept in the run's
+`selection.ocr_incomplete_error`. The summary counts `ocr_incomplete: true`
+files; exit codes ignore the flag.
 Explicit unsupported files are errors. Directory scans record unsupported files
 as skipped and exclude `.git`, `.venv*`, `node_modules`, `__pycache__`, directory
 symlinks and VIPI's cache. Image symlinks are errors.

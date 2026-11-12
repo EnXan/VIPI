@@ -20,7 +20,8 @@ def finish(report, started):
     report["summary"] = {
         "selected": len(files),
         "completed": sum(item["status"] == "completed" for item in files),
-        "detections": sum(item.get("verdict") == "flagged" for item in files),
+        "detections": sum(item.get("verdict") == "injection_detected" for item in files),
+        "ocr_incomplete": sum(item.get("ocr_incomplete") is True for item in files),
         "failed": sum(item["status"] == "error" for item in files),
         "not_scanned": sum(item["status"] == "not_scanned" for item in files),
         "skipped": len(report["skipped"]),
@@ -68,7 +69,9 @@ def file_record(result):
         if ocr_fee is not None and detector_fee is not None
         else None,
         "verdict": detection.verdict,
-        "review_required": detection.review_required,
+        "ocr_incomplete": ocr.ocr_incomplete,
+        "injection_probability": detection.injection_probability,
+        "threshold": detection.threshold,
         "signals": detection.signals,
         "check_id": detection.check_id,
         "detector_model": result.detector_model,
