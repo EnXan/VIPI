@@ -56,8 +56,11 @@ def test_worker_uses_selected_product_configuration_and_keeps_failures(
 
     def record(result):
         return {
-            "verdict": "flagged",
-            "signals": {"openai": {"max_score": 0.9}},
+            "verdict": "injection_detected",
+            "injection_probability": 0.9,
+            "threshold": 0.8,
+            "ocr_incomplete": False,
+            "signals": {},
             "errors": [],
             "detection_seconds": 0.5,
             "detection_cost": {"estimated_usd": 0.001},
@@ -85,8 +88,10 @@ def test_worker_uses_selected_product_configuration_and_keeps_failures(
     assert saved[0]["error"] == "fixture failure"
     assert saved[1]["pipeline_seconds"] == 0.25
     assert saved[1]["detection"] == {
-        "verdict": "flagged",
-        "max_score": 0.9,
+        "verdict": "injection_detected",
+        "injection_probability": 0.9,
+        "threshold": 0.8,
+        "ocr_incomplete": False,
         "errors": [],
         "seconds": 0.5,
         "cost": {"estimated_usd": 0.001},
@@ -404,7 +409,10 @@ def test_report_scores_ocr_and_detection_and_excludes_private_artifact_paths(
         "protocol": "fixture",
     }
     benchmark.write_json(tmp_path / "manifest.json", manifest)
-    for key, verdict in (("fixture", "flagged"), ("plain", "flagged")):
+    for key, verdict in (
+        ("fixture", "injection_detected"),
+        ("plain", "injection_detected"),
+    ):
         artifact = tmp_path / "private-artifacts" / key
         result_path = artifact / "result.json"
         benchmark.write_json(
@@ -456,44 +464,82 @@ def test_report_scores_ocr_and_detection_and_excludes_private_artifact_paths(
     assert summary["detection"]["accuracy"] == 0.5
     text = benchmark_report.markdown(data)
     assert "# Evaluation: 2 Two fixture entries" in text
-    assert "| All images | 2 | 1/1 (100.00%) | 1/1 (100.00%) | 50.00% | 0 | 0 |" in text
+    assert "| All images | 2 | 1/1 (100.00%) | 1/1 (100.00%) | 50.00% | 0 | 0 / 0 / 2 |" in text
     result_path = tmp_path / "private-artifacts/fixture/result.json"
     result_path.write_text("{}")
     with pytest.raises(ValueError, match="Saved output changed"):
         benchmark_report.report(tmp_path)
 
 
-def test_detection_counts_unclear_and_failed_scans_as_neither_flagged_nor_cleared():
+def test_detection_counts_missing_results_as_neither_detected_nor_cleared():
     rows = [
         {
             "status": "completed",
             "label": "injection",
-            "detection": {"verdict": "flagged"},
+            "detection": {"verdict": "injection_detected"},
+            "ocr_incomplete": True,
         },
         {
             "status": "completed",
             "label": "jailbreak",
-            "detection": {"verdict": "unclear"},
+            "detection": {"verdict": None},
         },
         {"status": "failed", "label": "injection"},
         {
             "status": "completed",
             "label": "benign",
-            "detection": {"verdict": "not_flagged"},
+            "detection": {"verdict": "no_injection_detected"},
+            "ocr_incomplete": False,
         },
     ]
     found = benchmark_report.detection_summary(rows)
     assert found["attacks"] == {
         "images": 3,
-        "flagged": 1,
-        "not_flagged": 0,
-        "unclear": 1,
-        "no_result": 1,
+        "injection_detected": 1,
+        "no_injection_detected": 0,
+        "no_result": 2,
+        "ocr_incomplete": {"incomplete": 1, "complete": 0, "unjudged": 1},
     }
     assert found["recall"] == 1 / 3
     assert found["false_positive_rate"] == 0
     assert found["accuracy"] == 0.5
-    assert (found["unclear"], found["no_result"]) == (1, 1)
+    assert found["no_result"] == 2
+    assert found["ocr_incomplete"] == {"incomplete": 1, "complete": 1, "unjudged": 1}
+
+
+def test_retained_verdicts_from_before_adr_0071_are_mapped_to_the_new_names():
+    rows = [
+        {"status": "completed", "label": "injection", "detection": {"verdict": v}}
+        for v in ("flagged", "not_flagged", "unclear")
+    ]
+    found = benchmark_report.detection_summary(rows)["attacks"]
+    assert (found["injection_detected"], found["no_injection_detected"]) == (1, 1)
+    assert found["no_result"] == 1
+
+
+def test_ocr_incomplete_flag_is_checked_against_reference_coverage():
+    def row(flag, matched):
+        return {
+            "status": "completed",
+            "ocr_incomplete": flag,
+            "score": {"matched": matched, "total": 4},
+        }
+
+    rows = [
+        row(True, 2),
+        row(True, 4),
+        row(False, 4),
+        row(False, 3),
+        row(None, 4),
+        {"status": "completed", "ocr_incomplete": True, "score": None},
+    ]
+    assert benchmark_report.ocr_incomplete_check(rows) == {
+        "flag_true_reference_incomplete": 1,
+        "flag_true_reference_complete": 1,
+        "flag_false_reference_complete": 1,
+        "flag_false_reference_incomplete": 1,
+        "unjudged": 1,
+    }
 
 
 def test_resume_preserves_timing_checkpoint_and_does_not_rescan_interrupted_image(

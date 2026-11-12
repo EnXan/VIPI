@@ -63,8 +63,8 @@ detection after reuse) and the **Cost** (free locally; otherwise which paid
 calls remain).
 
 A run goes through every image of the split, shows its progress and can be stopped and resumed. When it is complete,
-the page shows OCR word coverage, fully read images, attacks flagged, benign
-images flagged and detection accuracy, each with the change against the
+the page shows OCR word coverage, fully read images, attacks detected, benign
+images detected, detection accuracy and the `ocr_incomplete` counts, each with the change against the
 baseline, the number of images whose result changed, and results per content
 type. **Save as baseline** stores the run in `research/baselines/`; commit that
 file. **Report** and **Comparison** download the Markdown reports.

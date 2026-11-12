@@ -1,8 +1,10 @@
 # ADR 0071: Binary scan verdict with a separate final OCR completeness flag
 
 Status: Accepted, 2026-11-12. Steps 1 (binary verdict, `injection_probability`,
-`threshold`, report schema version 2) and 2 (`ocr_incomplete`) are implemented;
-step 3 (research scoring and workbench evaluation page) is pending. Amends the detection scoring in
+`threshold`, report schema version 2), 2 (`ocr_incomplete`) and 3 (research
+scoring and workbench evaluation page) are implemented in code. The 12 saved
+baselines are not rescored yet: they hold the old verdicts, and their metric
+hashes no longer match the changed scoring code. Amends the detection scoring in
 [ADR 0054](0054-evaluation-runs-and-baseline.md).
 
 ## Context and sources
@@ -108,8 +110,9 @@ This is a breaking report change and needs a minor version bump.
 
 Step 1 is covered by unit tests for the verdict rules and an integration test
 that a text-free image scans with exit 0; steps 2 and 3 are not implemented or
-measured yet. Until step 3, `research/ocr_eval/benchmark_report.py` maps the new
-verdicts onto the old names so retained baselines and new runs stay comparable.
+measured yet. `research/ocr_eval/benchmark_report.py` maps retained old verdicts onto the new
+names (`unclear` becomes no result), so old baselines stay readable but cannot
+show the effect of the new verdict rules or any `ocr_incomplete` values.
 To validate:
 
 - Step 2: tests with a fake decider cover reused, re-asked, not reviewed and

@@ -264,9 +264,9 @@ def scanned_record(result, options):
         "cost": result.ocr.cost,
         "detection": {
             "verdict": scanned["verdict"],
-            "max_score": scanned["signals"]
-            .get(options.resolved_detector, {})
-            .get("max_score"),
+            "injection_probability": scanned["injection_probability"],
+            "threshold": scanned["threshold"],
+            "ocr_incomplete": scanned["ocr_incomplete"],
             "errors": scanned["errors"],
             "seconds": scanned["detection_seconds"],
             "cost": scanned["detection_cost"],

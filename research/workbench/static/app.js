@@ -108,7 +108,7 @@ function updateScanSummary() {
   const item = configuration(scanSettings.value());
   const threshold = scanSettings.threshold();
   const valid = Number.isFinite(threshold) && threshold >= 0 && threshold <= 100;
-  $('scan-settings-summary').textContent = `${item.label} · flagged at score ≥ ${valid ? threshold : '?'}${item.paid ? ' · paid API calls' : ''}`;
+  $('scan-settings-summary').textContent = `${item.label} · injection detected at ≥ ${valid ? threshold : '?'}${item.paid ? ' · paid API calls' : ''}`;
   $('scan-start').disabled = !state.image || !valid;
 }
 $('scan-settings-toggle').onclick = () => {
@@ -174,7 +174,7 @@ function renderScan(job) {
   $('scan-ocr-note').textContent = missing ? `${OCR_COMPLETENESS.true}: the verdict only covers the recognized text.` : '';
   const facts = result ? [
     ['OCR completeness', OCR_COMPLETENESS[result.ocr_incomplete]],
-    ['Injection probability', result.injection_probability === null ? '— (no text to check)' : `${Math.round(result.injection_probability * 100)} (detected at ≥ ${Math.round(result.threshold * 100)})`],
+    ['Injection probability', result.injection_probability === null ? (result.verdict === null ? '—' : '— (no text to check)') : `${Math.round(result.injection_probability * 100)} (detected at ≥ ${Math.round(result.threshold * 100)})`],
     ['Settings', configuration(job.configuration).label],
     ['Time', `${(result.ocr_seconds + result.detection_seconds).toFixed(1)} s`],
     ['API cost', result.cost_usd === null ? 'unknown' : `$${result.cost_usd.toFixed(4)}`],
@@ -351,11 +351,11 @@ function metricRow(label, metric, fields, rate = true) {
 const HEADLINE = [
   metricRow('OCR word coverage', 'word coverage (tolerant)', ['word_weighted_coverage']),
   metricRow('Images fully read', 'full reference pass', ['image_rates', 'reference_pass']),
-  metricRow('Attacks flagged', 'attacks flagged (recall)', ['detection', 'recall']),
-  metricRow('Benign images flagged', 'benign flagged (false-positive rate)', ['detection', 'false_positive_rate']),
+  metricRow('Attacks detected', 'attacks detected (recall)', ['detection', 'recall']),
+  metricRow('Benign images detected', 'benign detected (false-positive rate)', ['detection', 'false_positive_rate']),
   metricRow('Detection accuracy', 'detection accuracy', ['detection', 'accuracy']),
 ];
-const LOWER_IS_BETTER = new Set(['benign flagged (false-positive rate)']);
+const LOWER_IS_BETTER = new Set(['benign detected (false-positive rate)']);
 
 function renderRun(run) {
   const item = configuration(run.configuration);
@@ -410,7 +410,7 @@ function renderMetrics(run) {
   }));
   const detection = run.metrics.detection;
   $('run-metrics').append(element('p', {class: 'muted metric-note'},
-    `${detection.attacks.flagged} of ${detection.attacks.images} attacks and ${detection.benign.flagged} of ${detection.benign.images} benign images flagged; ${detection.unclear} unclear, ${detection.no_result} without result. OCR uses the ${run.metrics.referenced} images with reference text.`));
+    `${detection.attacks.injection_detected} of ${detection.attacks.images} attacks and ${detection.benign.injection_detected} of ${detection.benign.images} benign images detected; ${detection.no_result} without result. OCR flagged incomplete: ${detection.ocr_incomplete.incomplete}, complete: ${detection.ocr_incomplete.complete}, not judged: ${detection.ocr_incomplete.unjudged}. OCR uses the ${run.metrics.referenced} images with reference text.`));
 }
 
 const CHANGE_TITLES = {
@@ -432,7 +432,7 @@ function renderChanges(comparison) {
 
 function renderContents(contents) {
   if (!contents.length) { $('run-contents').replaceChildren(); return; }
-  const head = element('tr', {}, ...['Content', 'Images', 'OCR word coverage', 'Attacks flagged', 'Benign flagged', 'Accuracy'].map(text => element('th', {}, text)));
+  const head = element('tr', {}, ...['Content', 'Images', 'OCR word coverage', 'Attacks detected', 'Benign detected', 'Accuracy'].map(text => element('th', {}, text)));
   const rows = contents.map(row => element('tr', {}, element('td', {}, row.content.replaceAll('_', ' ')), element('td', {}, row.images),
     element('td', {}, percent(row.word_coverage)), element('td', {}, percent(row.recall)), element('td', {}, percent(row.false_positive_rate)), element('td', {}, percent(row.accuracy))));
   $('run-contents').replaceChildren(element('table', {}, element('caption', {}, 'By content type'), element('thead', {}, head), element('tbody', {}, ...rows)));

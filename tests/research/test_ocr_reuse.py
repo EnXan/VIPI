@@ -264,7 +264,10 @@ def test_worker_reuses_ocr_or_whole_results_and_scans_the_rest(tmp_path, monkeyp
         benchmark,
         "file_record",
         lambda result: {
-            "verdict": "clean",
+            "verdict": "no_injection_detected",
+            "injection_probability": None,
+            "threshold": 0.8,
+            "ocr_incomplete": None,
             "signals": {},
             "errors": [],
             "detection_seconds": 0.5,
