@@ -42,6 +42,7 @@ Without `--diff`, at least one path is required.
 | `--threshold 0–100` | Finding threshold, default 80. Equality is a finding. |
 | `--output FILE` | Also write an atomic JSON report, including findings or incomplete scans. |
 | `--verbose` | Print each image's final OCR text. Off by default. |
+| `--list-only` | Run input selection only and list the selected images; no models, providers or keys are used. Selected files have status `selected` and the report status is `listed`; exit 2 on selection errors, otherwise 0. |
 
 Local/cloud choices must agree. Explicit cloud mode rejects `--ocr-mode`, and
 local/cloud detector or decision providers cannot be mixed. A local explicit
@@ -102,7 +103,8 @@ within the requested scope, but cannot override built-in exclusions. To select
 only PNG files, use `*` followed by `!*.png`.
 
 This is a supported subset, not full `.gitignore` syntax. Excluded paths and
-their rules appear as skipped, not safe.
+their rules appear as skipped, not safe. To check rules without scanning, add
+`--list-only`.
 
 Diff scans read `.vipiignore` from the repository root of the `--diff`
 reference, not from the worktree or the compared branch, so a branch cannot

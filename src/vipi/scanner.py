@@ -63,8 +63,13 @@ def scan(
     output=None,
     progress=None,
     on_result=None,
+    list_only=False,
 ):
-    """Scan selected inputs sequentially and produce the public report schema."""
+    """Scan selected inputs sequentially and produce the public report schema.
+
+    With `list_only`, stop after input selection: no models, providers or
+    credentials are used and every selected file is reported as `selected`.
+    """
     started = time.perf_counter()
     root = cache_directory()
     report = {
@@ -117,6 +122,11 @@ def scan(
             output, (source.path for source in selection.images)
         ):
             raise ValueError("The output report must not overwrite an input image.")
+        if list_only:
+            report["list_only"] = True
+            for item in report["files"]:
+                item["status"] = "selected"
+            return finish(report, started)
         if not selection.images:
             notify("No supported images selected.")
             return finish(report, started)

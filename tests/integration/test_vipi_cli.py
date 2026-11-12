@@ -540,3 +540,58 @@ def test_ocr_incomplete_is_counted_but_does_not_change_the_exit_code():
     report = finish({"files": files, "skipped": [], "errors": []}, 0)
     assert report["summary"]["ocr_incomplete"] == 1
     assert report["exit_code"] == 0
+
+
+@pytest.fixture
+def no_scan_runtime(monkeypatch):
+    """Fail if a selection-only run touches providers, OCR sessions or keys."""
+
+    def unexpected(*args, **kwargs):
+        pytest.fail("--list-only must not prepare providers or OCR sessions")
+
+    monkeypatch.setattr("vipi.detection.providers.prepare_provider", unexpected)
+    monkeypatch.setattr("vipi.ocr.session.OcrSession", unexpected)
+    for key in ("OPENAI_API_KEY", "GOOGLE_CLOUD_API_KEY", "GOOGLE_API_KEY"):
+        monkeypatch.delenv(key, raising=False)
+
+
+def test_list_only_reports_selection_without_models(tmp_path, no_scan_runtime):
+    image(tmp_path / "a.png")
+    image(tmp_path / "nested/b.webp")
+    (tmp_path / "notes.txt").write_text("not an image")
+
+    report = scan([tmp_path], list_only=True, ocr_execution_mode="cloud")
+
+    assert report["exit_code"] == 0
+    assert report["status"] == "listed"
+    assert report["list_only"] is True
+    assert [Path(item["path"]).name for item in report["files"]] == ["a.png", "b.webp"]
+    assert {item["status"] for item in report["files"]} == {"selected"}
+    assert report["summary"]["selected"] == 2
+    assert report["summary"]["skipped"] == 1
+
+
+def test_list_only_applies_diff_exclusions(repository, no_scan_runtime):
+    report = scan([Path(".")], diff="main", exclude_patterns=["images/"], list_only=True)
+    assert {
+        Path(item["path"]).relative_to(repository).as_posix() for item in report["files"]
+    } == {"modified.png", "moved.png"}
+    # The symlinked image is a selection error, so the listing is incomplete.
+    assert report["exit_code"] == 2
+    assert report["status"] == "incomplete"
+    assert any(item["reason"] == "excluded_by_user" for item in report["skipped"])
+
+
+def test_list_only_cli_prints_paths_and_writes_report(
+    tmp_path, monkeypatch, no_scan_runtime, capsys
+):
+    monkeypatch.chdir(tmp_path)
+    image(tmp_path / "input.png")
+    assert (
+        main(["scan", ".", "--list-only", "--modus", "cloud", "--output", "list.json"])
+        == 0
+    )
+    assert "input.png" in capsys.readouterr().out
+    report = json.loads((tmp_path / "list.json").read_text())
+    assert report["files"][0]["status"] == "selected"
+    assert main(["scan", "missing.png", "--list-only"]) == 2
