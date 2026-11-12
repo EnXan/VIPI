@@ -127,35 +127,23 @@ insufficient history are errors; fetch the target and enough history first.
 
 ## GitHub Action
 
-See the [complete workflow example](../README.md#github-actions).
+The Action lives in [EnXan/vipi-action](https://github.com/EnXan/vipi-action),
+which documents its inputs, outputs and versions; see the
+[workflow example](../README.md#github-actions). It installs a pinned
+`vipi-scanner` release from PyPI, runs `vipi scan --list-only` and prepares
+models only when images are selected; models are downloaded each run and not
+cached ([ADR 0070](../adr-code/0070-action-setup-only-for-selected-images.md),
+[ADR 0073](../adr-code/0073-github-action-in-its-own-repository.md)).
 
-| Input | Default | Meaning |
-| --- | --- | --- |
-| `paths` | `.` | Newline-separated scan paths |
-| `base-ref` | Unset | Base branch for non-PR diffs; PRs always use their actual base branch |
-| `exclude` | Unset | Newline-separated rules passed as `--exclude`, after `.vipiignore` |
-| `modus` | `local` | Full local/cloud execution mode |
-| `ocr-mode` | `quality` | Local profile; ignored in cloud mode |
-| `ocr-provider` | `google` | Cloud OCR; ignored in local mode |
-| `decision-provider` | Unset | Override the mode's decision model |
-| `detector` | `auto` | Final text detector |
-| `threshold` | `80` | Finding score on a 0–100 scale |
-| `report-path` | `vipi-report.json` | JSON output, also exposed as the `report-path` Action output |
+PR events scan images added or modified at the PR commit relative to the
+actual base branch, with `paths` restricting scope; use checkout
+`fetch-depth: 0`. PR scans take `.vipiignore` from the base branch; the
+`exclude` input comes from the workflow file, which `pull_request` events read
+from the PR. A detection returns 1 and an incomplete scan returns 2; upload
+reports with `if: always()` to retain either.
 
-The Action installs from the selected tag/commit, checks the scan selection
-and prepares the requested models only when it contains images; models are
-downloaded each run and not cached ([ADR 0070](../adr-code/0070-action-setup-only-for-selected-images.md)).
-PR events scan images added/modified at the PR commit relative to the
-actual base, with `paths` restricting scope. Use checkout `fetch-depth: 0`.
-Outside PR events it scans all images under `paths`, unless `base-ref` is set.
-Selection and scan apply the same exclusions; PR scans take `.vipiignore` from
-the base branch. The `exclude` input itself comes from the workflow file, which
-`pull_request` events read from the PR.
-
-For hosted execution, set `modus: cloud` and provide the OCR and decision keys.
-For local execution, ensure sufficient runner memory and authorized access to
-any gated weights. Fork PRs normally lack secrets. A detection returns 1 and an
-incomplete scan returns 2; upload reports with `if: always()` to retain either.
+`action.yml` in this repository (`EnXan/VIPI@v0.x`) is deprecated and will be
+removed in a later release.
 
 ## Limitations
 

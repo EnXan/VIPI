@@ -1,5 +1,5 @@
 name: VIPI Image Scan
-description: Scan repository images for visual prompt injections
+description: "Deprecated: use EnXan/vipi-action@v1. Scan repository images for visual prompt injections"
 inputs:
   paths:
     description: Newline-separated image files or directories to scan
@@ -44,6 +44,10 @@ outputs:
 runs:
   using: composite
   steps:
+    - name: Deprecation notice
+      shell: bash
+      run: echo "::warning title=VIPI Action moved::EnXan/VIPI as an Action is deprecated and will be removed in a later release. Use EnXan/vipi-action@v1 (https://github.com/EnXan/vipi-action)."
+
     - name: Install uv and Python
       uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2
       with:

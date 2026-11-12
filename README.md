@@ -174,9 +174,9 @@ Every option, credential and report field is in the
 
 ## GitHub Actions
 
-Scan the images a pull request adds or changes. This example uses cloud mode
-with the default providers, Google Cloud Vision for OCR and OpenAI for
-decisions:
+The Action lives in [EnXan/vipi-action](https://github.com/EnXan/vipi-action).
+It scans the images a pull request adds or changes. Its default cloud mode uses
+Google Cloud Vision for OCR and OpenAI for decisions:
 
 ```yaml
 name: VIPI image scan
@@ -192,9 +192,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
-      - uses: EnXan/VIPI@v0.10.0
-        with:
-          modus: cloud
+      - uses: EnXan/vipi-action@v1
         env:
           GOOGLE_CLOUD_API_KEY: ${{ secrets.GOOGLE_CLOUD_API_KEY }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
@@ -213,8 +211,9 @@ jobs:
 > ideally with a GPU, can run local mode, but it remains slower than cloud mode.
 
 Other providers are set with `ocr-provider` and `decision-provider` and need
-their own keys; see
-[Action inputs](https://github.com/EnXan/VIPI/blob/main/docs/cli.md#github-action).
+their own keys; see the
+[Action inputs](https://github.com/EnXan/vipi-action#inputs).
+`EnXan/VIPI@v0.x` still works but is deprecated.
 Fork PRs normally get no secrets, so their scans cannot reach the providers.
 
 ## Workbench
