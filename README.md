@@ -74,8 +74,10 @@ If `vipi` is not on `PATH`, run `uv tool update-shell` and restart the terminal.
 
 ## Workbench
 
-Use VIPI in your browser with the research workbench. It runs on your machine
-and uses the same scan pipeline as `vipi scan`, with local or cloud settings.
+The workbench is a visual companion to the CLI that makes it easier to inspect
+scan results, compare evaluations and edit the dataset in your browser. It runs
+on your machine and uses the same scan pipeline as `vipi scan`, with local or
+cloud settings.
 
 - **Scan an image:** choose, drop or paste an image. Inspect the verdict,
   injection probability, recognized text and individual OCR passes, along with
