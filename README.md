@@ -72,50 +72,6 @@ vipi scan image.png --modus cloud \
 
 If `vipi` is not on `PATH`, run `uv tool update-shell` and restart the terminal.
 
-## Workbench
-
-The workbench is a visual companion to the CLI that makes it easier to inspect
-scan results, compare evaluations and edit the dataset in your browser. It runs
-on your machine and uses the same scan pipeline as `vipi scan`, with local or
-cloud settings.
-
-- **Scan an image:** choose, drop or paste an image. Inspect the verdict,
-  injection probability, recognized text and individual OCR passes, along with
-  scan time and API cost.
-- **Evaluate:** run a configuration on the dataset's development split,
-  compare OCR and detection results with a saved baseline, and download reports.
-  Runs can be stopped and resumed.
-- **Dataset:** add images, edit labels and reference text, and submit your
-  changes as a pull request on Hugging Face.
-
-The workbench is included in the repository, not the PyPI package. With
-Python 3.12 and uv installed, run:
-
-```bash
-git clone https://github.com/EnXan/VIPI.git
-cd VIPI
-uv sync --extra ocr --extra detector-local --extra research --extra test
-uv run vipi setup
-uv run python -m research.workbench serve
-```
-
-Open [localhost:8000](http://127.0.0.1:8000). The default is local **Quality**;
-`vipi setup` downloads its models, so check the
-[hardware requirements](https://github.com/EnXan/VIPI/blob/main/docs/models.md)
-first. For cloud scans, skip local model setup, configure the
-[provider API keys](https://github.com/EnXan/VIPI/blob/main/docs/cli.md#credentials-and-local-models)
-and choose **Cloud** under **Change settings**. Cloud scans incur API charges.
-
-For **Evaluate** and **Dataset**, download the evaluation dataset from the
-repository root before starting the workbench:
-
-```bash
-uv run python -m research.download
-```
-
-See the [workbench guide](https://github.com/EnXan/VIPI/blob/main/research/workbench/README.md)
-for settings, baseline comparisons and dataset contributions.
-
 ## How it works (Overview)
 
 Every scan runs up to three steps. OCR reads the text in the image. If the
@@ -260,6 +216,50 @@ Other providers are set with `ocr-provider` and `decision-provider` and need
 their own keys; see
 [Action inputs](https://github.com/EnXan/VIPI/blob/main/docs/cli.md#github-action).
 Fork PRs normally get no secrets, so their scans cannot reach the providers.
+
+## Workbench
+
+The workbench is a visual companion to the CLI that makes it easier to inspect
+scan results, compare evaluations and edit the dataset in your browser. It runs
+on your machine and uses the same scan pipeline as `vipi scan`, with local or
+cloud settings.
+
+- **Scan an image:** choose, drop or paste an image. Inspect the verdict,
+  injection probability, recognized text and individual OCR passes, along with
+  scan time and API cost.
+- **Evaluate:** run a configuration on the dataset's development split,
+  compare OCR and detection results with a saved baseline, and download reports.
+  Runs can be stopped and resumed.
+- **Dataset:** add images, edit labels and reference text, and submit your
+  changes as a pull request on Hugging Face.
+
+The workbench is included in the repository, not the PyPI package. With
+Python 3.12 and uv installed, run:
+
+```bash
+git clone https://github.com/EnXan/VIPI.git
+cd VIPI
+uv sync --extra ocr --extra detector-local --extra research --extra test
+uv run vipi setup
+uv run python -m research.workbench serve
+```
+
+Open [localhost:8000](http://127.0.0.1:8000). The default is local **Quality**;
+`vipi setup` downloads its models, so check the
+[hardware requirements](https://github.com/EnXan/VIPI/blob/main/docs/models.md)
+first. For cloud scans, skip local model setup, configure the
+[provider API keys](https://github.com/EnXan/VIPI/blob/main/docs/cli.md#credentials-and-local-models)
+and choose **Cloud** under **Change settings**. Cloud scans incur API charges.
+
+For **Evaluate** and **Dataset**, download the evaluation dataset from the
+repository root before starting the workbench:
+
+```bash
+uv run python -m research.download
+```
+
+See the [workbench guide](https://github.com/EnXan/VIPI/blob/main/research/workbench/README.md)
+for settings, baseline comparisons and dataset contributions.
 
 ## Documentation
 
