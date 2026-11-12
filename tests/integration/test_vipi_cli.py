@@ -112,6 +112,98 @@ def test_diff_invalid_reference_and_outside_scope_fail(repository):
         select_images([repository.parent], diff="main")
 
 
+def commit_on_main(repository, files):
+    """Advance the base branch, as a merged rule change would."""
+    subprocess.run(["git", "checkout", "-q", "main"], cwd=repository, check=True)
+    for name, content in files.items():
+        (repository / name).write_text(content, encoding="utf-8")
+    commit(repository, "update base rules")
+    subprocess.run(["git", "checkout", "-q", "feature"], cwd=repository, check=True)
+
+
+def selected(selection, repository):
+    return {source.path.relative_to(repository).as_posix() for source in selection.images}
+
+
+def test_diff_applies_base_branch_rules_and_ignores_branch_rule_changes(repository):
+    commit_on_main(repository, {".vipiignore": "images/\n*.png\n!moved.png\n"})
+    (repository / ".vipiignore").write_text("!*.png\n", encoding="utf-8")
+    commit(repository, "branch tries to re-include its images")
+    (repository / ".vipiignore").write_text("moved.png\n", encoding="utf-8")
+
+    selection = select_images([Path(".")], diff="main")
+
+    assert selected(selection, repository) == {"moved.png"}
+    skipped = {
+        Path(item["path"]).relative_to(repository).as_posix(): item
+        for item in selection.skipped
+        if item["reason"] == "excluded_by_user"
+    }
+    assert skipped["modified.png"] == {
+        "path": str(repository / "modified.png"),
+        "reason": "excluded_by_user",
+        "rule": "*.png",
+        "source": "main:.vipiignore",
+        "line": 2,
+    }
+    # Last match wins: `*.png` follows `images/`.
+    assert skipped["images/new with\nnewline.png"]["rule"] == "*.png"
+    # The excluded symlink is skipped before it would be a Git-mode error.
+    assert "link.png" in skipped and not selection.errors
+    assert "deleted.png" not in skipped and "renamed.png" not in skipped
+
+
+def test_diff_command_line_rules_follow_base_rules(repository):
+    commit_on_main(repository, {".vipiignore": "*.png\n"})
+    selection = select_images(
+        [Path(".")], diff="main", exclude_patterns=["!*.png", "images/"]
+    )
+    assert selected(selection, repository) == {"modified.png", "moved.png"}
+    skip = next(
+        item for item in selection.skipped if item["reason"] == "excluded_by_user"
+    )
+    assert skip["source"] == "command line --exclude"
+    assert skip["argument"] == 2
+
+
+def test_diff_rules_use_committed_paths_for_images_missing_from_worktree(repository):
+    (repository / "images/new with\nnewline.png").unlink()
+    (repository / "moved.png").unlink()
+    selection = select_images([Path(".")], diff="main", exclude_patterns=["images/"])
+    assert selected(selection, repository) == {"modified.png", "moved.png"}
+    assert [error["path"] for error in selection.errors] == [
+        str(repository / "link.png")
+    ]
+
+
+def test_diff_rejects_invalid_base_rule_file(repository):
+    commit_on_main(repository, {".vipiignore": "../outside.png\n"})
+    with pytest.raises(ValueError, match=r"main:\.vipiignore:1"):
+        select_images([Path(".")], diff="main")
+
+
+def test_diff_rejects_base_rule_file_that_is_not_a_regular_file(repository):
+    subprocess.run(["git", "checkout", "-q", "main"], cwd=repository, check=True)
+    (repository / ".vipiignore").symlink_to("notes.txt")
+    commit(repository, "symlinked rules")
+    subprocess.run(["git", "checkout", "-q", "feature"], cwd=repository, check=True)
+    with pytest.raises(ValueError, match="not a regular file"):
+        select_images([Path(".")], diff="main")
+
+
+def test_fully_excluded_diff_scans_nothing_and_exits_zero(repository, monkeypatch):
+    def unexpected(*args):
+        pytest.fail("An excluded diff must not prepare any models or providers")
+
+    monkeypatch.setattr("vipi.detection.providers.create_provider", unexpected)
+    report = scan([Path(".")], diff="main", exclude_patterns=["*.png"])
+    assert report["exit_code"] == 0
+    assert report["summary"]["selected"] == 0
+    assert sum(
+        item["reason"] == "excluded_by_user" for item in report["skipped"]
+    ) == 4
+
+
 def test_discovery_is_recursive_deduplicated_and_does_not_follow_symlinks(tmp_path):
     first = image(tmp_path / "a.PNG")
     second = image(tmp_path / "nested/b.webp")

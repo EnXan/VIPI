@@ -8,6 +8,10 @@ inputs:
   base-ref:
     description: Optional base branch for non-PR diff scans; PRs always use their actual base branch
     required: false
+  exclude:
+    description: Newline-separated exclusion rules, applied after .vipiignore (diff scans read it from the base branch)
+    required: false
+    default: ""
   detector:
     description: Injection detector (auto selects the decision model for the mode)
     required: false
@@ -57,6 +61,7 @@ runs:
       env:
         VIPI_PATHS: ${{ inputs.paths }}
         VIPI_BASE_REF: ${{ inputs.base-ref }}
+        VIPI_EXCLUDE: ${{ inputs.exclude }}
         XDG_CACHE_HOME: ${{ runner.temp }}/vipi-cache
       run: |
         if [[ -z "${VIPI_PATHS//$'\n'/}" ]]; then
@@ -86,9 +91,13 @@ runs:
         from vipi.inputs import select_images
 
         paths = [Path(path) for path in os.environ["VIPI_PATHS"].split("\n") if path]
+        rules = [rule for rule in os.environ["VIPI_EXCLUDE"].split("\n") if rule.strip()]
         try:
             selection = select_images(
-                paths, diff=os.environ["VIPI_DIFF"] or None, excluded=[cache_directory()]
+                paths,
+                diff=os.environ["VIPI_DIFF"] or None,
+                excluded=[cache_directory()],
+                exclude_patterns=rules,
             )
             count = len(selection.images)
         except Exception as error:
@@ -133,6 +142,7 @@ runs:
       env:
         VIPI_PATHS: ${{ inputs.paths }}
         VIPI_DIFF: ${{ steps.select.outputs.diff }}
+        VIPI_EXCLUDE: ${{ inputs.exclude }}
         VIPI_DETECTOR: ${{ inputs.detector }}
         VIPI_THRESHOLD: ${{ inputs.threshold }}
         VIPI_OCR_MODE: ${{ inputs.ocr-mode }}
@@ -159,6 +169,9 @@ runs:
         if [[ -n "$VIPI_DIFF" ]]; then
           args+=(--diff "$VIPI_DIFF")
         fi
+        while IFS= read -r rule; do
+          [[ -n "${rule//[[:space:]]/}" ]] && args+=(--exclude="$rule")
+        done <<< "$VIPI_EXCLUDE"
 
         echo "report-path=$VIPI_REPORT_PATH" >> "$GITHUB_OUTPUT"
         uv run --project "$GITHUB_ACTION_PATH" vipi scan "${args[@]}"

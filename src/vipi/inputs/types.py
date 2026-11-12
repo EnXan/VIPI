@@ -40,6 +40,22 @@ class Selection:
     repository: Path | None = None
     _seen: set[Path] = field(default_factory=set, repr=False)
 
+    def skip_excluded(self, path, rule, *, is_dir=False):
+        """Record a path excluded by a user rule, with the rule's origin."""
+        from .exclusions import COMMAND_LINE_SOURCE
+
+        location = "argument" if rule.source == COMMAND_LINE_SOURCE else "line"
+        self.skipped.append(
+            {
+                "path": str(path),
+                "reason": "excluded_by_user",
+                "rule": rule.raw,
+                "source": rule.source,
+                **({"directory": True} if is_dir else {}),
+                location: rule.line,
+            }
+        )
+
     def add(self, path, blob=None, mode=None, *, excluded=()):
         if path in self._seen:
             return

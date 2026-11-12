@@ -3,6 +3,7 @@
 import os
 from pathlib import Path
 import subprocess
+from .exclusions import ExclusionRules
 from .types import Selection
 
 
@@ -22,7 +23,7 @@ def git(repository, *arguments):
     return result.stdout
 
 
-def select_diff(paths, diff, *, excluded=()):
+def select_diff(paths, diff, *, excluded=(), exclude_patterns=()):
     selection = Selection()
     scopes = [Path(os.path.abspath(path)) for path in paths]
     repository = Path(
@@ -44,6 +45,7 @@ def select_diff(paths, diff, *, excluded=()):
         .strip()
     )
     ancestor = git(repository, "merge-base", base, head).decode().strip()
+    rules = base_rules(repository, diff, base, exclude_patterns)
     selection.diff = {
         "reference": diff,
         "base": base,
@@ -68,8 +70,32 @@ def select_diff(paths, diff, *, excluded=()):
         metadata, name = entries[index : index + 2]
         _, mode, _, blob, _ = metadata.split()
         path = repository / os.fsdecode(name)
-        if any(path == scope or scope in path.parents for scope in scopes):
+        if not any(path == scope or scope in path.parents for scope in scopes):
+            continue
+        decision = rules.decision(path)
+        if decision is not None and not decision[1].include:
+            selection.skip_excluded(path, decision[1])
+        else:
             selection.add(path, blob.decode("ascii"), mode, excluded=excluded)
 
     selection.images.sort(key=lambda image: str(image.path))
     return selection
+
+
+def base_rules(repository, reference, base, exclude_patterns):
+    """Read `.vipiignore` from the base commit so the compared branch cannot change it."""
+    entry = git(repository, "ls-tree", "-z", base, "--", ".vipiignore")
+    source = f"{reference}:.vipiignore"
+    if not entry:
+        return ExclusionRules(repository, exclude_patterns, file_lines=())
+    mode, kind, blob = entry.split(b"\t", 1)[0].split()
+    if kind != b"blob" or mode not in {b"100644", b"100755"}:
+        raise ValueError(f"Could not read exclusion file {source}: not a regular file.")
+    try:
+        lines = git(repository, "cat-file", "blob", blob.decode("ascii"))
+        lines = lines.decode("utf-8").splitlines()
+    except UnicodeError as error:
+        raise ValueError(f"Could not read exclusion file {source}: {error}") from error
+    return ExclusionRules(
+        repository, exclude_patterns, file_lines=lines, file_source=source
+    )

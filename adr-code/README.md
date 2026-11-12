@@ -44,7 +44,8 @@ Temporary planning and review queues belong in `.llm-plans/`.
 | [0068](0068-position-free-benchmark-scoring.md) | Position-free scoring of unordered references in evaluation runs, and offline rescoring |
 | [0069](0069-workbench-request-boundaries.md) | Confined evaluation paths, fixed HTTP error messages and image previews without blob URLs |
 | [0070](0070-action-setup-only-for-selected-images.md) | GitHub Action prepares models only when images are selected, without a model cache |
-| [0071](0071-scan-verdict-and-final-ocr-completeness.md) | Binary scan verdict, injection probability and a final OCR completeness flag; step 1 implemented (amends 0054) |
+| [0071](0071-scan-verdict-and-final-ocr-completeness.md) | Binary scan verdict, injection probability and a final OCR completeness flag (amends 0054) |
+| [0072](0072-exclusions-in-git-diff-scans.md) | Diff scans and the Action apply user exclusions, reading `.vipiignore` from the base commit |
 
 When revising an agreed decision, write its replacement with a summary of the
 old ADR (identifier, decision, rationale and reason for revision), then delete

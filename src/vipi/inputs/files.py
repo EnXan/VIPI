@@ -14,12 +14,9 @@ def select_images(paths, *, diff=None, excluded=(), exclude_patterns=()):
     if diff is not None:
         from .git import select_diff
 
-        roots = {repository_or_scope_root(scope) for scope in scopes}
-        if exclude_patterns or any((root / ".vipiignore").exists() for root in roots):
-            raise ValueError(
-                "User exclusions are not supported for Git diff scans yet."
-            )
-        return select_diff(paths, diff, excluded=excluded)
+        return select_diff(
+            paths, diff, excluded=excluded, exclude_patterns=exclude_patterns
+        )
     selection = Selection()
     excluded = [Path(path).resolve() for path in excluded]
     rules_by_root = {}
@@ -32,21 +29,6 @@ def select_images(paths, *, diff=None, excluded=(), exclude_patterns=()):
         if root not in rules_by_root:
             rules_by_root[root] = ExclusionRules(root, exclude_patterns)
         return rules_by_root[root]
-
-    def record_exclusion(path, rule, *, is_dir=False):
-        selection.skipped.append(
-            {
-                "path": str(path),
-                "reason": "excluded_by_user",
-                "rule": rule.raw,
-                "source": rule.source,
-                **({"directory": True} if is_dir else {}),
-            }
-        )
-        if rule.source == "command line --exclude":
-            selection.skipped[-1]["argument"] = rule.line
-        else:
-            selection.skipped[-1]["line"] = rule.line
 
     for scope in scopes:
         if scope.is_symlink():
@@ -67,7 +49,7 @@ def select_images(paths, *, diff=None, excluded=(), exclude_patterns=()):
                 rules = rules_for(scope)
                 decision = rules.decision(scope)
                 if decision is not None and not decision[1].include:
-                    record_exclusion(scope, decision[1])
+                    selection.skip_excluded(scope, decision[1])
                 else:
                     selection.add(scope, excluded=excluded)
         elif scope.is_dir():
@@ -109,7 +91,7 @@ def select_images(paths, *, diff=None, excluded=(), exclude_patterns=()):
                         elif rules.may_include_descendant(decision):
                             retained.append(name)
                         else:
-                            record_exclusion(child, decision[1], is_dir=True)
+                            selection.skip_excluded(child, decision[1], is_dir=True)
                 subdirectories[:] = retained
                 for name in sorted(files):
                     path = root / name
@@ -121,7 +103,7 @@ def select_images(paths, *, diff=None, excluded=(), exclude_patterns=()):
                         continue
                     decision = rules.decision(path)
                     if decision is not None and not decision[1].include:
-                        record_exclusion(path, decision[1])
+                        selection.skip_excluded(path, decision[1])
                     else:
                         selection.add(path, excluded=excluded)
         else:

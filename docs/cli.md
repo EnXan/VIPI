@@ -82,7 +82,7 @@ path as the public scanner.
 Cloud recovery can submit additional transformed images and make billable OCR
 and decision requests. Reports retain actual usage and unknown costs as unknown.
 
-## Excluding images from local scans
+## Excluding images
 
 Copy [`.vipiignore.example`](../.vipiignore.example) to `.vipiignore`. VIPI reads
 it from the Git repository root, or the scanned directory/explicit file's parent
@@ -102,8 +102,14 @@ within the requested scope, but cannot override built-in exclusions. To select
 only PNG files, use `*` followed by `!*.png`.
 
 This is a supported subset, not full `.gitignore` syntax. Excluded paths and
-their rules appear as skipped, not safe. User exclusions currently apply only
-to filesystem scans: `--diff` rejects `--exclude` and a repository `.vipiignore`.
+their rules appear as skipped, not safe.
+
+Diff scans read `.vipiignore` from the repository root of the `--diff`
+reference, not from the worktree or the compared branch, so a branch cannot
+exempt its own images; a rule change applies once it is on the base branch.
+`--exclude` rules follow as usual. Each changed image is matched by its
+committed path, and excluded images are listed individually
+([ADR 0072](../adr-code/0072-exclusions-in-git-diff-scans.md)).
 
 ## Branch and PR scans
 
@@ -125,6 +131,7 @@ See the [complete workflow example](../README.md#github-actions).
 | --- | --- | --- |
 | `paths` | `.` | Newline-separated scan paths |
 | `base-ref` | Unset | Base branch for non-PR diffs; PRs always use their actual base branch |
+| `exclude` | Unset | Newline-separated rules passed as `--exclude`, after `.vipiignore` |
 | `modus` | `local` | Full local/cloud execution mode |
 | `ocr-mode` | `quality` | Local profile; ignored in cloud mode |
 | `ocr-provider` | `google` | Cloud OCR; ignored in local mode |
@@ -139,6 +146,9 @@ downloaded each run and not cached ([ADR 0070](../adr-code/0070-action-setup-onl
 PR events scan images added/modified at the PR commit relative to the
 actual base, with `paths` restricting scope. Use checkout `fetch-depth: 0`.
 Outside PR events it scans all images under `paths`, unless `base-ref` is set.
+Selection and scan apply the same exclusions; PR scans take `.vipiignore` from
+the base branch. The `exclude` input itself comes from the workflow file, which
+`pull_request` events read from the PR.
 
 For hosted execution, set `modus: cloud` and provide the OCR and decision keys.
 For local execution, ensure sufficient runner memory and authorized access to
