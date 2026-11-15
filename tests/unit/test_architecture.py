@@ -60,8 +60,8 @@ def test_python_api_validates_threshold_without_cli(threshold):
     "options, expected",
     [
         ({}, 8),  # local quality defaults to Clef-Flash
-        ({"ocr_mode": "speed"}, 40),
-        ({"ocr_mode": "balanced", "detector": "d1"}, 40),
+        ({"ocr_mode": "speed"}, 45),
+        ({"ocr_mode": "balanced", "detector": "d1"}, 45),
         ({"ocr_mode": "balanced", "detector": "prompt-guard"}, 80),
         ({"ocr_execution_mode": "cloud"}, 80),
         ({"ocr_execution_mode": "cloud", "detector": "jev"}, 80),

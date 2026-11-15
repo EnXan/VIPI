@@ -168,7 +168,7 @@ to `.vipiignore`.
 | JPEG | `.jpg`, `.jpeg` | EXIF orientation is applied |
 | WebP | `.webp` | Static images only; animated WebPs are rejected |
 
-A score at or above the threshold is a finding. The default depends on the detector: 40 for d1, 8 for Clef-Flash and 80 for the others. Size limits,
+A score at or above the threshold is a finding. The default depends on the detector: 45 for d1, 8 for Clef-Flash and 80 for the others. Size limits,
 skipped files and what a score does not tell you are in
 [Limitations](https://github.com/EnXan/VIPI/blob/main/docs/cli.md#limitations).
 

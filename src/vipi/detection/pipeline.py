@@ -3,13 +3,17 @@
 from concurrent.futures import CancelledError, ThreadPoolExecutor, as_completed
 import time
 
-from .evidence import build_evidence, chunks
+from .evidence import build_evidence, chunks, windows
 from .policy import INSTRUCTIONS, POLICY_VERSION, state
 from .providers import create_provider
 from .providers.prompt_guard import MODEL_DIR
 from vipi.storage.detection import DetectionStore
 from vipi.cancellation import check_cancelled
-from vipi.config import CLOUD_DECISION_PROVIDERS, LOCAL_DETECTORS
+from vipi.config import (
+    CLOUD_DECISION_PROVIDERS,
+    LOCAL_DECISION_PROVIDERS,
+    LOCAL_DETECTORS,
+)
 from .verdict import probability, summarize, validate_thresholds
 
 TEXT_PROVIDERS = (*CLOUD_DECISION_PROVIDERS, *LOCAL_DETECTORS)
@@ -35,11 +39,14 @@ def jobs_for(evidence, options):
                     "start": 0,
                     "end": len(reading["text"]),
                     "partial_context": False,
+                    "kind": "text",
                 }
             ]
             if name == "prompt-guard"
-            else chunks(reading["text"])
+            else list(chunks(reading["text"]))
         )
+        if name in LOCAL_DECISION_PROVIDERS:
+            parts += list(windows(reading["text"]))
         for part in parts:
             jobs.append(
                 {

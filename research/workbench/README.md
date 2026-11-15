@@ -32,7 +32,7 @@ Scan and Evaluate use the options of `vipi scan` and nothing else:
   size (detection only; review stays d1 or Clef-Flash); in the cloud
   OpenAI Luna (the product default) or Jev.
 - **Threshold** (Scan only): flag at a detector score of at least this value.
-  It starts at the chosen detector's product default: 40 for d1, 8 for
+  It starts at the chosen detector's product default: 45 for d1, 8 for
   Clef-Flash, 80 for the others.
 
 The default is the product default: local, Quality, Clef-Flash, threshold 8.

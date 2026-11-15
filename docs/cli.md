@@ -39,7 +39,7 @@ Without `--diff`, at least one path is required.
 | --- | --- |
 | `--diff REFERENCE` | Select committed images added/modified since the common ancestor of REFERENCE and HEAD. |
 | `--exclude PATTERN` | Repeatable ordered filesystem exclusion; `!` re-includes matching paths. No user rules by default. |
-| `--threshold 0–100` | Finding threshold. Default: the detector's calibrated value, 40 for `d1`, 8 for `clef-flash` and 80 for `prompt-guard`, `jev` and `openai` (ADR 0075). Equality is a finding. The report records the threshold used. |
+| `--threshold 0–100` | Finding threshold. Default: the detector's calibrated value, 45 for `d1`, 8 for `clef-flash` and 80 for `prompt-guard`, `jev` and `openai` (ADR 0075, ADR 0077). Equality is a finding. The report records the threshold used. |
 | `--output FILE` | Also write an atomic JSON report, including findings or incomplete scans. |
 | `--verbose` | Print each image's final OCR text. Off by default. |
 | `--list-only` | Run input selection only and list the selected images; no models, providers or keys are used. Selected files have status `selected` and the report status is `listed`; exit 2 on selection errors, otherwise 0. |
