@@ -83,8 +83,12 @@ false positives.
 ## Consequences
 
 - Local default scans find about two and a half to three times as many
-  injections at about 3–4 % false positives. Their results and the README
-  tables change; the local baselines must be rerun for the new verdicts.
+  injections at about 3–4 % false positives. End-to-end development baselines
+  with the new defaults (Apple M4 Pro, commit `0f121796`): local speed with d1
+  39.6 / 3.6 (was 15.0 / 0.4), local balanced with d1 40.5 / 3.1 (was
+  15.4 / 0.4), local quality with Clef-Flash 47.6 / 3.6 (was 16.7 / 0.0). They
+  match the retained-score selection within one image and replace the earlier
+  README results.
 - Callers that pass `--threshold 80` explicitly, such as the GitHub Action's
   `threshold` input default up to v1.2, keep the old behavior until they stop
   passing it.
@@ -99,5 +103,6 @@ Chosen from retained scores: d1 on local speed and balanced OCR text (Apple M2)
 and on Mistral text, Clef-Flash on local quality OCR text (Apple M4 Pro), on
 the development split and once on the test split (104 images, so one false
 positive moves the benign rate by 1.85 points). Unit tests cover the resolved
-defaults and the explicit override. End-to-end baselines with the new defaults
-are not yet recorded.
+defaults and the explicit override. End-to-end development baselines with the
+new defaults are recorded for the three local default configurations on one
+Apple M4 Pro; other hardware, Linux and Windows are not measured.
