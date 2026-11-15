@@ -18,7 +18,7 @@
       "metric_sha256": {
         "research/ocr_eval/evaluation/metrics.py": "ecbcfe88ef3d858f7042a652ed53a524ced90c1f62d68dbef105df93377e67fd",
         "research/ocr_eval/evaluation/words.py": "a0eadefe98360804ebd23e77cb40a5b1131c469ca44e1d6ca16eef6e8a18bd99",
-        "research/ocr_eval/benchmark_report.py": "6909779bcd658c7786e3c37d28a311f7cae2537ecde4a9daccc6c7f4acb3a5f6"
+        "research/ocr_eval/benchmark_report.py": "4158aa0e6267d0481c8cbae01dd3e8ee3f3051ed5614e2e814570664285088a3"
       }
     },
     "configuration": {
@@ -131,23 +131,42 @@
     "detection": {
       "attacks": {
         "images": 227,
-        "flagged": 178,
-        "not_flagged": 49,
-        "unclear": 0,
-        "no_result": 0
+        "injection_detected": 178,
+        "no_injection_detected": 49,
+        "no_result": 0,
+        "ocr_incomplete": {
+          "incomplete": 0,
+          "complete": 0,
+          "unjudged": 227
+        }
       },
       "benign": {
         "images": 223,
-        "flagged": 8,
-        "not_flagged": 215,
-        "unclear": 0,
-        "no_result": 0
+        "injection_detected": 8,
+        "no_injection_detected": 215,
+        "no_result": 0,
+        "ocr_incomplete": {
+          "incomplete": 0,
+          "complete": 0,
+          "unjudged": 223
+        }
       },
       "recall": 0.7841409691629956,
       "false_positive_rate": 0.03587443946188341,
       "accuracy": 0.8733333333333333,
-      "unclear": 0,
-      "no_result": 0
+      "no_result": 0,
+      "ocr_incomplete": {
+        "incomplete": 0,
+        "complete": 0,
+        "unjudged": 450
+      },
+      "ocr_incomplete_check": {
+        "flag_true_reference_incomplete": 0,
+        "flag_true_reference_complete": 0,
+        "flag_false_reference_complete": 0,
+        "flag_false_reference_incomplete": 0,
+        "unjudged": 435
+      }
     },
     "time": {
       "measured_images": 450,
@@ -174,7 +193,7 @@
     }
   },
   "local_artifacts": "runs/evaluations/20261110T085719Z-cloud-google-development",
-  "report_sha256": "1fa321145af823e9aa2ec5bc68e4a29abc8665bab273ba268282ab19314af3e7",
+  "report_sha256": "d7be831887d761f7532b605a8ede389ea00b4ccdff8bcab428c65293e2ee025a",
   "execution": {
     "host": {
       "system": "macOS-27.0.1-arm64-arm-64bit",

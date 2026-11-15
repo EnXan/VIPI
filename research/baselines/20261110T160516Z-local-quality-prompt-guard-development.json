@@ -18,7 +18,7 @@
       "metric_sha256": {
         "research/ocr_eval/evaluation/metrics.py": "ecbcfe88ef3d858f7042a652ed53a524ced90c1f62d68dbef105df93377e67fd",
         "research/ocr_eval/evaluation/words.py": "a0eadefe98360804ebd23e77cb40a5b1131c469ca44e1d6ca16eef6e8a18bd99",
-        "research/ocr_eval/benchmark_report.py": "6909779bcd658c7786e3c37d28a311f7cae2537ecde4a9daccc6c7f4acb3a5f6"
+        "research/ocr_eval/benchmark_report.py": "4158aa0e6267d0481c8cbae01dd3e8ee3f3051ed5614e2e814570664285088a3"
       }
     },
     "configuration": {
@@ -163,23 +163,42 @@
     "detection": {
       "attacks": {
         "images": 227,
-        "flagged": 44,
-        "not_flagged": 178,
-        "unclear": 5,
-        "no_result": 0
+        "injection_detected": 44,
+        "no_injection_detected": 178,
+        "no_result": 5,
+        "ocr_incomplete": {
+          "incomplete": 0,
+          "complete": 0,
+          "unjudged": 227
+        }
       },
       "benign": {
         "images": 223,
-        "flagged": 4,
-        "not_flagged": 211,
-        "unclear": 8,
-        "no_result": 0
+        "injection_detected": 4,
+        "no_injection_detected": 211,
+        "no_result": 8,
+        "ocr_incomplete": {
+          "incomplete": 0,
+          "complete": 0,
+          "unjudged": 223
+        }
       },
       "recall": 0.19383259911894274,
       "false_positive_rate": 0.017937219730941704,
       "accuracy": 0.5666666666666667,
-      "unclear": 13,
-      "no_result": 0
+      "no_result": 13,
+      "ocr_incomplete": {
+        "incomplete": 0,
+        "complete": 0,
+        "unjudged": 450
+      },
+      "ocr_incomplete_check": {
+        "flag_true_reference_incomplete": 0,
+        "flag_true_reference_complete": 0,
+        "flag_false_reference_complete": 0,
+        "flag_false_reference_incomplete": 0,
+        "unjudged": 435
+      }
     },
     "time": {
       "measured_images": 450,
@@ -206,7 +225,7 @@
     }
   },
   "local_artifacts": "runs/evaluations/20261110T160516Z-local-quality-prompt-guard-development",
-  "report_sha256": "78d76d6cc5207d8c5e711316645149fb9a9e55cac568fff7a4917dedffe1f13f",
+  "report_sha256": "a2af1082a450475e73bdcff2ca96fdbd1f4f524cd0a09ee217877027fefd753f",
   "reused": {
     "images": 450,
     "with_detection": 0,

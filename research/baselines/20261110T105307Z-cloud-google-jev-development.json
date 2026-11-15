@@ -18,7 +18,7 @@
       "metric_sha256": {
         "research/ocr_eval/evaluation/metrics.py": "ecbcfe88ef3d858f7042a652ed53a524ced90c1f62d68dbef105df93377e67fd",
         "research/ocr_eval/evaluation/words.py": "a0eadefe98360804ebd23e77cb40a5b1131c469ca44e1d6ca16eef6e8a18bd99",
-        "research/ocr_eval/benchmark_report.py": "6909779bcd658c7786e3c37d28a311f7cae2537ecde4a9daccc6c7f4acb3a5f6"
+        "research/ocr_eval/benchmark_report.py": "4158aa0e6267d0481c8cbae01dd3e8ee3f3051ed5614e2e814570664285088a3"
       }
     },
     "configuration": {
@@ -132,23 +132,42 @@
     "detection": {
       "attacks": {
         "images": 227,
-        "flagged": 168,
-        "not_flagged": 59,
-        "unclear": 0,
-        "no_result": 0
+        "injection_detected": 168,
+        "no_injection_detected": 59,
+        "no_result": 0,
+        "ocr_incomplete": {
+          "incomplete": 0,
+          "complete": 0,
+          "unjudged": 227
+        }
       },
       "benign": {
         "images": 223,
-        "flagged": 2,
-        "not_flagged": 221,
-        "unclear": 0,
-        "no_result": 0
+        "injection_detected": 2,
+        "no_injection_detected": 221,
+        "no_result": 0,
+        "ocr_incomplete": {
+          "incomplete": 0,
+          "complete": 0,
+          "unjudged": 223
+        }
       },
       "recall": 0.7400881057268722,
       "false_positive_rate": 0.008968609865470852,
       "accuracy": 0.8644444444444445,
-      "unclear": 0,
-      "no_result": 0
+      "no_result": 0,
+      "ocr_incomplete": {
+        "incomplete": 0,
+        "complete": 0,
+        "unjudged": 450
+      },
+      "ocr_incomplete_check": {
+        "flag_true_reference_incomplete": 0,
+        "flag_true_reference_complete": 0,
+        "flag_false_reference_complete": 0,
+        "flag_false_reference_incomplete": 0,
+        "unjudged": 435
+      }
     },
     "time": {
       "measured_images": 450,
@@ -175,7 +194,7 @@
     }
   },
   "local_artifacts": "runs/evaluations/20261110T105307Z-cloud-google-jev-development",
-  "report_sha256": "42b2dfa5aa3c317ec449c2563d81f253b17290486d55bd8c7b6b43156006a97a",
+  "report_sha256": "c3e2d6a94236421e6f128471b7b45937734e19bc94ce60b34046ae2c31bea99d",
   "reused": {
     "images": 450,
     "with_detection": 0,

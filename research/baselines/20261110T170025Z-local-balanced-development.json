@@ -18,7 +18,7 @@
       "metric_sha256": {
         "research/ocr_eval/evaluation/metrics.py": "ecbcfe88ef3d858f7042a652ed53a524ced90c1f62d68dbef105df93377e67fd",
         "research/ocr_eval/evaluation/words.py": "a0eadefe98360804ebd23e77cb40a5b1131c469ca44e1d6ca16eef6e8a18bd99",
-        "research/ocr_eval/benchmark_report.py": "6909779bcd658c7786e3c37d28a311f7cae2537ecde4a9daccc6c7f4acb3a5f6"
+        "research/ocr_eval/benchmark_report.py": "4158aa0e6267d0481c8cbae01dd3e8ee3f3051ed5614e2e814570664285088a3"
       }
     },
     "configuration": {
@@ -162,23 +162,42 @@
     "detection": {
       "attacks": {
         "images": 227,
-        "flagged": 35,
-        "not_flagged": 191,
-        "unclear": 1,
-        "no_result": 0
+        "injection_detected": 35,
+        "no_injection_detected": 191,
+        "no_result": 1,
+        "ocr_incomplete": {
+          "incomplete": 0,
+          "complete": 0,
+          "unjudged": 227
+        }
       },
       "benign": {
         "images": 223,
-        "flagged": 1,
-        "not_flagged": 216,
-        "unclear": 6,
-        "no_result": 0
+        "injection_detected": 1,
+        "no_injection_detected": 216,
+        "no_result": 6,
+        "ocr_incomplete": {
+          "incomplete": 0,
+          "complete": 0,
+          "unjudged": 223
+        }
       },
       "recall": 0.15418502202643172,
       "false_positive_rate": 0.004484304932735426,
       "accuracy": 0.5577777777777778,
-      "unclear": 7,
-      "no_result": 0
+      "no_result": 7,
+      "ocr_incomplete": {
+        "incomplete": 0,
+        "complete": 0,
+        "unjudged": 450
+      },
+      "ocr_incomplete_check": {
+        "flag_true_reference_incomplete": 0,
+        "flag_true_reference_complete": 0,
+        "flag_false_reference_complete": 0,
+        "flag_false_reference_incomplete": 0,
+        "unjudged": 435
+      }
     },
     "time": {
       "measured_images": 450,
@@ -205,7 +224,7 @@
     }
   },
   "local_artifacts": "runs/evaluations/20261110T170025Z-local-balanced-development",
-  "report_sha256": "92c2cc7ef3ae5e3f1412c2888f6b518910c38dba50e958e09f3ce7f1f247b5ee",
+  "report_sha256": "62b805ff1c6f830541aacc08df6248ebd989c6591e1817f598d52bfe076fb0ad",
   "reused": {
     "images": 0,
     "with_detection": 0,
