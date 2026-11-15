@@ -18,7 +18,7 @@
       "metric_sha256": {
         "research/ocr_eval/evaluation/metrics.py": "ecbcfe88ef3d858f7042a652ed53a524ced90c1f62d68dbef105df93377e67fd",
         "research/ocr_eval/evaluation/words.py": "a0eadefe98360804ebd23e77cb40a5b1131c469ca44e1d6ca16eef6e8a18bd99",
-        "research/ocr_eval/benchmark_report.py": "6909779bcd658c7786e3c37d28a311f7cae2537ecde4a9daccc6c7f4acb3a5f6"
+        "research/ocr_eval/benchmark_report.py": "4158aa0e6267d0481c8cbae01dd3e8ee3f3051ed5614e2e814570664285088a3"
       }
     },
     "configuration": {
@@ -142,23 +142,42 @@
     "detection": {
       "attacks": {
         "images": 227,
-        "flagged": 34,
-        "not_flagged": 188,
-        "unclear": 5,
-        "no_result": 0
+        "injection_detected": 34,
+        "no_injection_detected": 188,
+        "no_result": 5,
+        "ocr_incomplete": {
+          "incomplete": 0,
+          "complete": 0,
+          "unjudged": 227
+        }
       },
       "benign": {
         "images": 223,
-        "flagged": 1,
-        "not_flagged": 217,
-        "unclear": 5,
-        "no_result": 0
+        "injection_detected": 1,
+        "no_injection_detected": 217,
+        "no_result": 5,
+        "ocr_incomplete": {
+          "incomplete": 0,
+          "complete": 0,
+          "unjudged": 223
+        }
       },
       "recall": 0.14977973568281938,
       "false_positive_rate": 0.004484304932735426,
       "accuracy": 0.5577777777777778,
-      "unclear": 10,
-      "no_result": 0
+      "no_result": 10,
+      "ocr_incomplete": {
+        "incomplete": 0,
+        "complete": 0,
+        "unjudged": 450
+      },
+      "ocr_incomplete_check": {
+        "flag_true_reference_incomplete": 0,
+        "flag_true_reference_complete": 0,
+        "flag_false_reference_complete": 0,
+        "flag_false_reference_incomplete": 0,
+        "unjudged": 435
+      }
     },
     "time": {
       "measured_images": 450,
@@ -185,7 +204,7 @@
     }
   },
   "local_artifacts": "runs/evaluations/20261109T234924Z-local-speed-development",
-  "report_sha256": "4f0b9dca45968161c1e8888c61b43f081f9201700fb9a13e3c6ffce0fa68554d",
+  "report_sha256": "424a2bfcbe0362121f9aed6beac39e87ed3f4491966ae17978f150d3fa7d6a2c",
   "execution": {
     "host": {
       "system": "macOS-27.0.1-arm64-arm-64bit",

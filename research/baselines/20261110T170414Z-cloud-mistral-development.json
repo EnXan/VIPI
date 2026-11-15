@@ -18,7 +18,7 @@
       "metric_sha256": {
         "research/ocr_eval/evaluation/metrics.py": "ecbcfe88ef3d858f7042a652ed53a524ced90c1f62d68dbef105df93377e67fd",
         "research/ocr_eval/evaluation/words.py": "a0eadefe98360804ebd23e77cb40a5b1131c469ca44e1d6ca16eef6e8a18bd99",
-        "research/ocr_eval/benchmark_report.py": "6909779bcd658c7786e3c37d28a311f7cae2537ecde4a9daccc6c7f4acb3a5f6"
+        "research/ocr_eval/benchmark_report.py": "4158aa0e6267d0481c8cbae01dd3e8ee3f3051ed5614e2e814570664285088a3"
       }
     },
     "configuration": {
@@ -133,23 +133,42 @@
     "detection": {
       "attacks": {
         "images": 227,
-        "flagged": 193,
-        "not_flagged": 34,
-        "unclear": 0,
-        "no_result": 0
+        "injection_detected": 193,
+        "no_injection_detected": 34,
+        "no_result": 0,
+        "ocr_incomplete": {
+          "incomplete": 0,
+          "complete": 0,
+          "unjudged": 227
+        }
       },
       "benign": {
         "images": 223,
-        "flagged": 10,
-        "not_flagged": 212,
-        "unclear": 1,
-        "no_result": 0
+        "injection_detected": 10,
+        "no_injection_detected": 212,
+        "no_result": 1,
+        "ocr_incomplete": {
+          "incomplete": 0,
+          "complete": 0,
+          "unjudged": 223
+        }
       },
       "recall": 0.8502202643171806,
       "false_positive_rate": 0.04484304932735426,
       "accuracy": 0.9,
-      "unclear": 1,
-      "no_result": 0
+      "no_result": 1,
+      "ocr_incomplete": {
+        "incomplete": 0,
+        "complete": 0,
+        "unjudged": 450
+      },
+      "ocr_incomplete_check": {
+        "flag_true_reference_incomplete": 0,
+        "flag_true_reference_complete": 0,
+        "flag_false_reference_complete": 0,
+        "flag_false_reference_incomplete": 0,
+        "unjudged": 435
+      }
     },
     "time": {
       "measured_images": 450,
@@ -176,7 +195,7 @@
     }
   },
   "local_artifacts": "runs/evaluations/20261110T170414Z-cloud-mistral-development",
-  "report_sha256": "b6d64b2a75736aca7b3719197d2cff560ad6e6487f9957db32121a8c05a5948d",
+  "report_sha256": "6d78a16c68b20c4de3cff89cc879a54b6b245ea146c43bc176648191b0524431",
   "reused": {
     "images": 0,
     "with_detection": 0,

@@ -18,7 +18,7 @@
       "metric_sha256": {
         "research/ocr_eval/evaluation/metrics.py": "ecbcfe88ef3d858f7042a652ed53a524ced90c1f62d68dbef105df93377e67fd",
         "research/ocr_eval/evaluation/words.py": "a0eadefe98360804ebd23e77cb40a5b1131c469ca44e1d6ca16eef6e8a18bd99",
-        "research/ocr_eval/benchmark_report.py": "6909779bcd658c7786e3c37d28a311f7cae2537ecde4a9daccc6c7f4acb3a5f6"
+        "research/ocr_eval/benchmark_report.py": "4158aa0e6267d0481c8cbae01dd3e8ee3f3051ed5614e2e814570664285088a3"
       }
     },
     "configuration": {
@@ -134,23 +134,42 @@
     "detection": {
       "attacks": {
         "images": 227,
-        "flagged": 189,
-        "not_flagged": 35,
-        "unclear": 2,
-        "no_result": 1
+        "injection_detected": 189,
+        "no_injection_detected": 35,
+        "no_result": 3,
+        "ocr_incomplete": {
+          "incomplete": 0,
+          "complete": 0,
+          "unjudged": 226
+        }
       },
       "benign": {
         "images": 223,
-        "flagged": 10,
-        "not_flagged": 210,
-        "unclear": 1,
-        "no_result": 2
+        "injection_detected": 10,
+        "no_injection_detected": 210,
+        "no_result": 3,
+        "ocr_incomplete": {
+          "incomplete": 0,
+          "complete": 0,
+          "unjudged": 221
+        }
       },
       "recall": 0.8325991189427313,
       "false_positive_rate": 0.04484304932735426,
       "accuracy": 0.8866666666666667,
-      "unclear": 3,
-      "no_result": 3
+      "no_result": 6,
+      "ocr_incomplete": {
+        "incomplete": 0,
+        "complete": 0,
+        "unjudged": 447
+      },
+      "ocr_incomplete_check": {
+        "flag_true_reference_incomplete": 0,
+        "flag_true_reference_complete": 0,
+        "flag_false_reference_complete": 0,
+        "flag_false_reference_incomplete": 0,
+        "unjudged": 432
+      }
     },
     "time": {
       "measured_images": 450,
@@ -177,7 +196,7 @@
     }
   },
   "local_artifacts": "runs/evaluations/20261110T105814Z-cloud-openai-development",
-  "report_sha256": "4ad883f8f5724f854c8c77162da6ba42e20ea6446587f5b70bba599a505abbc4",
+  "report_sha256": "85767736365f61b3c9fdf1a94a841c70c2a013a4bb4af3aa8a2b219e65ccbc93",
   "reused": {
     "images": 0,
     "with_detection": 0,
