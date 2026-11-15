@@ -169,11 +169,13 @@ reports with `if: always()` to retain either.
 Errors take precedence. Each file record has a `verdict`: `injection_detected`,
 `no_injection_detected`, or `null` when a required detector check did not
 complete (the file is then an error). `injection_probability` is the highest
-native detector probability over all completed checks and text chunks, reported
-next to the `threshold` that decides the verdict; it is `null` when the final
-OCR text is empty. An image without text calls no detector and is
-`no_injection_detected`. Long text is checked in chunks: any chunk at or above
-the threshold detects, all chunks below it do not. The report `schema_version`
+native detector probability over all completed checks, reported next to the
+`threshold` that decides the verdict; it is `null` when the final OCR text is
+empty. An image without text calls no detector and is `no_injection_detected`.
+Very long text is checked in chunks. d1 and Clef-Flash also check text of more
+than 80 words in overlapping windows of whole sentences or lines, up to 80
+words each, one about every 40 words (ADR 0077). Any check at or above the
+threshold detects; all checks below it do not. The report `schema_version`
 is 2.
 
 `ocr_incomplete` says whether readable image text is missing from the final OCR

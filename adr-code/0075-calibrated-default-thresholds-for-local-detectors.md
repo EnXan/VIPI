@@ -53,7 +53,9 @@ false positives.
 
 ## Decision
 
-- Each detector has a default threshold. d1 defaults to **40** and Clef-Flash
+- Each detector has a default threshold. d1 defaults to **40** (45 with
+  sentence windows since
+  [ADR 0077](0077-sentence-windows-for-local-decision-models.md)) and Clef-Flash
   to **8**; Prompt Guard, Jev and OpenAI keep **80**
   (`DETECTOR_THRESHOLDS` in [`config.py`](../src/vipi/config.py)).
 - Operating point: the highest recall with at most 5 % false positives, with a
