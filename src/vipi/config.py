@@ -21,6 +21,10 @@ DEFAULT_DETECTOR = "auto"
 DECISION_PROVIDERS = (*LOCAL_DECISION_PROVIDERS, *CLOUD_DECISION_PROVIDERS)
 JEV_MODEL = "jev-1.14.0"
 DEFAULT_THRESHOLD = 80
+# Calibrated default thresholds of the local decision models (ADR 0075): the
+# highest recall at no more than 5 % false positives on the development split,
+# confirmed on the test split. Other detectors use DEFAULT_THRESHOLD.
+DETECTOR_THRESHOLDS = {"d1": 40, "clef-flash": 8}
 OCR_MODES = {
     "speed": "ppocr-v6-tiny",
     "balanced": "ppocr-v6-small",
@@ -95,7 +99,7 @@ class ScanOptions:
     """Validated scan settings shared by the CLI and Python entrypoints."""
 
     detector: str = DEFAULT_DETECTOR
-    threshold: float = DEFAULT_THRESHOLD
+    threshold: float | None = None
     ocr_mode: str = DEFAULT_OCR_MODE
     ocr_model: str | None = None
     ocr_execution_mode: str | None = None
@@ -105,7 +109,7 @@ class ScanOptions:
     def __post_init__(self):
         if self.detector not in DETECTORS:
             raise ValueError("Choose a supported detector.")
-        if (
+        if self.threshold is not None and (
             isinstance(self.threshold, bool)
             or not isinstance(self.threshold, (int, float))
             or not math.isfinite(self.threshold)
@@ -180,6 +184,13 @@ class ScanOptions:
             )
         return selected
 
+    @property
+    def resolved_threshold(self):
+        """The explicit threshold, else the detector's calibrated default."""
+        if self.threshold is not None:
+            return self.threshold
+        return DETECTOR_THRESHOLDS.get(self.resolved_detector, DEFAULT_THRESHOLD)
+
     def detection_options(self):
         from .detection.pipeline import settings
 
@@ -188,7 +199,7 @@ class ScanOptions:
             thresholds={
                 "version": "vipi-cli-score-v1",
                 "signals": {
-                    self.resolved_detector: {"threshold": self.threshold / 100}
+                    self.resolved_detector: {"threshold": self.resolved_threshold / 100}
                 },
             },
         )

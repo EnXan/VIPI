@@ -11,7 +11,7 @@ from pathlib import Path
 import statistics
 import time
 
-from vipi.config import DEFAULT_THRESHOLD, cache_directory
+from vipi.config import DEFAULT_THRESHOLD, DETECTOR_THRESHOLDS, cache_directory
 from vipi.detection.pipeline import detect_ocr, settings
 from vipi.detection.providers import prepare_provider
 from vipi.results import ScanResult
@@ -133,11 +133,13 @@ def run(
     *,
     runs_directory=DEFAULT_RUNS_DIRECTORY,
     output_directory=DEFAULT_OUTPUT_DIRECTORY,
-    threshold=DEFAULT_THRESHOLD,
+    threshold=None,
 ):
     """Detect on every image of ``source_run``; resumes an unfinished run."""
     if detector not in DETECTORS:
         raise ValueError(f"Choose one of: {', '.join(DETECTORS)}.")
+    if threshold is None:
+        threshold = DETECTOR_THRESHOLDS.get(detector, DEFAULT_THRESHOLD)
     source = Path(runs_directory) / source_run
     configuration, rows = source_rows(source)
     target = Path(output_directory) / f"{source_run}--{detector}"

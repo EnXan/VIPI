@@ -31,10 +31,11 @@ Scan and Evaluate use the options of `vipi scan` and nothing else:
   for Quality (these also review OCR), or Prompt Guard 2 for every local OCR
   size (detection only; review stays d1 or Clef-Flash); in the cloud
   OpenAI Luna (the product default) or Jev.
-- **Threshold** (Scan only): flag at a detector score of at least this value,
-  default 80.
+- **Threshold** (Scan only): flag at a detector score of at least this value.
+  It starts at the chosen detector's product default: 40 for d1, 8 for
+  Clef-Flash, 80 for the others.
 
-The default is the product default: local, Quality, threshold 80.
+The default is the product default: local, Quality, Clef-Flash, threshold 8.
 
 ## Scan an image
 

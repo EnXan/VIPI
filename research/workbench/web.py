@@ -6,7 +6,7 @@ import threading
 from flask import Flask, jsonify, render_template, request, send_file
 from werkzeug.exceptions import RequestEntityTooLarge
 
-from vipi.config import DEFAULT_THRESHOLD, ScanOptions
+from vipi.config import ScanOptions
 
 from research.evaluate.suite import CONFIGURATIONS, SPLIT_NAMES
 from research.ocr_eval import benchmark
@@ -36,7 +36,8 @@ def configuration_options():
     for name, values in CONFIGURATIONS.items():
         local = values["ocr_execution_mode"] == "local"
         ocr = values.get("ocr_mode") or values.get("ocr_provider")
-        detector = ScanOptions(**values).resolved_detector
+        resolved = ScanOptions(**values)
+        detector = resolved.resolved_detector
         options.append(
             {
                 "id": name,
@@ -49,6 +50,7 @@ def configuration_options():
                 + (" OCR" if local else "")
                 + f" · {DETECTOR_LABELS[detector]} detector",
                 "paid": not local,
+                "threshold": resolved.resolved_threshold,
             }
         )
     return options
@@ -106,7 +108,9 @@ def create_app(
         return jsonify(
             configurations=configuration_options(),
             default=DEFAULT_CONFIGURATION,
-            threshold=DEFAULT_THRESHOLD,
+            threshold=ScanOptions(
+                **CONFIGURATIONS[DEFAULT_CONFIGURATION]
+            ).resolved_threshold,
             splits=list(SPLIT_NAMES),
         )
 
@@ -118,7 +122,8 @@ def create_app(
         if upload is None or not upload.filename:
             return jsonify(error="Choose, drop or paste an image."), 400
         try:
-            threshold = float(request.form.get("threshold", DEFAULT_THRESHOLD))
+            value = request.form.get("threshold")
+            threshold = None if value in (None, "") else float(value)
             job = scans.start(
                 upload.read(),
                 request.form.get("configuration", DEFAULT_CONFIGURATION),
