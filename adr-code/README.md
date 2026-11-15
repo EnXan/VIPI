@@ -49,6 +49,7 @@ Temporary planning and review queues belong in `.llm-plans/`.
 | [0073](0073-github-action-in-its-own-repository.md) | GitHub Action moves to its own repository, installs a pinned PyPI release and selects via `vipi scan --list-only` |
 | [0074](0074-detector-only-evaluation-on-retained-ocr-text.md) | Evaluate one detector on the OCR text retained by an earlier run, without OCR and apart from the baselines |
 | [0075](0075-calibrated-default-thresholds-for-local-detectors.md) | Calibrated default thresholds: 40 for d1, 8 for Clef-Flash, 80 for the other detectors (amends 0003) |
+| [0076](0076-action-threshold-follows-detector-default.md) | The Action's threshold input follows VIPI's detector default; v1 defaults rule narrowed (amends 0073) |
 
 When revising an agreed decision, write its replacement with a summary of the
 old ADR (identifier, decision, rationale and reason for revision), then delete

@@ -47,7 +47,9 @@ The maintainer decided on 2026-11-12 to publish the Action on the Marketplace
 - **Defaults.** `modus` defaults to `cloud` in the new Action (`local` before):
   standard hosted runners cannot load the local `quality` model, so the
   default now works on them once provider keys are set. Changing a default
-  after `v1` would need `v2`.
+  after `v1` would need `v2` (narrowed by
+  [ADR 0076](0076-action-threshold-follows-detector-default.md) to defaults
+  that change the result of a default scan).
 - **Tests.** The Action repository gets a workflow that runs on PRs and on
   `workflow_dispatch`, without secrets or model downloads: fixture Git
   repositories created in the job, assertions on the report. Cases where images
