@@ -56,6 +56,27 @@ def test_python_api_validates_threshold_without_cli(threshold):
         ScanOptions(threshold=threshold)
 
 
+@pytest.mark.parametrize(
+    "options, expected",
+    [
+        ({}, 8),  # local quality defaults to Clef-Flash
+        ({"ocr_mode": "speed"}, 40),
+        ({"ocr_mode": "balanced", "detector": "d1"}, 40),
+        ({"ocr_mode": "balanced", "detector": "prompt-guard"}, 80),
+        ({"ocr_execution_mode": "cloud"}, 80),
+        ({"ocr_execution_mode": "cloud", "detector": "jev"}, 80),
+        ({"ocr_mode": "speed", "threshold": 90}, 90),
+        ({"threshold": 0}, 0),
+    ],
+)
+def test_threshold_defaults_to_the_detector_calibration(options, expected):
+    resolved = ScanOptions(**options)
+    assert resolved.resolved_threshold == expected
+    detector = resolved.resolved_detector
+    signal = resolved.detection_options()["thresholds"]["signals"][detector]
+    assert signal["threshold"] == expected / 100
+
+
 def test_ocr_mode_defaults_and_explicit_model_override():
     assert DEFAULT_OCR_MODE == "quality"
     assert OCR_MODES == {

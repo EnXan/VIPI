@@ -21,7 +21,7 @@ as environment variables.
 
 Diff scans select new/changed images between the reference/HEAD common ancestor
 and HEAD, then scan complete committed image bytes. The score threshold defaults
-to 80 out of 100; equality counts as a detection. Exit codes are 0 for complete
+to 80 out of 100 (per-detector defaults since [ADR 0075](0075-calibrated-default-thresholds-for-local-detectors.md)); equality counts as a detection. Exit codes are 0 for complete
 scans without findings (including empty selections), 1 for detections and 2 for
 errors/incomplete checks, with errors taking precedence. Save JSON when requested.
 

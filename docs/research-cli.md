@@ -82,6 +82,7 @@ uv run python -m research.evaluate status CONFIGURATION [--split SPLIT]
 uv run python -m research.evaluate run CONFIGURATION [--split SPLIT] [--confirm-test-split] [--run-id ID] [--runs-dir DIR] [--dry-run] [--no-reuse-ocr]
 uv run python -m research.evaluate save-baseline RUN_ID [--runs-dir DIR]
 uv run python -m research.evaluate rescore RUN_ID [--runs-dir DIR]
+uv run python -m research.evaluate detect-text RUN_ID --detector DETECTOR [--runs-dir DIR] [--output-dir DIR]
 ```
 
 | Subcommand | Purpose |
@@ -91,6 +92,7 @@ uv run python -m research.evaluate rescore RUN_ID [--runs-dir DIR]
 | `run` | Run or resume an evaluation and compare it with the saved baseline; exits 0 for a planned or complete run and 1 for an incomplete one. |
 | `save-baseline` | Save a complete run's summary as the baseline in `research/baselines/`. |
 | `rescore` | Score a complete run again with the current scoring code, without scanning, and update its summary and saved baseline. |
+| `detect-text` | Run one detector on the final OCR text retained by a complete run, without OCR, and score it separately from the baselines (ADR 0074); exits 0 when every image was detected on the source text and 1 otherwise. |
 
 | Argument or option | Subcommands | Meaning and default |
 | --- | --- | --- |
@@ -99,10 +101,12 @@ uv run python -m research.evaluate rescore RUN_ID [--runs-dir DIR]
 | `--split SPLIT` | `status`, `run` | `development` (default) or `test`. |
 | `--confirm-test-split` | `run` | Required for the one-time confirmation run on the test split. |
 | `--run-id ID` | `run` | Resume this run; default: a new run ID. Must be one directory name without a leading dot, slash, backslash, colon or NUL; its resolved path must stay inside the runs directory. |
-| `--runs-dir DIR` | `run`, `save-baseline`, `rescore` | Folder of evaluation runs. Default `runs/evaluations`. |
+| `--runs-dir DIR` | `run`, `save-baseline`, `rescore`, `detect-text` | Folder of evaluation runs. Default `runs/evaluations`. |
+| `--detector DETECTOR` | `detect-text` | Required: `prompt-guard`, `d1`, `clef-flash`, `jev` or `openai`. Cloud detectors incur provider charges. |
+| `--output-dir DIR` | `detect-text` | Folder for detector-only results, one subfolder per source run and detector. Default `runs/detector-text`. |
 | `--dry-run` | `run` | Show the plan, including how many images would be reused, without scanning. |
 | `--no-reuse-ocr` | `run` | Scan every image from scratch instead of reusing earlier OCR and detection results. |
-| `RUN_ID` | `save-baseline`, `rescore` | Required run ID of a complete run. |
+| `RUN_ID` | `save-baseline`, `rescore`, `detect-text` | Required run ID of a complete run. |
 
 Errors exit 2. The configurations and reuse rules are described in the
 [evaluation guide](../research/evaluate/README.md).

@@ -9,7 +9,7 @@ Temporary planning and review queues belong in `.llm-plans/`.
 | ADR | Decision |
 | --- | --- |
 | [0001](0001-evidence-and-review-workflow.md) | Evidence-based, minimal implementation and one-concept review workflow |
-| [0003](0003-public-cli-contract.md) | Two-command CLI, explicit model setup, committed-image diffs and score policy |
+| [0003](0003-public-cli-contract.md) | Two-command CLI, explicit model setup, committed-image diffs and score policy; threshold default amended by 0075 |
 | [0006](0006-apache-2-license.md) | Apache License 2.0 for VIPI's original code and documentation |
 | [0012](0012-hugging-face-evaluation-dataset.md) | Maintainer-reviewed Hugging Face dataset and pinned local downloads |
 | [0020](0020-ocr-assembly-geometry-and-reading-order.md) | Oriented OCR line matching and paragraph column order, implemented for review |
@@ -47,6 +47,8 @@ Temporary planning and review queues belong in `.llm-plans/`.
 | [0071](0071-scan-verdict-and-final-ocr-completeness.md) | Binary scan verdict, injection probability and a final OCR completeness flag (amends 0054) |
 | [0072](0072-exclusions-in-git-diff-scans.md) | Diff scans and the Action apply user exclusions, reading `.vipiignore` from the base commit |
 | [0073](0073-github-action-in-its-own-repository.md) | GitHub Action moves to its own repository, installs a pinned PyPI release and selects via `vipi scan --list-only` |
+| [0074](0074-detector-only-evaluation-on-retained-ocr-text.md) | Evaluate one detector on the OCR text retained by an earlier run, without OCR and apart from the baselines |
+| [0075](0075-calibrated-default-thresholds-for-local-detectors.md) | Calibrated default thresholds: 40 for d1, 8 for Clef-Flash, 80 for the other detectors (amends 0003) |
 
 When revising an agreed decision, write its replacement with a summary of the
 old ADR (identifier, decision, rationale and reason for revision), then delete

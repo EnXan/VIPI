@@ -67,10 +67,11 @@ function settingsPanel(container, {withThreshold, onChange}) {
   const detectorLabel = element('label', {class: 'field'}, 'Injection detector', detector);
   container.append(runOn, ocrLabel, detectorLabel);
   let threshold = null;
+  let thresholdNote = null;
   if (withThreshold) {
     threshold = element('input', {id: `${name}-threshold`, type: 'number', min: '0', max: '100', step: '1', value: String(state.threshold)});
-    container.append(element('label', {class: 'field'}, 'Flag as injection at a detector score of at least (0–100)', threshold,
-      element('span', {class: 'muted'}, `Product default: ${state.threshold}.`)));
+    thresholdNote = element('span', {class: 'muted'}, `Product default: ${state.threshold}.`);
+    container.append(element('label', {class: 'field'}, 'Flag as injection at a detector score of at least (0–100)', threshold, thresholdNote));
   }
   const selected = () => container.querySelector(`input[name="${name}-run-on"]:checked`).value;
   // One option per OCR; the detectors offered depend on run-on and OCR.
@@ -79,6 +80,14 @@ function settingsPanel(container, {withThreshold, onChange}) {
     detector.replaceChildren(...choices.map(item => element('option', {value: item.id}, item.detector_label)));
     if (choices.some(item => item.id === keep)) detector.value = keep;
     detector.disabled = choices.length < 2;
+    showDefaultThreshold();
+  }
+  // Each detector has its own calibrated default threshold (ADR 0075).
+  function showDefaultThreshold() {
+    const chosen = configuration(detector.value);
+    if (!threshold || !chosen) return;
+    threshold.value = String(chosen.threshold);
+    thresholdNote.textContent = `Product default for this detector: ${chosen.threshold}.`;
   }
   function fillOcr(keep) {
     const choices = state.configurations.filter(item => item.run_on === selected());
@@ -93,7 +102,7 @@ function settingsPanel(container, {withThreshold, onChange}) {
   fillOcr(initial.id);
   runOn.onchange = () => { fillOcr(); onChange(); };
   ocr.onchange = () => { fillDetector(); onChange(); };
-  detector.onchange = onChange;
+  detector.onchange = () => { showDefaultThreshold(); onChange(); };
   if (threshold) threshold.oninput = onChange;
   return {
     value: () => detector.value,

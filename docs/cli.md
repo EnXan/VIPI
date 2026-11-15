@@ -39,7 +39,7 @@ Without `--diff`, at least one path is required.
 | --- | --- |
 | `--diff REFERENCE` | Select committed images added/modified since the common ancestor of REFERENCE and HEAD. |
 | `--exclude PATTERN` | Repeatable ordered filesystem exclusion; `!` re-includes matching paths. No user rules by default. |
-| `--threshold 0–100` | Finding threshold, default 80. Equality is a finding. |
+| `--threshold 0–100` | Finding threshold. Default: the detector's calibrated value, 40 for `d1`, 8 for `clef-flash` and 80 for `prompt-guard`, `jev` and `openai` (ADR 0075). Equality is a finding. The report records the threshold used. |
 | `--output FILE` | Also write an atomic JSON report, including findings or incomplete scans. |
 | `--verbose` | Print each image's final OCR text. Off by default. |
 | `--list-only` | Run input selection only and list the selected images; no models, providers or keys are used. Selected files have status `selected` and the report status is `listed`; exit 2 on selection errors, otherwise 0. |
@@ -150,7 +150,9 @@ reports with `if: always()` to retain either.
 - **Other files:** unsupported files in scanned folders or diffs are skipped and
   listed in the report; an unsupported file named explicitly is an error.
 - **Scores:** thresholds are operating points and `injection_probability` is not a
-  calibrated attack probability. `no_injection_detected` means the detector
+  calibrated attack probability. Scores are not comparable across detectors: the
+  local decision models score injections far lower than the cloud detectors, so
+  their default thresholds are lower. `no_injection_detected` means the detector
   stayed below the threshold on the final OCR text; it does not prove the image
   is safe, and it does not say whether OCR missed readable text.
 - **Cost:** cloud scans can make additional billable requests when OCR is

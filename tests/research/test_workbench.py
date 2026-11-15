@@ -80,7 +80,11 @@ def test_configurations_are_the_product_options_with_the_product_default(tmp_pat
     client = create_app(repository_root=tmp_path).test_client()
     data = client.get("/api/configurations").json
     assert data["default"] == "local-quality-clef-flash"
-    assert data["threshold"] == 80
+    assert data["threshold"] == 8
+    thresholds = {item["id"]: item["threshold"] for item in data["configurations"]}
+    assert thresholds["local-speed"] == 40
+    assert thresholds["local-speed-prompt-guard"] == 80
+    assert thresholds["cloud-mistral"] == 80
     assert data["splits"] == ["development", "test"]
     labels = {
         item["id"]: (item["label"], item["paid"]) for item in data["configurations"]

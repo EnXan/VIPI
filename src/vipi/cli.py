@@ -12,7 +12,6 @@ from rich.text import Text
 from .config import (
     DEFAULT_DETECTOR,
     DEFAULT_OCR_MODE,
-    DEFAULT_THRESHOLD,
     DETECTORS,
     OCR_MODES,
     OCR_MODEL_IDS,
@@ -176,9 +175,10 @@ def build_parser():
     command.add_argument(
         "--threshold",
         type=percentage,
-        default=DEFAULT_THRESHOLD,
+        default=None,
         metavar="0–100",
-        help="Minimum detector score for a finding (default: 80)",
+        help="Minimum detector score for a finding (default: 40 for d1, 8 for "
+        "clef-flash, 80 for other detectors)",
     )
     command.add_argument(
         "--output", type=Path, metavar="FILE", help="Also save a JSON report"

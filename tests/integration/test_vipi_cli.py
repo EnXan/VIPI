@@ -310,7 +310,7 @@ def test_scan_runs_shared_pipeline_sequentially_and_emits_json(
     assert main(["scan", "images", "--output", str(output)]) == 1
     report = json.loads(output.read_text())
     assert report["summary"]["detections"] == report["summary"]["completed"] == 2
-    assert report["threshold"] == 80
+    assert report["threshold"] == 8  # calibrated Clef-Flash default (ADR 0075)
     assert report["ocr"]["model"] == "ppocr-v6"
     assert report["ocr"]["mode"] == "quality"
     assert report["ocr_mode"] == "quality"

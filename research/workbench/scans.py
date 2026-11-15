@@ -5,7 +5,7 @@ from pathlib import Path
 import threading
 import uuid
 
-from vipi.config import DEFAULT_THRESHOLD, ScanOptions
+from vipi.config import ScanOptions
 from vipi.reporting import file_record
 
 from research.ocr_eval.benchmark import CONFIGURATIONS
@@ -13,7 +13,7 @@ from research.ocr_eval.benchmark import CONFIGURATIONS
 DEFAULT_CONFIGURATION = "local-quality-clef-flash"  # the product default (`vipi scan`)
 
 
-def options_for(configuration, threshold=DEFAULT_THRESHOLD):
+def options_for(configuration, threshold=None):
     if configuration not in CONFIGURATIONS:
         raise ValueError("Choose a supported configuration.")
     return ScanOptions(threshold=threshold, **CONFIGURATIONS[configuration])

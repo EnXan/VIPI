@@ -6,7 +6,6 @@ import time
 from .config import (
     DEFAULT_DETECTOR,
     DEFAULT_OCR_MODE,
-    DEFAULT_THRESHOLD,
     ScanOptions,
     cache_directory,
 )
@@ -52,7 +51,7 @@ def scan(
     paths,
     *,
     detector=DEFAULT_DETECTOR,
-    threshold=DEFAULT_THRESHOLD,
+    threshold=None,
     ocr_mode=DEFAULT_OCR_MODE,
     ocr_model=None,
     ocr_execution_mode=None,
@@ -100,6 +99,7 @@ def scan(
         )
         detector = options.resolved_detector
         report["detector"] = detector
+        report["threshold"] = options.resolved_threshold
         report["decision_provider"] = options.resolved_decision_provider
         report["ocr_mode"] = options.resolved_ocr_mode
         report["ocr_execution_mode"] = options.resolved_ocr_execution_mode
