@@ -47,6 +47,7 @@ Temporary planning and review queues belong in `.llm-plans/`.
 | [0071](0071-scan-verdict-and-final-ocr-completeness.md) | Binary scan verdict, injection probability and a final OCR completeness flag (amends 0054) |
 | [0072](0072-exclusions-in-git-diff-scans.md) | Diff scans and the Action apply user exclusions, reading `.vipiignore` from the base commit |
 | [0073](0073-github-action-in-its-own-repository.md) | GitHub Action moves to its own repository, installs a pinned PyPI release and selects via `vipi scan --list-only` |
+| [0074](0074-detector-only-evaluation-on-retained-ocr-text.md) | Evaluate one detector on the OCR text retained by an earlier run, without OCR and apart from the baselines |
 
 When revising an agreed decision, write its replacement with a summary of the
 old ADR (identifier, decision, rationale and reason for revision), then delete

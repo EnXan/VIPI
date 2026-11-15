@@ -4,7 +4,7 @@ import argparse
 from pathlib import Path
 import sys
 
-from . import runs, splits, suite
+from . import detector_text, runs, splits, suite
 
 
 def build_parser():
@@ -63,6 +63,19 @@ def build_parser():
     )
     rescore.add_argument("run_id")
     rescore.add_argument("--runs-dir", type=Path, default=runs.DEFAULT_RUNS_DIRECTORY)
+    detect = commands.add_parser(
+        "detect-text",
+        help="Run one detector on the final OCR text retained by a complete run, "
+        "without OCR (ADR 0074).",
+        description="Cloud detectors incur provider charges; local detectors "
+        "need their models prepared with vipi setup.",
+    )
+    detect.add_argument("run_id")
+    detect.add_argument("--detector", choices=detector_text.DETECTORS, required=True)
+    detect.add_argument("--runs-dir", type=Path, default=runs.DEFAULT_RUNS_DIRECTORY)
+    detect.add_argument(
+        "--output-dir", type=Path, default=detector_text.DEFAULT_OUTPUT_DIRECTORY
+    )
     return parser
 
 
@@ -103,7 +116,28 @@ def run_command(args):
     return 0 if result["state"] in {"planned", "complete"} else 1
 
 
+def detect_text_command(args):
+    target, summary = detector_text.run(
+        args.run_id,
+        args.detector,
+        runs_directory=args.runs_dir,
+        output_directory=args.output_dir,
+    )
+    found = summary["summary"]
+    detection = found["detection"]
+    print(
+        f"{args.detector} on {args.run_id}: recall {detection['recall']:.3f}, "
+        f"false positive rate {detection['false_positive_rate']:.3f}, "
+        f"no result {detection['no_result']}, failed {found['failed']}, "
+        f"text differs from source {found['text_differs']}"
+    )
+    print(f"summary {target}/summary.json")
+    return 0 if not found["failed"] and not found["text_differs"] else 1
+
+
 def dispatch(args):
+    if args.command == "detect-text":
+        return detect_text_command(args)
     if args.command == "run":
         return run_command(args)
     if args.command == "rescore":

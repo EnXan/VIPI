@@ -112,6 +112,15 @@ uv run python -m research.evaluate rescore <run-id>
   in the run summary and in its saved baseline; commit the updated baseline.
   It needs the run's retained outputs, so run it on the computer that ran the
   evaluation ([ADR 0068](../../adr-code/0068-position-free-benchmark-scoring.md)).
+- `detect-text <run-id> --detector <name>` compares detectors on identical
+  text: it restores each image's OCR from a complete run and runs only that
+  detector, for example `prompt-guard` on `cloud-mistral` text, which no
+  configuration allows. It writes `runs/detector-text/<run-id>--<detector>/`
+  with one row per image and `summary.json`; results are not baselines. Each
+  row records whether the detector got the same text as the source run's
+  detector; the command exits 1 if any text differs or any image failed. Like
+  `rescore`, it needs the run's retained outputs
+  ([ADR 0074](../../adr-code/0074-detector-only-evaluation-on-retained-ocr-text.md)).
 
 ## Metrics
 
