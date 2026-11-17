@@ -48,8 +48,9 @@ Temporary planning and review queues belong in `.llm-plans/`.
 | [0072](0072-exclusions-in-git-diff-scans.md) | Diff scans and the Action apply user exclusions, reading `.vipiignore` from the base commit |
 | [0073](0073-github-action-in-its-own-repository.md) | GitHub Action moves to its own repository, installs a pinned PyPI release and selects via `vipi scan --list-only` |
 | [0074](0074-detector-only-evaluation-on-retained-ocr-text.md) | Evaluate one detector on the OCR text retained by an earlier run, without OCR and apart from the baselines |
-| [0075](0075-calibrated-default-thresholds-for-local-detectors.md) | Calibrated default thresholds: 40 for d1, 8 for Clef-Flash, 80 for the other detectors (amends 0003) |
+| [0075](0075-calibrated-default-thresholds-for-local-detectors.md) | Calibrated default thresholds: 40 for d1, 8 for Clef-Flash, 80 for the other detectors (amends 0003); d1 default amended by 0077 |
 | [0076](0076-action-threshold-follows-detector-default.md) | The Action's threshold input follows VIPI's detector default; v1 defaults rule narrowed (amends 0073) |
+| [0077](0077-sentence-windows-for-local-decision-models.md) | d1 and Clef-Flash also check sentence windows of up to 80 words, one about every 40 words; d1 defaults to 45 (amends 0075) |
 
 When revising an agreed decision, write its replacement with a summary of the
 old ADR (identifier, decision, rationale and reason for revision), then delete

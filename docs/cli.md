@@ -39,7 +39,7 @@ Without `--diff`, at least one path is required.
 | --- | --- |
 | `--diff REFERENCE` | Select committed images added/modified since the common ancestor of REFERENCE and HEAD. |
 | `--exclude PATTERN` | Repeatable ordered filesystem exclusion; `!` re-includes matching paths. No user rules by default. |
-| `--threshold 0–100` | Finding threshold. Default: the detector's calibrated value, 40 for `d1`, 8 for `clef-flash` and 80 for `prompt-guard`, `jev` and `openai` (ADR 0075). Equality is a finding. The report records the threshold used. |
+| `--threshold 0–100` | Finding threshold. Default: the detector's calibrated value, 45 for `d1`, 8 for `clef-flash` and 80 for `prompt-guard`, `jev` and `openai` (ADR 0075, ADR 0077). Equality is a finding. The report records the threshold used. |
 | `--output FILE` | Also write an atomic JSON report, including findings or incomplete scans. |
 | `--verbose` | Print each image's final OCR text. Off by default. |
 | `--list-only` | Run input selection only and list the selected images; no models, providers or keys are used. Selected files have status `selected` and the report status is `listed`; exit 2 on selection errors, otherwise 0. |
@@ -169,11 +169,13 @@ reports with `if: always()` to retain either.
 Errors take precedence. Each file record has a `verdict`: `injection_detected`,
 `no_injection_detected`, or `null` when a required detector check did not
 complete (the file is then an error). `injection_probability` is the highest
-native detector probability over all completed checks and text chunks, reported
-next to the `threshold` that decides the verdict; it is `null` when the final
-OCR text is empty. An image without text calls no detector and is
-`no_injection_detected`. Long text is checked in chunks: any chunk at or above
-the threshold detects, all chunks below it do not. The report `schema_version`
+native detector probability over all completed checks, reported next to the
+`threshold` that decides the verdict; it is `null` when the final OCR text is
+empty. An image without text calls no detector and is `no_injection_detected`.
+Very long text is checked in chunks. d1 and Clef-Flash also check text of more
+than 80 words in overlapping windows of whole sentences or lines, up to 80
+words each, one about every 40 words (ADR 0077). Any check at or above the
+threshold detects; all checks below it do not. The report `schema_version`
 is 2.
 
 `ocr_incomplete` says whether readable image text is missing from the final OCR

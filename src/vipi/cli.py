@@ -177,7 +177,7 @@ def build_parser():
         type=percentage,
         default=None,
         metavar="0–100",
-        help="Minimum detector score for a finding (default: 40 for d1, 8 for "
+        help="Minimum detector score for a finding (default: 45 for d1, 8 for "
         "clef-flash, 80 for other detectors)",
     )
     command.add_argument(

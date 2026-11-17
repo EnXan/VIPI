@@ -24,7 +24,7 @@ DEFAULT_THRESHOLD = 80
 # Calibrated default thresholds of the local decision models (ADR 0075): the
 # highest recall at no more than 5 % false positives on the development split,
 # confirmed on the test split. Other detectors use DEFAULT_THRESHOLD.
-DETECTOR_THRESHOLDS = {"d1": 40, "clef-flash": 8}
+DETECTOR_THRESHOLDS = {"d1": 45, "clef-flash": 8}
 OCR_MODES = {
     "speed": "ppocr-v6-tiny",
     "balanced": "ppocr-v6-small",
