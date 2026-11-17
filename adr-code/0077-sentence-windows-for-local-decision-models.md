@@ -132,8 +132,15 @@ Clef-Flash check takes about 2 s.
   longer; images with short text are unchanged.
 - Reports list every check with its span. The highest-scoring window shows which
   passage caused a finding.
-- Local default results change again; the README results and baselines are
-  rerun with this decision.
+- End-to-end development baselines with this decision (Apple M4 Pro, commit
+  `94abd343`), recall / false positive rate in %, before (ADR 0075) and after:
+  - local speed with d1: 39.6 / 3.6 → 43.2 / 2.2;
+  - local balanced with d1: 40.5 / 3.1 → 45.4 / 2.2;
+  - local quality with Clef-Flash: 47.6 / 3.6 → 56.8 / 4.0.
+
+  They match the `detect-text` results above exactly. Median time per image
+  rose from 3.1 to 3.7 s (speed), 4.1 to 5.0 s (balanced) and 14.8 to 16.1 s
+  (quality). The README results show these baselines.
 - Passages longer than the window size, and instructions split over distant
   parts of an image (`split_text`), are not helped by windows.
 
@@ -151,4 +158,6 @@ Clef-Flash check takes about 2 s.
   speed and Mistral development, local speed and balanced test) and Apple M4
   Pro (d1: local balanced development; Clef-Flash: development and test).
   Test-split runs were the one-time confirmation for this decision.
+- End-to-end development baselines for the three local default
+  configurations on one Apple M4 Pro.
 - Linux, Windows and CUDA are not measured.

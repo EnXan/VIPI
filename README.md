@@ -114,7 +114,7 @@ projects can use the dataset to evaluate their own OCR or injection detection.
 See [contributing to the dataset](https://github.com/EnXan/VIPI/blob/main/CONTRIBUTING.md#evaluation-dataset).
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/EnXan/VIPI/main/assets/diagrams/vipi-results.svg" alt="Bar charts of detection rate, false positive rate and words recognized: cloud configurations detect 74 to 85 percent of injections with 0.4 to 4.5 percent false positives and recognize 85 to 88 percent of words; local configurations detect 17 to 48 percent with 1.8 to 3.6 percent false positives and recognize 70 to 77 percent of words. Exact values and models are in the expandable tables below." width="900">
+  <img src="https://raw.githubusercontent.com/EnXan/VIPI/main/assets/diagrams/vipi-results.svg" alt="Bar charts of detection rate, false positive rate and words recognized: cloud configurations detect 74 to 85 percent of injections with 0.4 to 4.5 percent false positives and recognize 85 to 88 percent of words; local configurations detect 17 to 57 percent with 1.8 to 4.0 percent false positives and recognize 70 to 77 percent of words. Exact values and models are in the expandable tables below." width="900">
 </p>
 
 <details>
@@ -134,11 +134,11 @@ default threshold.
 
 | Local OCR | Detector | Detection rate | False positive rate | Words recognized |
 | :-- | :-- | --: | --: | --: |
-| PP-OCRv6 Medium (`quality`) | Clef-Flash 9B (default) | **47.6%** | 3.6% | **77.0%** |
+| PP-OCRv6 Medium (`quality`) | Clef-Flash 9B (default) | **56.8%** | 4.0% | **77.0%** |
 | PP-OCRv6 Medium (`quality`) | Prompt Guard 2 86M | 19.4% | **1.8%** | **77.0%** |
-| PP-OCRv6 Small (`balanced`) | d1 3B | 40.5% | 3.1% | 72.3% |
+| PP-OCRv6 Small (`balanced`) | d1 3B | 45.4% | 2.2% | 72.3% |
 | PP-OCRv6 Small (`balanced`) | Prompt Guard 2 86M | 16.7% | **1.8%** | 72.3% |
-| PP-OCRv6 Tiny (`speed`) | d1 3B | 39.6% | 3.6% | 70.0% |
+| PP-OCRv6 Tiny (`speed`) | d1 3B | 43.2% | 2.2% | 70.0% |
 | PP-OCRv6 Tiny (`speed`) | Prompt Guard 2 86M | 18.5% | 2.2% | 70.0% |
 
 </details>
