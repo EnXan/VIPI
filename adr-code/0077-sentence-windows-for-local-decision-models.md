@@ -130,8 +130,9 @@ Clef-Flash check takes about 2 s.
 
 - Local scans of images with long text make more detector checks and take
   longer; images with short text are unchanged.
-- Reports list every check with its span. The highest-scoring window shows which
-  passage caused a finding.
+- The saved detection result (`detection/<id>/result.json`) lists every check
+  with its kind and span, so the highest-scoring window shows which passage
+  caused a finding. The CLI report is unchanged.
 - End-to-end development baselines with this decision (Apple M4 Pro, commit
   `94abd343`), recall / false positive rate in %, before (ADR 0075) and after:
   - local speed with d1: 39.6 / 3.6 → 43.2 / 2.2;
