@@ -406,6 +406,71 @@ def test_serial_vision_preserves_every_tile_and_hidden_state():
         torch.testing.assert_close(got, want)
 
 
+def _mps_driver_growth(run, shapes):
+    """Driver memory MPS keeps after empty_cache() across new tensor shapes."""
+    torch = pytest.importorskip("torch")
+    if not torch.backends.mps.is_available():
+        pytest.skip("MPS memory retention is specific to Apple silicon")
+
+    def settled():
+        torch.mps.synchronize()
+        torch.mps.empty_cache()
+        return torch.mps.driver_allocated_memory()
+
+    with torch.inference_mode():
+        run(shapes[0])
+        baseline = settled()
+        for shape in shapes[1:]:
+            run(shape)
+        return settled() - baseline
+
+
+def test_mps_language_attention_keeps_no_memory_per_request_shape():
+    # Masked SDPA kept about 1.1 GiB per key length on MPS (PyTorch 2.11), so
+    # a folder scan ran out of memory after about a dozen visual reviews.
+    import torch
+    from vipi.local_attention import causal_attention
+
+    def run(length):
+        q = torch.randn(1, 32, length, 64, device="mps", dtype=torch.float16)
+        k = torch.randn(1, 8, length, 64, device="mps", dtype=torch.float16)
+        causal_attention(q, k, torch.randn_like(k), None, 0.125)
+
+    growth = _mps_driver_growth(run, [3000, 3100, 3200, 3300, 3400])
+    assert growth < 64 * 2**20
+
+
+def test_mps_eager_vision_attention_keeps_no_memory_per_tile_shape():
+    # The d1 vision tower runs eager attention on MPS; its SDPA kept about
+    # 0.1 GiB per patch count, and tiles have up to 1024 patches.
+    import torch
+    from transformers import Siglip2VisionConfig, Siglip2VisionModel
+
+    model = Siglip2VisionModel(
+        Siglip2VisionConfig(
+            hidden_size=128,
+            intermediate_size=128,
+            num_hidden_layers=1,
+            num_attention_heads=16,
+            num_patches=1024,
+            patch_size=4,
+        )
+    )
+    model = model.to("mps", torch.float16).eval()
+    model.set_attn_implementation("eager")
+
+    def run(rows):
+        patches = rows * 30
+        model(
+            pixel_values=torch.randn(1, patches, 48, device="mps", dtype=torch.float16),
+            spatial_shapes=torch.tensor([[rows, 30]], device="mps"),
+            pixel_attention_mask=torch.ones(1, patches, device="mps"),
+        )
+
+    growth = _mps_driver_growth(run, [24, 25, 26, 27, 28])
+    assert growth < 64 * 2**20
+
+
 def test_clef_flash_replaces_clef_as_the_pinned_quality_model():
     from vipi.config import DECISION_PROVIDERS, LOCAL_DECISION_PROVIDERS, ScanOptions
     from vipi.local_decisions import MODELS
