@@ -77,10 +77,12 @@ class DetectionResult:
     check_id: str
     elapsed_seconds: float
     ocr_complete: bool
+    incomplete: tuple[str, ...] = ()
 
     @classmethod
     def from_dict(cls, data):
-        return cls(**{name: data[name] for name in cls.__dataclass_fields__})
+        fields = {name: data[name] for name in cls.__dataclass_fields__ if name in data}
+        return cls(**{**fields, "incomplete": tuple(data.get("incomplete", ()))})
 
     @property
     def errors(self):
@@ -91,6 +93,7 @@ class DetectionResult:
         ]
         if not self.ocr_complete:
             errors.append("The final OCR text is not available.")
+        errors.extend(self.incomplete)
         if self.verdict is None and not errors:
             errors.append("The detector produced no verdict (no threshold set).")
         return errors
@@ -102,3 +105,5 @@ class ScanResult:
     detection: DetectionResult
     detector_model: str
     detector_identity: str | dict
+    # A `vipi.svg.SvgInput` when the scanned file was an SVG.
+    svg: object | None = None

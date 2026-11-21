@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1040 380" role="img" aria-labelledby="title desc">
   <title id="title">How VIPI scans an image</title>
-  <desc id="desc">An image goes in. VIPI reads its text with OCR. A clear result goes straight to the injection check; an uncertain one goes to a visual review, and if text is missing VIPI reads the image again. The injection check ends the scan clean (exit 0), with an injection (exit 1) or incomplete (exit 2). Models per step, local and cloud: OCR uses PP-OCRv6 locally, or Google Cloud Vision, GPT-6 Luna or Mistral OCR. The visual review uses Clef-Flash or d1 locally, or GPT-6 Luna or Jev. The injection check uses Clef-Flash, d1 or Prompt Guard 2 locally, or GPT-6 Luna or Jev.</desc>
+  <desc id="desc">An image goes in. VIPI reads its text with OCR; an SVG file is rendered first, and its source text also goes straight to the injection check. A clear result goes straight to the injection check; an uncertain one goes to a visual review, and if text is missing VIPI reads the image again. The injection check ends the scan clean (exit 0), with an injection (exit 1) or incomplete (exit 2). Models per step, local and cloud: OCR uses PP-OCRv6 locally, or Google Cloud Vision, GPT-6 Luna or Mistral OCR. The visual review uses Clef-Flash or d1 locally, or GPT-6 Luna or Jev. The injection check uses Clef-Flash, d1 or Prompt Guard 2 locally, or GPT-6 Luna or Jev.</desc>
   <defs>
     <style>
       .bg { fill: #FFFFFF; stroke: rgba(11,12,16,.12); }
@@ -82,6 +82,11 @@
   <path class="dash" d="M245 110V66H711V101"/>
   <path class="head" d="M711 110l-5-9h10z"/>
   <text class="mono" x="478" y="56" text-anchor="middle">CLEAR</text>
+
+  <!-- An SVG's source text is checked as well -->
+  <path class="dash" d="M74.5 110V30H751V101"/>
+  <path class="head" d="M751 110l-5-9h10z"/>
+  <text class="mono" x="413" y="22" text-anchor="middle">SVG · SOURCE TEXT</text>
 
   <!-- Missing text is read again -->
   <path class="dash" d="M505 211V254H245V219"/>

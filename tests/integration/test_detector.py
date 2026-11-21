@@ -585,4 +585,78 @@ def test_every_detector_also_checks_decoded_base64(name):
     decoded_checks = [a for a in result["answers"] if a["kind"] == "decoded"]
     assert len(decoded_checks) == 1
     assert text[decoded_checks[0]["start"] : decoded_checks[0]["end"]] == encoded
+
+
+class ScoreByText:
+    model = "fixture"
+
+    def __init__(self, scores):
+        self.scores = scores
+        self.texts = []
+
+    def check(self, payload):
+        text = json.dumps(payload)
+        self.texts.append(text)
+        score = max(
+            (value for key, value in self.scores.items() if key in text), default=0.0
+        )
+        return {"status": "completed", "probability": score}
+
+
+def test_svg_source_text_is_a_second_reading():
+    evidence = build_evidence(
+        {"text": "Visible label"}, run_id="fixture", source_text="Hidden instruction"
+    )
+    assert evidence["scope"] == "final_ocr_and_svg_source"
+    assert [reading["sources"][0]["kind"] for reading in evidence["readings"]] == [
+        "assembled",
+        "svg_source",
+    ]
+    provider = ScoreByText({"Hidden instruction": 0.95})
+    result = detect(
+        evidence,
+        options=settings(thresholds=limits()),
+        provider_factory=lambda name: provider,
+    )
+    assert result["verdict"] == "injection_detected"
+    assert result["evidence_scope"] == "final_ocr_and_svg_source"
+    assert any("Hidden instruction" in text for text in provider.texts)
+    assert any("Visible label" in text for text in provider.texts)
+
+
+def test_identical_svg_source_and_ocr_text_are_checked_once():
+    evidence = build_evidence(
+        {"text": "Same text"}, run_id="fixture", source_text="Same text"
+    )
+    assert len(evidence["readings"]) == 1
+    assert [source["kind"] for source in evidence["readings"][0]["sources"]] == [
+        "assembled",
+        "svg_source",
+    ]
+
+
+def test_without_svg_source_the_evidence_is_unchanged():
+    evidence = build_evidence({"text": "Read the label"}, run_id="fixture")
+    assert evidence["scope"] == "final_ocr"
+    assert "incomplete" not in evidence
+
+
+def test_incomplete_evidence_cannot_be_cleared_but_can_detect():
+    reason = "The SVG embeds a font."
+    clean = build_evidence({"text": "x"}, run_id="fixture", incomplete=(reason,))
+    result = detect(
+        clean,
+        options=settings(thresholds=limits()),
+        provider_factory=lambda name: ScoreByText({}),
+    )
+    assert result["verdict"] is None
+    assert result["incomplete"] == [reason]
+    flagged = build_evidence(
+        {"text": "x"}, run_id="fixture", source_text="bad", incomplete=(reason,)
+    )
+    result = detect(
+        flagged,
+        options=settings(thresholds=limits()),
+        provider_factory=lambda name: ScoreByText({"bad": 0.9}),
+    )
     assert result["verdict"] == "injection_detected"

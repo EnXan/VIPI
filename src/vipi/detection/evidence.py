@@ -21,8 +21,14 @@ def digest(value):
     ).hexdigest()
 
 
-def build_evidence(result, *, run_id=None, complete=True, image=None):
-    # Detection consumes only the final OCR outcome, never individual variants.
+def build_evidence(
+    result, *, run_id=None, complete=True, image=None, source_text=None, incomplete=()
+):
+    """Freeze the final OCR text and, for SVG inputs, the source text reading.
+
+    Detection consumes only the final OCR outcome, never individual variants.
+    ``incomplete`` lists reasons why a scan cannot be declared clean.
+    """
     text = result.get("text", "") if complete else ""
     if not isinstance(text, str):
         raise ValueError("Saved OCR text must be a string.")
@@ -41,14 +47,24 @@ def build_evidence(result, *, run_id=None, complete=True, image=None):
                 ],
             }
         )
+    if source_text is not None and source_text.strip():
+        source = {"kind": "svg_source", "id": "svg_source"}
+        same = [value for value in values if value["id"] == digest(source_text)]
+        if same:
+            same[0]["sources"].append(source)
+        else:
+            values.append(
+                {"id": digest(source_text), "text": source_text, "sources": [source]}
+            )
     return {
         "run_id": run_id,
         "ocr_model": result.get("model"),
         "ocr_complete": complete,
-        "scope": "final_ocr",
+        "scope": "final_ocr" if source_text is None else "final_ocr_and_svg_source",
         "readings": values,
         "input_hash": digest(values),
         "image_hash": hashlib.sha256(image).hexdigest() if image else None,
+        **({"incomplete": list(incomplete)} if incomplete else {}),
     }
 
 

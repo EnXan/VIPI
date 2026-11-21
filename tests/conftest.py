@@ -98,3 +98,54 @@ def evaluation_dataset(tmp_path):
         )
     (directory / "catalog.json").write_text(json.dumps(entries))
     return tmp_path
+
+
+@pytest.fixture
+def scanner_runtime(tmp_path, monkeypatch, scanner_decisions):
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("XDG_CACHE_HOME", str(tmp_path / "cache"))
+    monkeypatch.setattr("vipi.ocr.session.validate_model", lambda *args, **kwargs: None)
+    # Keep real decoding, recovery, persistence and detection; replace inference.
+
+    class Engine:
+        def recognize(self, raster):
+            return {
+                "text": "Read this label",
+                "regions": [
+                    {
+                        "text": "Read this label",
+                        "polygon": [[0, 0], [25, 0], [25, 15], [0, 15]],
+                        "confidence": 0.99,
+                    }
+                ],
+            }
+
+    engines = []
+
+    def create_engine(*args, **kwargs):
+        engines.append(kwargs)
+        return Engine()
+
+    monkeypatch.setattr("vipi.ocr.engine_pool.create_engine", create_engine)
+
+    class Provider:
+        key = "fixture-secret-not-for-reports"
+        model = "fixture-detector"
+        identity = "fixture-v1"
+
+        def __init__(self):
+            self.score = 0.8
+            self.failure = False
+            self.calls = []
+
+        def check(self, payload, image=None):
+            self.calls.append(payload)
+            if self.failure:
+                raise ValueError("Fixture provider failure")
+            return {"status": "completed", "probability": self.score}
+
+    provider = Provider()
+    monkeypatch.setattr(
+        "vipi.detection.providers.create_provider", lambda *args: provider
+    )
+    return provider, engines

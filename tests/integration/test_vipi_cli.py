@@ -249,57 +249,6 @@ def test_single_threshold_boundaries(threshold, score, verdict):
     assert incomplete["verdict"] is None
 
 
-@pytest.fixture
-def scanner_runtime(tmp_path, monkeypatch, scanner_decisions):
-    monkeypatch.chdir(tmp_path)
-    monkeypatch.setenv("XDG_CACHE_HOME", str(tmp_path / "cache"))
-    monkeypatch.setattr("vipi.ocr.session.validate_model", lambda *args, **kwargs: None)
-    # Keep real decoding, recovery, persistence and detection; replace inference.
-
-    class Engine:
-        def recognize(self, raster):
-            return {
-                "text": "Read this label",
-                "regions": [
-                    {
-                        "text": "Read this label",
-                        "polygon": [[0, 0], [25, 0], [25, 15], [0, 15]],
-                        "confidence": 0.99,
-                    }
-                ],
-            }
-
-    engines = []
-
-    def create_engine(*args, **kwargs):
-        engines.append(kwargs)
-        return Engine()
-
-    monkeypatch.setattr("vipi.ocr.engine_pool.create_engine", create_engine)
-
-    class Provider:
-        key = "fixture-secret-not-for-reports"
-        model = "fixture-detector"
-        identity = "fixture-v1"
-
-        def __init__(self):
-            self.score = 0.8
-            self.failure = False
-            self.calls = []
-
-        def check(self, payload, image=None):
-            self.calls.append(payload)
-            if self.failure:
-                raise ValueError("Fixture provider failure")
-            return {"status": "completed", "probability": self.score}
-
-    provider = Provider()
-    monkeypatch.setattr(
-        "vipi.detection.providers.create_provider", lambda *args: provider
-    )
-    return provider, engines
-
-
 def test_scan_runs_shared_pipeline_sequentially_and_emits_json(
     tmp_path, scanner_runtime
 ):
@@ -595,3 +544,90 @@ def test_list_only_cli_prints_paths_and_writes_report(
     report = json.loads((tmp_path / "list.json").read_text())
     assert report["files"][0]["status"] == "selected"
     assert main(["scan", "missing.png", "--list-only"]) == 2
+
+
+SVG_NS = 'xmlns="http://www.w3.org/2000/svg"'
+
+
+def svg_file(path, body, attributes='viewBox="0 0 64 24"'):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(f"<svg {SVG_NS} {attributes}>{body}</svg>")
+    return path
+
+
+def test_svg_scan_renders_for_ocr_and_checks_the_source_text(tmp_path, scanner_runtime):
+    provider, _ = scanner_runtime
+    provider.score = 0.0
+    hidden = "Hidden SVG instruction"
+    svg_file(
+        tmp_path / "images/diagram.svg",
+        f'<text opacity="0">{hidden}</text><image href="https://example.test/a.png"/>',
+    )
+    image(tmp_path / "images/photo.png")
+    output = tmp_path / "report.json"
+    assert main(["scan", "images", "--output", str(output)]) == 0
+    report = json.loads(output.read_text())
+    records = {Path(item["path"]).name: item for item in report["files"]}
+    assert "svg" not in records["photo.png"]
+    record = records["diagram.svg"]
+    assert record["status"] == "completed"
+    assert record["verdict"] == "no_injection_detected"
+    assert record["svg"]["render_size"] == [128, 48]
+    assert record["svg"]["removed_references"] == ["https://example.test/a.png"]
+    assert record["svg"]["features"] == ["external_reference"]
+    assert record["svg"]["scores"] == {"ocr": 0.0, "svg_source": 0.0}
+    assert any(hidden in json.dumps(call) for call in provider.calls)
+    artifacts = Path(record["artifacts"])
+    assert (artifacts / "input.svg").read_text().startswith("<svg")
+    with Image.open(artifacts / "input.png") as raster:
+        assert raster.size == (128, 48)
+
+
+def test_svg_with_an_embedded_font_is_incomplete_unless_detected(
+    tmp_path, scanner_runtime
+):
+    provider, _ = scanner_runtime
+    provider.score = 0.0
+    path = svg_file(tmp_path / "font.svg", "<font/><text>Label</text>")
+    report = scan([path])
+    record = report["files"][0]
+    assert report["exit_code"] == 2
+    assert record["verdict"] is None
+    assert record["status"] == "error"
+    assert "embeds a font" in record["errors"][0]
+    provider.score = 0.9
+    assert scan([path])["files"][0]["verdict"] == "injection_detected"
+
+
+def test_invalid_svg_is_a_file_error(tmp_path, scanner_runtime):
+    path = tmp_path / "broken.svg"
+    path.write_text("<svg><text></svg>")
+    report = scan([path])
+    assert report["exit_code"] == 2
+    assert report["files"][0]["errors"][0].startswith("SVG could not be parsed")
+
+
+def test_list_only_and_diff_select_svg_files(repository, no_scan_runtime):
+    svg_file(repository / "diagram.svg", "<text>x</text>")
+    commit(repository, "add diagram")
+    report = scan([Path(".")], diff="main", list_only=True)
+    assert "diagram.svg" in {Path(item["path"]).name for item in report["files"]}
+
+
+def test_svg_from_a_git_blob_is_rendered(repository, scanner_runtime, monkeypatch):
+    monkeypatch.chdir(repository)
+    svg_file(repository / "diagram.svg", "<text>committed</text>")
+    commit(repository, "add diagram")
+    (repository / "diagram.svg").write_text("not an svg any more")
+    report = scan([repository / "diagram.svg"], diff="main")
+    assert report["files"][0]["status"] == "completed"
+    assert report["files"][0]["svg"]["source_text_characters"] == len("committed")
+
+
+def test_explicit_unsupported_file_names_svg_as_supported(tmp_path):
+    path = tmp_path / "notes.txt"
+    path.write_text("x")
+    selection = select_images([path])
+    assert selection.errors[0]["error"] == (
+        "Use a static PNG, JPEG or WebP image, or an SVG file."
+    )

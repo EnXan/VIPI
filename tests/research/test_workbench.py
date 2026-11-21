@@ -65,7 +65,11 @@ def fake_scanner(
             text="Hello",
         )
         return SimpleNamespace(
-            ocr=ocr, detection=detection, detector_model="d1", detector_identity="d1"
+            ocr=ocr,
+            detection=detection,
+            detector_model="d1",
+            detector_identity="d1",
+            svg=None,
         )
 
     return scan, calls

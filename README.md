@@ -82,7 +82,7 @@ at a score of 80 or more. The mode decides who provides the models: local runs
 them on your machine, cloud calls the providers' APIs.
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/EnXan/VIPI/main/assets/diagrams/vipi-scan-pipeline.svg" alt="VIPI reads the text of an image with OCR, has a visual model review unclear OCR and re-reads the image if text is missing, then checks the final text for prompt injections. The scan ends clean (exit 0), with an injection (exit 1) or incomplete (exit 2). Below each step are its local and cloud models." width="900">
+  <img src="https://raw.githubusercontent.com/EnXan/VIPI/main/assets/diagrams/vipi-scan-pipeline.svg" alt="VIPI reads the text of an image with OCR, has a visual model review unclear OCR and re-reads the image if text is missing, then checks the final text for prompt injections; for an SVG file it also checks the source text. The scan ends clean (exit 0), with an injection (exit 1) or incomplete (exit 2). Below each step are its local and cloud models." width="900">
 </p>
 
 <details>
@@ -167,6 +167,7 @@ to `.vipiignore`.
 | PNG | `.png` | Static images only; animated PNGs are rejected |
 | JPEG | `.jpg`, `.jpeg` | EXIF orientation is applied |
 | WebP | `.webp` | Static images only; animated WebPs are rejected |
+| SVG | `.svg` | Rendered without scripts or external resources; the source text is checked too |
 
 A score at or above the threshold is a finding. The default depends on the detector: 45 for d1, 8 for Clef-Flash and 80 for the others. Size limits,
 skipped files and what a score does not tell you are in
