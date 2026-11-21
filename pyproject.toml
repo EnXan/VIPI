@@ -37,7 +37,7 @@ Dataset = "https://huggingface.co/datasets/EnXan/VIPI-evaluation"
 
 [project.optional-dependencies]
 ocr = [
-    "numpy==1.26.4",
+    "numpy==2.5.5",
     "Pillow==11.3.0",
     "opencv-python==4.11.0.86",
     "rapidocr==3.10.0",
@@ -47,7 +47,7 @@ ocr = [
     "resvg-py==0.5.0",
 ]
 ocr-cuda = [
-    "numpy==1.26.4",
+    "numpy==2.5.5",
     "Pillow==11.3.0",
     "opencv-python==4.11.0.86",
     "rapidocr==3.10.0",
