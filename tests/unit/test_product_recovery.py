@@ -406,11 +406,17 @@ def test_serial_vision_preserves_every_tile_and_hidden_state():
         torch.testing.assert_close(got, want)
 
 
-def _mps_driver_growth(run, shapes):
-    """Driver memory MPS keeps after empty_cache() across new tensor shapes."""
+def _require_mps():
+    """Skip before any tensor or model touches the MPS device."""
     torch = pytest.importorskip("torch")
     if not torch.backends.mps.is_available():
         pytest.skip("MPS memory retention is specific to Apple silicon")
+    return torch
+
+
+def _mps_driver_growth(run, shapes):
+    """Driver memory MPS keeps after empty_cache() across new tensor shapes."""
+    import torch
 
     def settled():
         torch.mps.synchronize()
@@ -428,7 +434,7 @@ def _mps_driver_growth(run, shapes):
 def test_mps_language_attention_keeps_no_memory_per_request_shape():
     # Masked SDPA kept about 1.1 GiB per key length on MPS (PyTorch 2.11), so
     # a folder scan ran out of memory after about a dozen visual reviews.
-    import torch
+    torch = _require_mps()
     from vipi.local_attention import causal_attention
 
     def run(length):
@@ -443,7 +449,7 @@ def test_mps_language_attention_keeps_no_memory_per_request_shape():
 def test_mps_eager_vision_attention_keeps_no_memory_per_tile_shape():
     # The d1 vision tower runs eager attention on MPS; its SDPA kept about
     # 0.1 GiB per patch count, and tiles have up to 1024 patches.
-    import torch
+    torch = _require_mps()
     from transformers import Siglip2VisionConfig, Siglip2VisionModel
 
     model = Siglip2VisionModel(
