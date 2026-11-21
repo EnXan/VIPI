@@ -137,6 +137,9 @@ class LocalDecisionModel:
                             causal_attention, query_chunk=hybrid.CHUNK
                         )
                         tower = model.model.vision_tower
+                        # MPS SDPA keeps driver memory per tile shape that
+                        # empty_cache() does not release; eager is the same math.
+                        tower.set_attn_implementation("eager")
                         tower.forward = partial(serial_vision_forward, tower.forward)
                     runtime = (model, None, None)
                 else:

@@ -53,6 +53,7 @@ Temporary planning and review queues belong in `.llm-plans/`.
 | [0077](0077-sentence-windows-for-local-decision-models.md) | d1 and Clef-Flash also check sentence windows of up to 80 words, one about every 40 words; d1 defaults to 45 (amends 0075) |
 | [0078](0078-svg-inputs.md) | SVG files: a source text reading plus a resvg render without external references; embedded fonts make a scan incomplete (amends 0003 and 0071) |
 | [0079](0079-decode-base64-in-ocr-text.md) | Every detector also checks the repaired plaintext of base64 strings in the OCR text |
+| [0080](0080-explicit-attention-for-local-d1-on-mps.md) | Local d1 on MPS computes attention with explicit operations, because MPS SDPA keeps driver memory per input shape (amends 0044) |
 
 When revising an agreed decision, write its replacement with a summary of the
 old ADR (identifier, decision, rationale and reason for revision), then delete
