@@ -17,9 +17,11 @@ TEXT_MEDIA_TYPES = {
 SVG_MEDIA_TYPE = "image/svg+xml"
 # A CSS url() may quote a data URI that contains spaces (for example raw SVG);
 # a bare data URI ends at whitespace, a quote, a bracket or a parenthesis.
+# Each part has a character class disjoint from the next, so the expression
+# cannot backtrack exponentially on attacker-controlled text.
 DATA_URI = re.compile(
     r"""url\(\s*(?:"(data:[^"]*)"|'(data:[^']*)')\s*\)"""
-    r"""|(data:[\w.+-]*/?[\w.+-]*(?:;[^,\s"'<>()]*)*,[^\s"'<>()]*)""",
+    r"""|(data:[\w.+-]*(?:/[\w.+-]*)?(?:;[^;,\s"'<>()]*)*,[^\s"'<>()]*)""",
     re.IGNORECASE,
 )
 TAG_CHARACTERS = range(0xE0000, 0xE0080)

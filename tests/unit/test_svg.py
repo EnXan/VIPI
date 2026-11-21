@@ -186,3 +186,45 @@ def test_report_lists_size_features_and_scores_per_reading():
     assert report["features"] == ["external_reference"]
     assert report["render_size"] == [240, 80]
     assert report["size_source"] == "viewbox"
+
+
+def test_prose_and_font_checks_match_their_former_regular_expressions():
+    """The linear scans keep the behaviour of the regexes they replaced."""
+    import random
+    import re
+
+    from vipi.svg.document import embeds_font, has_prose
+
+    prose = re.compile(r"(?:[^\W\d_]{2,}\s+){3}[^\W\d_]{2,}")
+    font_face = re.compile(r"@font-face\s*\{[^}]*\}", re.IGNORECASE)
+    generator = random.Random(84)
+    for _ in range(5000):
+        text = "".join(
+            generator.choice("ab1 ,-\n") for _ in range(generator.randint(0, 40))
+        )
+        assert has_prose(text) == bool(prose.search(text)), repr(text)
+        css = "".join(
+            generator.choice(["@font-face", "{", "}", " ", "data:", "x", "@FONT-FACE"])
+            for _ in range(generator.randint(0, 12))
+        )
+        # CSS closes a rule left open at the end of the style sheet.
+        closed = css + "}"
+        expected = any("data:" in block.lower() for block in font_face.findall(closed))
+        assert embeds_font(css) == expected, repr(css)
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        f'<a href="data:;{";" * 5000}"/>',  # CodeQL: exponential before
+        f"<metadata>data:{'a' * 200_000}</metadata>",
+        f"<style>{'@font-face {' * 50_000}</style>",
+        f'<g class="{"a" * 200_000}1"/>',
+    ],
+)
+def test_reading_stays_fast_on_inputs_that_used_to_backtrack(body):
+    import time
+
+    started = time.perf_counter()
+    read_svg(svg(body))
+    assert time.perf_counter() - started < 5

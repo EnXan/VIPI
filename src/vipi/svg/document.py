@@ -8,7 +8,6 @@ browser does for an SVG shown with `<img>`.
 import base64
 from dataclasses import dataclass
 import pyexpat
-import re
 from xml.sax.saxutils import escape, quoteattr
 
 from .text import (
@@ -35,7 +34,7 @@ FONT_ELEMENTS = {"font", "font-face", "glyph"}
 IMAGE_ELEMENTS = {"image", "feImage"}
 # Attributes whose values are geometry, paint, units, references or animation
 # timing. Their values are left out of the source reading unless they contain
-# prose (PROSE), so path data and styling do not drown the text.
+# prose (`has_prose`), so path data and styling do not drown the text.
 STRUCTURAL_ATTRIBUTES = frozenset(
     """
     accumulate additive alignment-baseline amplitude aria-describedby
@@ -67,8 +66,7 @@ STRUCTURAL_ATTRIBUTES = frozenset(
     """.split()
 )
 # Four whitespace-separated words: prose hidden in a structural attribute.
-PROSE = re.compile(r"(?:[^\W\d_]{2,}\s+){3}[^\W\d_]{2,}")
-FONT_FACE = re.compile(r"@font-face\s*\{[^}]*\}", re.IGNORECASE)
+PROSE_WORDS = 4
 SIZE_ATTRIBUTES = ("width", "height", "viewBox", "font-size")
 
 
@@ -87,6 +85,68 @@ class SvgDocument:
 
 def local_name(name):
     return name.rsplit(":", 1)[-1]
+
+
+# These scans run on attacker-controlled text, so they avoid backtracking
+# regular expressions and stay linear in the input length.
+
+
+def has_prose(value):
+    """Four whitespace-separated words of at least two letters each.
+
+    The first word may follow other characters in its token and the last may
+    be followed by others (for example punctuation).
+    """
+    run = 0
+    for token in value.split():
+        if run == 0:
+            run = 1 if _trailing_letters(token) >= 2 else 0
+        elif run < PROSE_WORDS - 1:
+            run = (
+                run + 1
+                if len(token) >= 2 and token.isalpha()
+                else (1 if _trailing_letters(token) >= 2 else 0)
+            )
+        else:
+            if _leading_letters(token) >= 2:
+                return True
+            run = 1 if _trailing_letters(token) >= 2 else 0
+    return False
+
+
+def _trailing_letters(token):
+    count = 0
+    for character in reversed(token):
+        if not character.isalpha():
+            break
+        count += 1
+    return count
+
+
+def _leading_letters(token):
+    count = 0
+    for character in token:
+        if not character.isalpha():
+            break
+        count += 1
+    return count
+
+
+def embeds_font(css):
+    """Whether an `@font-face { … }` rule in the CSS uses a `data:` URI.
+
+    A rule left open at the end counts, as CSS closes it there.
+    """
+    for block in css.lower().split("}"):
+        start = block.find("@font-face")
+        while start != -1:
+            body = block[start + len("@font-face") :].lstrip()
+            if body.startswith("{"):
+                if "data:" in body:
+                    return True
+                break
+            start = block.find("@font-face", start + 1)
+    return False
 
 
 class _Reader:
@@ -131,8 +191,7 @@ class _Reader:
         raw = "".join(self.text_run)
         self.text_run.clear()
         if self.stack and self.stack[-1] == "style":
-            blocks = FONT_FACE.findall(raw)
-            if any("data:" in block for block in blocks):
+            if embeds_font(raw):
                 self.features.add("embedded_font")
             if "@keyframes" in raw.lower():
                 self.features.add("animation")
@@ -213,7 +272,7 @@ class _Reader:
             self.features.add("script")
         if local == "href":
             return self.reference(element, value)
-        if local not in STRUCTURAL_ATTRIBUTES or PROSE.search(value):
+        if local not in STRUCTURAL_ATTRIBUTES or has_prose(value):
             self.add_text(value)
         return value
 
