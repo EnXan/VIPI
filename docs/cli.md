@@ -151,11 +151,13 @@ reports with `if: always()` to retain either.
 - **SVG:** see [SVG files](#svg-files). The renderer (resvg) draws neither
   `<foreignObject>`, embedded fonts, animation nor text inside embedded SVG
   images, and ignores dark-mode `@media` rules; text in them is covered by the
-  source reading, shapes and images shown only there are not. Not covered in
-  the source reading: base64 outside `data:` URIs, text stored reversed behind
-  a bidi override, variation-selector smuggling, homoglyphs and text scattered
-  one glyph per element; the last three are drawn, so only OCR can catch them.
-  The cases are listed in `tests/svg_cases.py`.
+  source reading, shapes and images shown only there are not. Base64 strings
+  in the source text are decoded like base64 in OCR text (ADR 0079); binary
+  payloads such as C2PA manifests stay in the text unchanged. Not covered in
+  the source reading: text stored reversed behind a bidi override,
+  variation-selector smuggling, homoglyphs and text scattered one glyph per
+  element; all but the second are drawn, so OCR can catch them. The cases are
+  listed in `tests/svg_cases.py`.
 - **Other files:** unsupported files in scanned folders or diffs are skipped and
   listed in the report; an unsupported file named explicitly is an error.
 - **Scores:** thresholds are operating points and `injection_probability` is not a

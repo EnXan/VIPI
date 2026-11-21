@@ -87,14 +87,15 @@ Local probes on 2026-11-17 established:
   readings of one evidence (`scope: final_ocr_and_svg_source`). Identical texts
   are checked once. Any check at or above the threshold detects. Visibility
   does not change the verdict.
-- **Base64 outside `data:` URIs** is left as it is in the source reading,
-  neither decoded nor removed. Real SVGs carry it: 12 of this repository's 27
-  SVGs embed a C2PA Content Credentials manifest as about 7.7 KB of base64 in
-  `<metadata>`. The maintainer chose on 2026-11-17 to keep this realistic input
-  unchanged and to let the false-positive measurement show whether it matters.
-  Decoding runs of at least 32 base64 characters was considered: it would close
-  E12 and remove the noise, but it adds a length heuristic before there is any
-  measured need.
+- **Base64 outside `data:` URIs** stays in the source reading as it is. The
+  detector decodes base64 in every reading, the source reading included,
+  under [ADR 0079](0079-decode-base64-in-ocr-text.md) (merged in parallel), and
+  checks the plaintext when it reads as text. This covers E12. Real SVGs also
+  carry binary base64: 12 of this repository's 27 SVGs embed a C2PA Content
+  Credentials manifest of about 7.7 KB in `<metadata>`. It fails ADR 0079's
+  plaintext test, so it adds no check, and the maintainer chose on 2026-11-17
+  to keep this realistic input unchanged in the text rather than strip it.
+  With d1 and Prompt Guard it scored at most 0.20.
 - **Embedded fonts.** An `@font-face` with a `data:` font, or SVG
   `<font>`/`<glyph>`, makes the evidence incomplete. Browsers apply such fonts
   and resvg does not, so remapped glyphs could show text that neither reading
@@ -136,7 +137,6 @@ Local probes on 2026-11-17 established:
   [ADR 0076](0076-action-threshold-follows-detector-default.md) calls for Action
   `v2`; `v1` keeps a VIPI pin without SVG support.
 - Not covered (each is a `known_gap` or `ocr` case in `tests/svg_cases.py`):
-  - base64 outside `data:` URIs (E12);
   - embedded rasters hidden from the render (R08);
   - shapes shown only in another animation or colour-scheme state (R09, R10);
   - in the source reading only, so OCR has to catch them: text stored reversed

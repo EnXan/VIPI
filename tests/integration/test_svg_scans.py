@@ -52,5 +52,21 @@ def test_scan(case, tmp_path, payload_detector):
     svg = record["svg"]
     assert svg["features"] == sorted(case.features)
     assert svg["removed_references"] == [assets.format(item) for item in case.removed]
-    assert (svg["scores"].get("svg_source") == SCORE) == case.in_source
+    assert (svg["scores"].get("svg_source") == SCORE) == (
+        case.in_source or case.decoded
+    )
     assert any("embeds a font" in error for error in record["errors"]) == incomplete
+
+
+def test_binary_base64_in_svg_metadata_adds_no_decoded_check(tmp_path, payload_detector):
+    """A C2PA manifest is binary: ADR 0079 decoding checks only text plaintext."""
+    from tests.svg_cases import BENIGN, benign_svg
+    from vipi.scanner import scan_image
+
+    case = next(case for case in BENIGN if case.id == "B02-c2pa")
+    path = tmp_path / "logo.svg"
+    path.write_bytes(benign_svg(case))
+    result = scan_image(path, provider=payload_detector)
+    kinds = [answer["kind"] for answer in result.detection.answers]
+    assert "decoded" not in kinds
+    assert result.detection.verdict == "no_injection_detected"

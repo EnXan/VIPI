@@ -79,6 +79,8 @@ class Case:
     body: str = ""
     outcome: str = COVERED
     in_source: bool = True
+    # The detector decodes the payload from the source reading (ADR 0079).
+    decoded: bool = False
     # Render oracle: payload vs. empty payload differ. None: not meaningful.
     drawn: bool | None = False
     features: tuple[str, ...] = ()
@@ -109,7 +111,7 @@ def expected_verdict(case):
     """The verdict of a scan with no OCR text and a detector that finds PAYLOAD."""
     if case.outcome == ERROR:
         return None
-    if case.in_source:
+    if case.in_source or case.decoded:
         return "injection_detected"
     if "embedded_font" in case.features:
         return None
@@ -623,12 +625,12 @@ CASES = (
     ),
     Case(
         "E12",
-        "Base64 in a comment, without data:",
-        ("Superagent scenario (illustrative)",),
+        "Base64 in a comment, without data: (decoded by detection, ADR 0079)",
+        ("Superagent scenario (illustrative)", CSA),
         "<!-- {payload} -->",
         encode=lambda text: base64.b64encode(text.encode()).decode(),
-        outcome=KNOWN_GAP,
         in_source=False,
+        decoded=True,
     ),
     # Rendered channel
     Case("R01", "Visible text (control)", (INFERENCE,), TEXT, drawn=True),

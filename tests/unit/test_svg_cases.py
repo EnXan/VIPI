@@ -34,7 +34,7 @@ def test_case_ids_are_unique_and_outcomes_consistent():
     assert len({case.id for case in CASES}) == len(CASES)
     for case in CASES:
         if case.outcome == COVERED:
-            assert case.in_source, case.id
+            assert case.in_source or case.decoded, case.id
         if case.outcome == OCR:
             assert not case.in_source and case.drawn, case.id
         if case.outcome == INCOMPLETE:
