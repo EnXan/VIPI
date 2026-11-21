@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1040 440" role="img" aria-labelledby="title desc">
   <title id="title">VIPI package boundaries</title>
-  <desc id="desc">The product package vipi, the only part of the wheel, passes an image from the command line through inputs, the scanner, OCR and detection to the report and exit code; config, model setup, results, storage and the local decision models are shared. The research tools (workbench, evaluate, ocr_eval, curation, catalog) import vipi; vipi never imports research or Flask.</desc>
+  <desc id="desc">The product package vipi, the only part of the wheel, passes an image from the command line through inputs, the scanner, OCR and detection to the report and exit code; the scanner renders SVG files with vipi.svg, and detection also checks an SVG's source text; config, model setup, results, storage and the local decision models are shared. The research tools (workbench, evaluate, ocr_eval, curation, catalog) import vipi; vipi never imports research or Flask.</desc>
   <defs>
     <style>
       .bg { fill: #FFFFFF; stroke: rgba(11,12,16,.12); }
@@ -62,6 +62,7 @@
   <text class="title" x="385" y="110">Scanner</text>
   <text class="mono" x="385" y="136">SCAN_IMAGE()</text>
   <text class="mono" x="385" y="152">PER IMAGE</text>
+  <text class="mono" x="385" y="168">SVG: VIPI.SVG</text>
   <path class="wire" d="M347 118H361"/>
   <path class="head" d="M369 118l-9-5v10z"/>
   <rect class="card" x="537.5" y="56.5" width="146" height="124" rx="4"/>
@@ -76,6 +77,7 @@
   <text class="title" x="721" y="110">Detection</text>
   <text class="mono" x="721" y="136">SCORE · VERDICT</text>
   <text class="mono" x="721" y="152">→ DETECTIONRESULT</text>
+  <text class="mono" x="721" y="168">+ SVG SOURCE TEXT</text>
   <path class="wire" d="M683 118H697"/>
   <path class="head" d="M705 118l-9-5v10z"/>
   <rect class="ink" x="873" y="56" width="147" height="125" rx="4"/>

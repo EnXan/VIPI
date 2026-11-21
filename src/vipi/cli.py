@@ -57,14 +57,17 @@ def print_brand(console):
 
 
 def print_extracted_text(console, path, result):
-    """Print the final assembled OCR text for one image."""
-    console.print()
-    heading = Text("Extracted text from ", style="bold cyan")
-    heading.append(str(path), style="dim")
-    heading.append(":", style="bold cyan")
-    console.print(heading)
-    text = result.ocr.text
-    console.print(Text(text if text.strip() else "(No text extracted)"))
+    """Print the final assembled OCR text, and an SVG's source text, for one image."""
+    readings = [("Extracted text from ", result.ocr.text)]
+    if result.svg:
+        readings.append(("SVG source text of ", result.svg.document.source_text))
+    for label, text in readings:
+        console.print()
+        heading = Text(label, style="bold cyan")
+        heading.append(str(path), style="dim")
+        heading.append(":", style="bold cyan")
+        console.print(heading)
+        console.print(Text(text if text.strip() else "(No text extracted)"))
 
 
 def print_summary(console, summary, exit_code):

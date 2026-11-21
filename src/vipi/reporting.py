@@ -81,4 +81,5 @@ def file_record(result):
         "detector_identity": result.detector_identity,
         "detection_seconds": detection.elapsed_seconds,
         "errors": detection.errors,
+        **({"svg": result.svg.report(detection.answers)} if result.svg else {}),
     }

@@ -109,6 +109,8 @@ def detect(
 ):
     """Check final OCR evidence, preserving cancellation and partial answers."""
     options = settings(**(options or {}))
+    incomplete = evidence.get("incomplete", [])
+    evidence_complete = evidence["ocr_complete"] and not incomplete
     store = store or DetectionStore(on_event=on_event, run_id=evidence["run_id"])
     factory = provider_factory or (lambda name: create_provider(name, model_dir))
     started = time.perf_counter()
@@ -121,7 +123,7 @@ def detect(
             "inputs.json",
             {
                 "schema_version": 3,
-                "evidence_scope": "final_ocr",
+                "evidence_scope": evidence.get("scope", "final_ocr"),
                 "policy_version": POLICY_VERSION,
                 "instructions": INSTRUCTIONS,
                 "options": options,
@@ -133,7 +135,7 @@ def detect(
             "detection_started",
             state="running",
             total=len(jobs),
-            evidence_scope="final_ocr",
+            evidence_scope=evidence.get("scope", "final_ocr"),
             signals=signals,
         )
         provider, error = None, None
@@ -160,7 +162,7 @@ def detect(
                     [answer],
                     signals,
                     options["thresholds"],
-                    evidence_complete=evidence["ocr_complete"],
+                    evidence_complete=evidence_complete,
                 )
                 answer.update(verdict=summary["verdict"], check_id=store.id)
                 store.save_answer(answer)
@@ -170,16 +172,17 @@ def detect(
             answers,
             signals,
             options["thresholds"],
-            evidence_complete=evidence["ocr_complete"],
+            evidence_complete=evidence_complete,
         )
         result = {
             "schema_version": 3,
-            "evidence_scope": "final_ocr",
+            "evidence_scope": evidence.get("scope", "final_ocr"),
             "run_id": evidence["run_id"],
             "check_id": store.id,
             "policy_version": POLICY_VERSION,
             "input_hash": evidence["input_hash"],
             "ocr_complete": evidence["ocr_complete"],
+            "incomplete": incomplete,
             "readings": len(evidence["readings"]),
             "thresholds": options["thresholds"],
             "answers": answers,
@@ -213,11 +216,29 @@ def detect(
         raise
 
 
-def detect_ocr(ocr, *, options=None, provider_factory=None, on_event=None):
-    """Use a typed OCR result directly; persistence follows its artifact location."""
+def detect_ocr(
+    ocr,
+    *,
+    options=None,
+    provider_factory=None,
+    on_event=None,
+    source_text=None,
+    incomplete=(),
+):
+    """Use a typed OCR result directly; persistence follows its artifact location.
+
+    ``source_text`` adds an SVG source reading; ``incomplete`` reasons prevent
+    a clean verdict (ADR 0078).
+    """
     from vipi.results import DetectionResult
 
-    evidence = build_evidence(ocr.to_dict(), run_id=ocr.run_id, image=ocr.image)
+    evidence = build_evidence(
+        ocr.to_dict(),
+        run_id=ocr.run_id,
+        image=ocr.image,
+        source_text=source_text,
+        incomplete=incomplete,
+    )
     store = DetectionStore(ocr.artifacts, on_event, run_id=ocr.run_id)
     payload = detect(
         evidence,

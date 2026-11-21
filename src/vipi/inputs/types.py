@@ -5,7 +5,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 import tempfile
 
-EXTENSIONS = {".png", ".jpg", ".jpeg", ".webp"}
+EXTENSIONS = {".png", ".jpg", ".jpeg", ".webp", ".svg"}
 
 
 @dataclass(frozen=True)

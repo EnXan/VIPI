@@ -144,9 +144,20 @@ reports with `if: always()` to retain either.
 
 ## Limitations
 
-- **Inputs:** static PNG, JPEG and WebP only; extensions are matched
-  case-insensitively and animated images are rejected. Local scans accept up to
-  40 megapixels; cloud scans follow the provider's limits.
+- **Inputs:** static PNG, JPEG and WebP images and SVG files; extensions are
+  matched case-insensitively and animated raster images are rejected. Local scans
+  accept up to 40 megapixels; cloud scans follow the provider's limits. `.svgz`
+  is not supported.
+- **SVG:** see [SVG files](#svg-files). The renderer (resvg) draws neither
+  `<foreignObject>`, embedded fonts, animation nor text inside embedded SVG
+  images, and ignores dark-mode `@media` rules; text in them is covered by the
+  source reading, shapes and images shown only there are not. Base64 strings
+  in the source text are decoded like base64 in OCR text (ADR 0079); binary
+  payloads such as C2PA manifests stay in the text unchanged. Not covered in
+  the source reading: text stored reversed behind a bidi override,
+  variation-selector smuggling, homoglyphs and text scattered one glyph per
+  element; all but the second are drawn, so OCR can catch them. The cases are
+  listed in `tests/svg_cases.py`.
 - **Other files:** unsupported files in scanned folders or diffs are skipped and
   listed in the report; an unsupported file named explicitly is an error.
 - **Scores:** thresholds are operating points and `injection_probability` is not a
@@ -157,6 +168,41 @@ reports with `if: always()` to retain either.
   is safe, and it does not say whether OCR missed readable text.
 - **Cost:** cloud scans can make additional billable requests when OCR is
   unclear and the image is reviewed or read again.
+
+## SVG files
+
+An SVG file is checked in two readings ([ADR 0078](../adr-code/0078-svg-inputs.md)):
+
+- **Rendered:** VIPI renders the file with resvg and runs the raster through
+  the same OCR as any image. Before rendering it removes every `href` that does
+  not point into the document (`#…`) or to a `data:` URI, so no local file or
+  network resource is drawn; scripts never run. The size comes from
+  `width`/`height`, else the `viewBox`, else 100×100 user units; the image is
+  drawn at 2× on white, scaled down to fit 40 megapixels.
+- **Source text:** what a model sees when it reads the file as text: all text
+  and CDATA in every element and namespace, comments, processing instructions,
+  internal entity values, and attribute values except geometry, paint and
+  reference attributes (those count only when they hold prose). `data:` URIs
+  with a text or SVG media type are decoded. Unicode tag characters are decoded
+  and zero-width, bidirectional and other invisible characters are removed
+  before the detector sees the text.
+
+An injection in either reading is a finding, whether or not it is visible. An
+SVG with an embedded font (`@font-face` with a `data:` font, or SVG fonts) can
+show text that the renderer does not draw, so the scan is incomplete: the file
+is an error (exit 2), and its verdict is `injection_detected` when a reading is
+detected, otherwise `null`. Malformed files and
+files whose root is not `<svg>` are errors. DTDs and external entities are
+never loaded, and entity expansion is bounded by the XML parser.
+
+The file record gains an `svg` object: `intrinsic_size`, `size_source`
+(`attributes`, `viewbox` or `default`), `render_size`, `scale`,
+`removed_references`, `features` (`animation`, `embedded_font`,
+`embedded_image`, `external_reference`, `foreign_object`,
+`invisible_characters`, `script`), `invisible_characters`,
+`source_text_characters` and `scores`, the highest score per reading (`ocr`,
+`svg_source`). The run artifacts keep `input.svg` next to the rendered
+`input.png`; `--verbose` prints the source text after the OCR text.
 
 ## Results and storage
 
@@ -170,8 +216,8 @@ Errors take precedence. Each file record has a `verdict`: `injection_detected`,
 `no_injection_detected`, or `null` when a required detector check did not
 complete (the file is then an error). `injection_probability` is the highest
 native detector probability over all completed checks, reported next to the
-`threshold` that decides the verdict; it is `null` when the final OCR text is
-empty. An image without text calls no detector and is `no_injection_detected`.
+`threshold` that decides the verdict; it is `null` when the final OCR text (and,
+for SVG, the source text) is empty. An image without text calls no detector and is `no_injection_detected`.
 Very long text is checked in chunks. d1 and Clef-Flash also check text of more
 than 80 words in overlapping windows of whole sentences or lines, up to 80
 words each, one about every 40 words (ADR 0077). Every detector also checks

@@ -40,7 +40,7 @@ def select_images(paths, *, diff=None, excluded=(), exclude_patterns=()):
                 selection.errors.append(
                     {
                         "path": str(scope),
-                        "error": "Use a static PNG, JPEG or WebP image.",
+                        "error": "Use a static PNG, JPEG or WebP image, or an SVG file.",
                     }
                 )
             elif excluded_path(scope):
