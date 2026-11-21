@@ -51,6 +51,7 @@ Temporary planning and review queues belong in `.llm-plans/`.
 | [0075](0075-calibrated-default-thresholds-for-local-detectors.md) | Calibrated default thresholds: 40 for d1, 8 for Clef-Flash, 80 for the other detectors (amends 0003); d1 default amended by 0077 |
 | [0076](0076-action-threshold-follows-detector-default.md) | The Action's threshold input follows VIPI's detector default; v1 defaults rule narrowed (amends 0073) |
 | [0077](0077-sentence-windows-for-local-decision-models.md) | d1 and Clef-Flash also check sentence windows of up to 80 words, one about every 40 words; d1 defaults to 45 (amends 0075) |
+| [0079](0079-decode-base64-in-ocr-text.md) | Every detector also checks the repaired plaintext of base64 strings in the OCR text |
 
 When revising an agreed decision, write its replacement with a summary of the
 old ADR (identifier, decision, rationale and reason for revision), then delete

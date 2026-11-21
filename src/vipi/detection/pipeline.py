@@ -3,6 +3,7 @@
 from concurrent.futures import CancelledError, ThreadPoolExecutor, as_completed
 import time
 
+from .decoding import decoded
 from .evidence import build_evidence, chunks, windows
 from .policy import INSTRUCTIONS, POLICY_VERSION, state
 from .providers import create_provider
@@ -47,6 +48,7 @@ def jobs_for(evidence, options):
         )
         if name in LOCAL_DECISION_PROVIDERS:
             parts += list(windows(reading["text"]))
+        parts += list(decoded(reading["text"]))
         for part in parts:
             jobs.append(
                 {
