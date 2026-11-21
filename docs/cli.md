@@ -174,7 +174,9 @@ native detector probability over all completed checks, reported next to the
 empty. An image without text calls no detector and is `no_injection_detected`.
 Very long text is checked in chunks. d1 and Clef-Flash also check text of more
 than 80 words in overlapping windows of whole sentences or lines, up to 80
-words each, one about every 40 words (ADR 0077). Any check at or above the
+words each, one about every 40 words (ADR 0077). Every detector also checks
+the plaintext of base64 strings in the text, repaired for typical OCR errors,
+when it reads as text (ADR 0079). Any check at or above the
 threshold detects; all checks below it do not. The report `schema_version`
 is 2.
 
