@@ -51,8 +51,9 @@ artifact location in the report.
 
 The detector's `detect(evidence)` path operates in memory without filesystem
 artifacts. `detect_ocr()` consumes an `OcrResult` directly and persists its checks
-beside the OCR artifacts. The selected detector checks final OCR text and any
-SVG source reading. In a regular cloud scan it checks the same input raster
+beside the OCR artifacts. The selected detector checks final OCR text and either
+the SVG source reading or, for raster images, the metadata reading
+(`vipi.image_metadata`, [ADR 0083](../adr-code/0083-image-metadata-reading.md)). In a regular cloud scan it checks the same input raster
 after a text verdict with no finding, with the same detection policy and verdict
 threshold ([ADR 0082](../adr-code/0082-cloud-image-check-without-image-only-scans.md)). Dataset references
 remain scoring inputs. Evaluation reuse of complete

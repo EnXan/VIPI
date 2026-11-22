@@ -70,6 +70,7 @@ def fake_scanner(
             detector_model="d1",
             detector_identity="d1",
             svg=None,
+            metadata=None,
         )
 
     return scan, calls

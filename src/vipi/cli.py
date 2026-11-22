@@ -57,10 +57,12 @@ def print_brand(console):
 
 
 def print_extracted_text(console, path, result):
-    """Print the final assembled OCR text, and an SVG's source text, for one image."""
+    """Print the final OCR text and the SVG source or metadata text of one image."""
     readings = [("Extracted text from ", result.ocr.text)]
     if result.svg:
         readings.append(("SVG source text of ", result.svg.document.source_text))
+    if result.metadata and result.metadata.text:
+        readings.append(("Metadata text of ", result.metadata.text))
     for label, text in readings:
         console.print()
         heading = Text(label, style="bold cyan")

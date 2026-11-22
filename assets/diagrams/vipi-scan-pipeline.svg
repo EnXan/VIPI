@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1040 380" role="img" aria-labelledby="title desc">
   <title id="title">How VIPI scans an image</title>
-  <desc id="desc">VIPI reads and reviews image text, then checks it for prompt injections. A regular cloud scan also checks the whole image when text has no finding. Regular SVG scans include the rendered text and the source text. The results are clean (exit 0), injection (exit 1) or incomplete (exit 2).</desc>
+  <desc id="desc">VIPI reads and reviews image text, then checks it for prompt injections. A regular cloud scan also checks the whole image when text has no finding. Scans also check an SVG's source text or a raster image's metadata text. The results are clean (exit 0), injection (exit 1) or incomplete (exit 2).</desc>
   <defs>
     <style>
       .bg { fill: #FFFFFF; stroke: rgba(11,12,16,.12); }
@@ -83,10 +83,10 @@
   <path class="head" d="M711 110l-5-9h10z"/>
   <text class="mono" x="478" y="56" text-anchor="middle">CLEAR</text>
 
-  <!-- An SVG's source text is checked as well -->
+  <!-- An SVG's source text or an image's metadata text is checked as well -->
   <path class="dash" d="M74.5 110V30H751V101"/>
   <path class="head" d="M751 110l-5-9h10z"/>
-  <text class="mono" x="413" y="22" text-anchor="middle">SVG · SOURCE TEXT</text>
+  <text class="mono" x="413" y="22" text-anchor="middle">SVG SOURCE · IMAGE METADATA</text>
 
   <!-- Missing text is read again -->
   <path class="dash" d="M505 211V254H245V219"/>

@@ -106,7 +106,8 @@ In a standard scan, OCR reads the text in the image. If the
 result is unclear, a visual model compares it with the image; when text is
 missing, VIPI reads the image again rotated, with more contrast or upscaled. A
 detector then checks the final text for prompt injections at the selected score
-threshold. Cloud scans check the image when the text check finds no injection.
+threshold, together with the text in the image's metadata or an SVG's source.
+Cloud scans check the image when the text check finds no injection.
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/EnXan/VIPI/main/assets/diagrams/vipi-scan-pipeline.svg" alt="VIPI reads, reviews and checks image text. A cloud scan without a text finding also checks the image. Exit codes are 0 for clean, 1 for a finding and 2 for incomplete." width="900">
@@ -192,9 +193,9 @@ to `.vipiignore`.
 
 | Format | Extensions | Notes |
 | :-- | :-- | :-- |
-| PNG | `.png` | Static images only; animated PNGs are rejected |
-| JPEG | `.jpg`, `.jpeg` | EXIF orientation is applied |
-| WebP | `.webp` | Static images only; animated WebPs are rejected |
+| PNG | `.png` | Static images only; animated PNGs are rejected; metadata text is checked too |
+| JPEG | `.jpg`, `.jpeg` | EXIF orientation is applied; metadata text is checked too |
+| WebP | `.webp` | Static images only; animated WebPs are rejected; metadata text is checked too |
 | SVG | `.svg` | Rendered without scripts or external resources; the source text is checked too |
 
 A score at or above the threshold is a finding. The default depends on the detector: 45 for d1, 8 for Clef-Flash and 80 for the others. Size limits,

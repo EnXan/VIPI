@@ -19,13 +19,15 @@ def scan_image(image, *, options=None, session=None, provider=None, on_event=Non
     """Scan an image path or bytes and return a typed scan result.
 
     An `.svg` path is rendered for OCR, and its source text is checked as a
-    second reading (ADR 0078).
+    second reading (ADR 0078). For a raster image, the text in its metadata is
+    the second reading (ADR 0083).
 
     A caller can reuse a session/provider across images. No existing run directory,
     Flask application or dataset catalog is required.
     """
     from .detection.pipeline import detect_ocr
     from .detection.providers import prepare_provider
+    from .image_metadata import read_metadata
     from .svg import is_svg, prepare_svg
 
     svg = prepare_svg(image) if is_svg(image) else None
@@ -46,6 +48,7 @@ def scan_image(image, *, options=None, session=None, provider=None, on_event=Non
                 )
             )
         ocr = session.extract(source, on_event)
+        metadata = None if svg else read_metadata(image)
         if svg and ocr.artifacts is not None:
             (ocr.artifacts / "input.svg").write_bytes(svg.data)
         detection = detect_ocr(
@@ -54,9 +57,10 @@ def scan_image(image, *, options=None, session=None, provider=None, on_event=Non
             provider_factory=lambda name: provider,
             on_event=on_event,
             source_text=svg.document.detector_text if svg else None,
-            incomplete=svg.incomplete if svg else (),
+            metadata_text=metadata.detector_text if metadata else None,
+            incomplete=svg.incomplete if svg else metadata.incomplete,
         )
-    return ScanResult(ocr, detection, provider.model, provider.identity, svg)
+    return ScanResult(ocr, detection, provider.model, provider.identity, svg, metadata)
 
 
 def scan(
