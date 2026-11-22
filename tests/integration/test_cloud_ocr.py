@@ -189,7 +189,7 @@ def test_cloud_setup_rejects_local_detector_before_download(
         lambda *args, **kwargs: pytest.fail("No cloud OCR weights"),
     )
     monkeypatch.setattr(
-        "vipi.detection.providers.prompt_guard.prepare_model",
+        "vipi.detection.providers.wolf_defender.prepare_model",
         lambda *args, **kwargs: calls.append(args),
     )
     assert (
@@ -201,7 +201,7 @@ def test_cloud_setup_rejects_local_detector_before_download(
                 "--ocr-provider",
                 provider,
                 "--detector",
-                "prompt-guard",
+                "wolf-defender",
             ]
         )
         == 2

@@ -7,7 +7,7 @@ from vipi.config import LOCAL_DECISION_PROVIDERS
 SIGNALS = {
     "jev",
     "openai",
-    "prompt-guard",
+    "wolf-defender",
     *LOCAL_DECISION_PROVIDERS,
 }
 

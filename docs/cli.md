@@ -32,14 +32,14 @@ Without `--diff`, at least one path is required.
 | `--ocr-model ID` | Override OCR with `ppocr-v6`, `ppocr-v6-medium`, `ppocr-v6-small`, `ppocr-v6-tiny`, `google-cloud-vision`, `gpt-6-luna` or `mistral-ocr-4-1`. |
 | `--ocr-provider google|openai|mistral` | Cloud OCR selection, default Google. Requires explicit `--modus cloud`; cannot be combined with `--ocr-model`. |
 | `--decision-provider clef-flash|d1|jev|openai` | OCR review model. Default local quality: Clef-Flash; other local profiles: d1; cloud: OpenAI Decisions. |
-| `--detector auto|jev|openai|prompt-guard|clef-flash|d1` | Injection detector. Default `auto` follows the decision provider in regular scans and selects `openai` with `--image-only`. |
+| `--detector auto|jev|openai|wolf-defender|clef-flash|d1` | Injection detector. Default `auto` follows the decision provider in regular scans and selects `openai` with `--image-only`. |
 | `-h`, `--help` | Show root or command help and exit without preparing models. |
 
 | Scan-only option | Meaning and default |
 | --- | --- |
 | `--diff REFERENCE` | Select committed images added/modified since the common ancestor of REFERENCE and HEAD. |
 | `--exclude PATTERN` | Repeatable ordered filesystem exclusion; `!` re-includes matching paths. No user rules by default. |
-| `--threshold 0–100` | Finding threshold. Default: the detector's calibrated value, 45 for `d1`, 8 for `clef-flash` and 80 for `prompt-guard`, `jev` and `openai` (ADR 0075, ADR 0077). Equality is a finding. The report records the threshold used. |
+| `--threshold 0–100` | Finding threshold. Default: the detector's calibrated value, 45 for `d1`, 8 for `clef-flash`, 40 for `wolf-defender` and 80 for `jev` and `openai` (ADR 0075, ADR 0077, ADR 0082). Equality is a finding. The report records the threshold used. |
 | `--output FILE` | Also write an atomic JSON report, including findings or incomplete scans. |
 | `--verbose` | Print each image's final OCR text. Off by default. |
 | `--list-only` | Run input selection only and list the selected images; no models, providers or keys are used. Selected files have status `selected` and the report status is `listed`; exit 2 on selection errors, otherwise 0. |
@@ -60,8 +60,8 @@ uv run vipi scan ./images --verbose
 uv run vipi scan ./images --ocr-mode speed
 uv run vipi scan image.png --modus cloud --ocr-provider mistral --decision-provider jev
 uv run vipi scan image.png --image-only --detector jev --output report.json
-uv run vipi setup --ocr-mode balanced --detector prompt-guard
-uv run vipi scan ./images --ocr-mode balanced --detector prompt-guard
+uv run vipi setup --ocr-mode balanced --detector wolf-defender
+uv run vipi scan ./images --ocr-mode balanced --detector wolf-defender
 ```
 
 ## Credentials and local models
@@ -77,10 +77,10 @@ setting prevents fallback to the file. See [`.env.example`](../.env.example).
 | Mistral OCR | `MISTRAL_API_KEY` |
 | Jev review/detection | `TYPESAFE_API_KEY`, alias `JEV_API_KEY` |
 | Clef-Flash/d1 | Prepared local weights and verified code; no inference API key |
-| Prompt Guard | Prepared local weights; authorized Hugging Face access (`HF_TOKEN` or existing login) for downloads |
+| Wolf Defender | Prepared local weights; no key or Hugging Face login |
 
 The `ocr` extra supplies local OCR and shared image operations. Local decision
-models and Prompt Guard additionally need `detector-local`. Local PP-OCRv6 runs
+models and Wolf Defender additionally need `detector-local`. Local PP-OCRv6 runs
 through ONNX on CPU in the public scanner; decision models select available
 CUDA, Apple MPS or CPU. Research scan configurations use the same OCR execution
 path as the public scanner.
@@ -272,8 +272,8 @@ a live progress display when supported; redirected output uses a compact brand.
 | Windows | `%LOCALAPPDATA%/vipi/` |
 
 `XDG_CACHE_HOME/vipi/` overrides these defaults. OCR files live in `ocr/`, local
-decision models in `decisions/clef-flash` and `decisions/d1`, Prompt Guard in
-`prompt-guard/`, and persistent input/variant/result artifacts in `runs/`.
+decision models in `decisions/clef-flash` and `decisions/d1`, Wolf Defender in
+`wolf-defender/`, and persistent input/variant/result artifacts in `runs/`.
 
 ## Platform validation status
 

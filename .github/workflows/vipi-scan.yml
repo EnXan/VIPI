@@ -19,8 +19,6 @@ jobs:
       - uses: EnXan/vipi-action@5423148a2a7aaf9c2953e41d0ac68fc2f3efab4b # v2.0.0
         with:
           vipi-ref: ${{ github.event.pull_request.head.sha }}
-          detector: prompt-guard
+          detector: wolf-defender
           modus: local
           ocr-mode: balanced
-        env:
-          HF_TOKEN: ${{ secrets.HF_TOKEN }}

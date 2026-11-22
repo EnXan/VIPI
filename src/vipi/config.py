@@ -10,21 +10,21 @@ from dotenv import dotenv_values
 
 LOCAL_DECISION_PROVIDERS = ("clef-flash", "d1")
 CLOUD_DECISION_PROVIDERS = ("jev", "openai")
-LOCAL_DETECTORS = (*LOCAL_DECISION_PROVIDERS, "prompt-guard")
+LOCAL_DETECTORS = (*LOCAL_DECISION_PROVIDERS, "wolf-defender")
 DETECTORS = (
     "auto",
     *CLOUD_DECISION_PROVIDERS,
-    "prompt-guard",
+    "wolf-defender",
     *LOCAL_DECISION_PROVIDERS,
 )
 DEFAULT_DETECTOR = "auto"
 DECISION_PROVIDERS = (*LOCAL_DECISION_PROVIDERS, *CLOUD_DECISION_PROVIDERS)
 JEV_MODEL = "jev-1.14.0"
 DEFAULT_THRESHOLD = 80
-# Calibrated default thresholds of the local decision models (ADR 0075): the
-# highest recall at no more than 5 % false positives on the development split,
-# confirmed on the test split. Other detectors use DEFAULT_THRESHOLD.
-DETECTOR_THRESHOLDS = {"d1": 45, "clef-flash": 8}
+# Calibrated default thresholds of the local detectors (ADR 0075, ADR 0082):
+# the highest recall at no more than 5 % false positives on the development
+# split, checked on the test split. Other detectors use DEFAULT_THRESHOLD.
+DETECTOR_THRESHOLDS = {"d1": 45, "clef-flash": 8, "wolf-defender": 40}
 OCR_MODES = {
     "speed": "ppocr-v6-tiny",
     "balanced": "ppocr-v6-small",
@@ -54,8 +54,8 @@ OCR_MODEL_IDS = (
     "ppocr-v6-medium",
     *CLOUD_OCR_MODELS,
 )
-# Pin the same immutable revision used by the existing local detector.
-PROMPT_GUARD_REVISION = "a8ded8e697ce7c355e395a0df51f94adb4a2fd27"
+# Immutable Hugging Face revision of the local Wolf Defender detector.
+WOLF_DEFENDER_REVISION = "2484cc9a13550aa4f2c29b577ff3ef331dc6ba07"
 
 
 def resolve_ocr_model(

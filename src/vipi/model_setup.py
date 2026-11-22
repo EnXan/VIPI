@@ -4,7 +4,7 @@ from .config import (
     DEFAULT_DETECTOR,
     DEFAULT_OCR_MODE,
     CLOUD_OCR_MODELS,
-    PROMPT_GUARD_REVISION,
+    WOLF_DEFENDER_REVISION,
     cache_directory,
     LOCAL_DECISION_PROVIDERS,
     ScanOptions,
@@ -53,11 +53,11 @@ def setup(
         notify("Preparing PP-OCRv6 models for all modes")
     if model not in CLOUD_OCR_MODELS:
         prepare_models(root / "ocr", model, on_progress=notify)
-    if detector == "prompt-guard":
-        from .detection.providers.prompt_guard import prepare_model
+    if detector == "wolf-defender":
+        from .detection.providers.wolf_defender import prepare_model
 
-        notify("Preparing Prompt Guard 2 86M")
-        prepare_model(root / "prompt-guard", revision=PROMPT_GUARD_REVISION)
+        notify("Preparing Wolf Defender small")
+        prepare_model(root / "wolf-defender", revision=WOLF_DEFENDER_REVISION)
     local_models = {
         name
         for name in (options.resolved_decision_provider, detector)

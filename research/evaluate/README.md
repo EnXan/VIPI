@@ -9,13 +9,13 @@ recorded in [ADR 0054](../../adr-code/0054-evaluation-runs-and-baseline.md).
 ## Configurations
 
 A configuration is a set of `vipi scan` options. The threshold stays at the
-product default (80); the detector stays `auto` unless the name ends in `-jev`.
+product default (80); the detector stays `auto` unless the name ends in `-jev` or `-wolf-defender`.
 
 | Configuration | Scan options | Detector |
 | --- | --- | --- |
 | `local-speed`, `local-balanced` | `--modus local --ocr-mode <mode>` | d1 |
 | `local-quality-clef-flash` | `--modus local --ocr-mode quality --decision-provider clef-flash` (the product default since ADR 0065) | Clef-Flash (also reviews OCR) |
-| `local-speed-prompt-guard`, `local-balanced-prompt-guard`, `local-quality-prompt-guard` | the local configuration plus `--detector prompt-guard` | Prompt Guard 2 (OCR review stays d1 or Clef-Flash) |
+| `local-speed-wolf-defender`, `local-balanced-wolf-defender`, `local-quality-wolf-defender` | the local configuration plus `--detector wolf-defender` | Wolf Defender small (OCR review stays d1 or Clef-Flash) |
 | `cloud-google`, `cloud-openai`, `cloud-mistral` | `--modus cloud --ocr-provider <provider>` | OpenAI Luna |
 | `cloud-google-jev`, `cloud-openai-jev`, `cloud-mistral-jev` | the same plus `--detector jev` | Jev |
 
@@ -23,9 +23,9 @@ A `-jev` configuration and its counterpart without the suffix share OCR and
 OCR review; only the final detector differs, so comparing their runs compares
 the two detectors on the same text. Each has its own baseline. Jev needs
 `TYPESAFE_API_KEY`; its usage is recorded, but no cost is estimated. The same
-holds for a `-prompt-guard` configuration and its local counterpart; Prompt
-Guard 2 needs accepted model terms on Hugging Face for `vipi setup --detector
-prompt-guard` and then runs offline.
+holds for a `-wolf-defender` configuration and its local counterpart; Wolf
+Defender is prepared with `vipi setup --detector wolf-defender` (no Hugging
+Face login) and then runs offline.
 
 Local configurations run offline (network blocked) and need the models from
 `vipi setup`. Cloud configurations need the provider API keys and incur
@@ -114,7 +114,7 @@ uv run python -m research.evaluate rescore <run-id>
   evaluation ([ADR 0068](../../adr-code/0068-position-free-benchmark-scoring.md)).
 - `detect-text <run-id> --detector <name>` compares detectors on identical
   text: it restores each image's OCR from a complete run and runs only that
-  detector, for example `prompt-guard` on `cloud-mistral` text, which no
+  detector, for example `wolf-defender` on `cloud-mistral` text, which no
   configuration allows. It writes `runs/detector-text/<run-id>--<detector>/`
   with one row per image and `summary.json`; results are not baselines. Each
   row records whether the detector got the same text as the source run's

@@ -324,7 +324,7 @@ def main(argv=None):
         return report["exit_code"]
     except (Exception, KeyboardInterrupt) as error:
         if isinstance(error, ModuleNotFoundError):
-            message = "Missing runtime dependencies. Install VIPI with the ocr extra and detector-local for local decision models or Prompt Guard."
+            message = "Missing runtime dependencies. Install VIPI with the ocr extra and detector-local for local decision models or Wolf Defender."
         else:
             message = str(error) or "Interrupted."
         print_error(error_console, message)

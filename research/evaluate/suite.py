@@ -92,15 +92,15 @@ def used_registry_entries(scan_options, registries):
 
 def detector_models(scan_options):
     """Pinned detectors outside the registries, only when the configuration uses them."""
-    if config.ScanOptions(**scan_options).resolved_detector != "prompt-guard":
+    if config.ScanOptions(**scan_options).resolved_detector != "wolf-defender":
         return {}
-    from vipi.detection.providers.prompt_guard import MODEL_ID
+    from vipi.detection.providers.wolf_defender import MODEL_ID
 
     return {
         "detector_models": {
-            "prompt-guard": {
+            "wolf-defender": {
                 "repository": MODEL_ID,
-                "revision": config.PROMPT_GUARD_REVISION,
+                "revision": config.WOLF_DEFENDER_REVISION,
             }
         }
     }

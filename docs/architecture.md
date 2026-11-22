@@ -131,7 +131,7 @@ evaluation code ([ADR 0053](../adr-code/0053-one-evaluation-dataset.md)).
 
 `ocr` and `ocr-cuda` select alternative ONNX OCR runtimes and shared image,
 layout and quality-signal dependencies. `detector-local` supplies PyTorch,
-Transformers, the local decision models and Prompt Guard's runtime dependencies.
+Transformers, the local decision models and Wolf Defender's runtime dependencies.
 `research` supplies Flask for the local workbench; `test` supplies pytest and
 Ruff. Cloud installation with `ocr` requires neither PyTorch nor TensorFlow.
 
