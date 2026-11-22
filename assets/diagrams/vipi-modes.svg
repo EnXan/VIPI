@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1040 392" role="img" aria-labelledby="title desc">
   <title id="title">Local and cloud mode</title>
-  <desc id="desc">Local mode: install vipi-scanner with the ocr and detector-local extras, run vipi setup with the OCR mode to download pinned models (Prompt Guard needs a Hugging Face token), then scan without API calls; OCR runs on the CPU, Clef-Flash and d1 on CUDA, Apple MPS or CPU, and images stay on the machine. Cloud mode: install vipi-scanner with the ocr extra, run vipi setup --modus cloud, which downloads nothing and costs nothing, set the provider API keys, then scan with --modus cloud; images go to the providers and each request is billed. Local and cloud cannot be mixed and there is no fallback.</desc>
+  <desc id="desc">Local scans prepare pinned models and keep images on the machine. Use the ocr extra and provider keys for cloud scans. The image-only option sends the image directly to the selected detector without model setup. Cloud requests are billed by the selected providers.</desc>
   <defs>
     <style>
       .bg { fill: #FFFFFF; stroke: rgba(11,12,16,.12); }
@@ -102,5 +102,5 @@
   <text class="mono-inv" x="802" y="352">BILLED PER REQUEST</text>
   <path class="wire" d="M758 302H778"/>
   <path class="head" d="M786 302l-9-5v10z"/>
-  <text class="mono" x="1012" y="226" text-anchor="end">NO MIXING · NO FALLBACK</text>
+  <text class="mono" x="1012" y="226" text-anchor="end">DIRECT SCAN: --image-only</text>
 </svg>

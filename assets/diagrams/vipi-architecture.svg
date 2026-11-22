@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1040 440" role="img" aria-labelledby="title desc">
   <title id="title">VIPI package boundaries</title>
-  <desc id="desc">The product package vipi, the only part of the wheel, passes an image from the command line through inputs, the scanner, OCR and detection to the report and exit code; the scanner renders SVG files with vipi.svg, and detection also checks an SVG's source text; config, model setup, results, storage and the local decision models are shared. The research tools (workbench, evaluate, ocr_eval, curation, catalog) import vipi; vipi never imports research or Flask.</desc>
+  <desc id="desc">The product package passes files from the command line through input selection, the scanner, OCR, detection and reporting. Cloud detection can also receive the input raster directly. Research tools import the product package.</desc>
   <defs>
     <style>
       .bg { fill: #FFFFFF; stroke: rgba(11,12,16,.12); }
@@ -87,6 +87,9 @@
   <text class="mono-inv" x="889" y="152">EXIT 0 · 1 · 2</text>
   <path class="wire" d="M851 118H865"/>
   <path class="head" d="M873 118l-9-5v10z"/>
+  <path class="dash" d="M443 181V196H779V190"/>
+  <path class="head" d="M779 181l-5 9h10z"/>
+  <text class="mono" x="610" y="212" text-anchor="middle">CLOUD WHOLE-IMAGE EVIDENCE</text>
   <text class="step" x="33" y="214">SHARED BY ALL</text>
   <text class="mono" x="33" y="236">CONFIG · MODEL_SETUP · RESULTS · STORAGE · LOCAL_DECISIONS</text>
   <rect class="group" x="12.5" y="310.5" width="1016" height="118" rx="6"/>

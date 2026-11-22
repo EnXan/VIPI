@@ -14,23 +14,24 @@ the research web UI are not included in the wheel.
 
 ## Product boundaries
 
-![The product package vipi passes an image from the command line through inputs, scanner, OCR and detection to the report; the scanner renders SVG files with vipi.svg, and detection also checks an SVG's source text. The research tools import vipi; vipi never imports research or Flask.](../assets/diagrams/vipi-architecture.svg)
+![The scanner connects files and Git inputs to OCR, detection and reports. Whole-image detection can also receive the source raster directly. Research tools import the product package.](../assets/diagrams/vipi-architecture.svg)
 
 | Module | Owns |
 | --- | --- |
 | `vipi.cli` | Argument parsing, terminal interaction and process exit codes |
 | `vipi.scanner` | A shared image scan and sequential scans of selected inputs |
 | `vipi.inputs` | File discovery and immutable Git branch-diff inputs |
+| `vipi.images` | Raster decoding and preparation for hosted image decisions |
 | `vipi.svg` | SVG source text, the render-safe copy and resvg rendering ([ADR 0078](../adr-code/0078-svg-inputs.md)) |
 | `vipi.ocr` | Transformations, OCR engines, assembly and reusable model sessions |
-| `vipi.detection` | Final-text evidence, one selected detector and score policy |
+| `vipi.detection` | Text and whole-image checks, one selected detector and score policy |
 | `vipi.results` | `OcrResult`, `DetectionResult` and `ScanResult` at component boundaries |
 | `vipi.config` | Public defaults, validated `ScanOptions`, cache paths and credential resolution |
 | `vipi.model_setup` | Explicit preparation of the release-pinned models |
 | `vipi.reporting` | Conversion to the CLI report schema and its exit policy |
 | `vipi.storage` | Atomic JSON, file hashes, run artifacts and transport-independent events |
 
-![VIPI reads the text of an image with OCR, has a visual model review uncertain OCR and re-reads the image if text is missing, then checks the final text for prompt injections; for an SVG file it also checks the source text.](../assets/diagrams/vipi-scan-pipeline.svg)
+![VIPI checks final OCR text and checks the whole image when a cloud scan finds no injection in text. Image-only scans skip OCR.](../assets/diagrams/vipi-scan-pipeline.svg)
 
 The data flow is:
 
@@ -38,7 +39,7 @@ The data flow is:
 CLI -> file/Git inputs -> scanner.scan_image
                            -> (SVG: vipi.svg source text + rendered PNG)
                            -> OCR -> OcrResult
-                           -> detection (+ SVG source text) -> DetectionResult
+                           -> detection (+ SVG source text or whole image) -> DetectionResult
                            -> ScanResult -> report/exit code
 ```
 
@@ -50,9 +51,12 @@ artifact location in the report.
 
 The detector's `detect(evidence)` path operates in memory without filesystem
 artifacts. `detect_ocr()` consumes an `OcrResult` directly and persists its checks
-beside the OCR artifacts. One selected detector checks only the final OCR text
-and, for SVG files, their source text (ADR 0078);
-dataset references never become classifier evidence. Evaluation reuse of complete
+beside the OCR artifacts. The selected detector checks final OCR text and any
+SVG source reading. In a regular cloud scan it checks the same input raster
+after a text verdict with no finding. `detect_image()` runs only the image
+check. Both routes use the same detection policy and verdict threshold
+([ADR 0081](../adr-code/0081-direct-cloud-image-detection.md)). Dataset references
+remain scoring inputs. Evaluation reuse of complete
 OCR/detection results belongs to `research.ocr_eval.ocr_reuse`.
 
 ## OCR implementation

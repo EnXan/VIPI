@@ -1,9 +1,12 @@
 """Shared image scanning; CLI/file selection and report formatting stay adapters."""
 
 from contextlib import ExitStack
+from io import BytesIO
 import time
+from uuid import uuid4
 
 from .config import (
+    CLOUD_DECISION_PROVIDERS,
     DEFAULT_DETECTOR,
     DEFAULT_OCR_MODE,
     ScanOptions,
@@ -15,17 +18,16 @@ from .results import ScanResult
 
 
 def scan_image(image, *, options=None, session=None, provider=None, on_event=None):
-    """Scan an image path or bytes and return typed OCR and detection results.
+    """Scan an image path or bytes and return a typed scan result.
 
     An `.svg` path is rendered for OCR, and its source text is checked as a
-    second reading (ADR 0078).
+    second reading (ADR 0078). Image-only scans check the rendered pixels.
 
     A caller can reuse a session/provider across images. No existing run directory,
     Flask application or dataset catalog is required.
     """
-    from .detection.pipeline import detect_ocr
+    from .detection.pipeline import detect_image, detect_ocr
     from .detection.providers import prepare_provider
-    from .ocr.session import OcrSession
     from .svg import is_svg, prepare_svg
 
     svg = prepare_svg(image) if is_svg(image) else None
@@ -33,8 +35,31 @@ def scan_image(image, *, options=None, session=None, provider=None, on_event=Non
     provider = provider or prepare_provider(
         options.resolved_detector, cache_directory() / "prompt-guard"
     )
+    source = svg.rendered.png if svg else image
+    if options.image_only:
+        from .images import decode_image
+
+        raster = decode_image(
+            BytesIO(source) if isinstance(source, bytes) else source, max_pixels=None
+        )
+        artifacts = cache_directory() / "runs" / uuid4().hex
+        detection = detect_image(
+            raster,
+            artifacts=artifacts,
+            options=options.detection_options(),
+            provider_factory=lambda name: provider,
+            on_event=on_event,
+            incomplete=svg.incomplete if svg else (),
+        )
+        if svg:
+            (artifacts / "input.svg").write_bytes(svg.data)
+        return ScanResult(
+            None, detection, provider.model, provider.identity, svg, artifacts
+        )
     with ExitStack() as resources:
         if session is None:
+            from .ocr.session import OcrSession
+
             session = resources.enter_context(
                 OcrSession(
                     mode=options.ocr_mode,
@@ -42,7 +67,7 @@ def scan_image(image, *, options=None, session=None, provider=None, on_event=Non
                     decision_provider=options.resolved_decision_provider,
                 )
             )
-        ocr = session.extract(svg.rendered.png if svg else image, on_event)
+        ocr = session.extract(source, on_event)
         if svg and ocr.artifacts is not None:
             (ocr.artifacts / "input.svg").write_bytes(svg.data)
         detection = detect_ocr(
@@ -72,6 +97,7 @@ def scan(
     progress=None,
     on_result=None,
     list_only=False,
+    image_only=False,
 ):
     """Scan selected inputs sequentially and produce the public report schema.
 
@@ -84,7 +110,7 @@ def scan(
         "schema_version": 2,
         "detector": detector,
         "threshold": threshold,
-        "evidence_scope": "final_ocr",
+        "evidence_scope": "image_only" if image_only else "final_ocr",
         "diff": None,
         "ocr": None,
         "files": [],
@@ -105,8 +131,11 @@ def scan(
             ocr_execution_mode,
             ocr_provider,
             decision_provider,
+            image_only=image_only,
         )
         detector = options.resolved_detector
+        if not image_only and detector in CLOUD_DECISION_PROVIDERS:
+            report["evidence_scope"] = "final_ocr_with_image_check"
         report["detector"] = detector
         report["threshold"] = options.resolved_threshold
         report["decision_provider"] = options.resolved_decision_provider
@@ -141,16 +170,22 @@ def scan(
             return finish(report, started)
 
         from .detection.providers import prepare_provider
-        from .ocr.session import OcrSession
 
         provider = prepare_provider(detector, root / "prompt-guard")
-        with OcrSession(
-            root,
-            mode=options.ocr_mode,
-            model=options.resolved_ocr_model,
-            decision_provider=options.resolved_decision_provider,
-        ) as session:
-            report["ocr"] = session.metadata
+        with ExitStack() as resources:
+            session = None
+            if not options.image_only:
+                from .ocr.session import OcrSession
+
+                session = resources.enter_context(
+                    OcrSession(
+                        root,
+                        mode=options.ocr_mode,
+                        model=options.resolved_ocr_model,
+                        decision_provider=options.resolved_decision_provider,
+                    )
+                )
+                report["ocr"] = session.metadata
             for index, (source, item) in enumerate(
                 zip(selection.images, report["files"]), 1
             ):

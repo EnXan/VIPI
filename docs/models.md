@@ -1,7 +1,8 @@
 # Models and hardware
 
 The public scanner first extracts text, uses visual decisions when OCR recovery
-needs review, and then checks the final text for prompt injections. The
+needs review, and then checks the final text for prompt injections. In cloud
+mode it checks the whole image when the text check finds no injection. The
 [README](../README.md#models-at-a-glance) gives the short overview; this page
 keeps model identifiers, override rules and hardware estimates.
 
@@ -24,8 +25,8 @@ orientation classifier. All local scans use RapidOCR's native pipeline.
 | `--ocr-provider google` (default) | Google Cloud Vision `DOCUMENT_TEXT_DETECTION`, ID `google-cloud-vision` | OCR text and word geometry |
 | `--ocr-provider openai` | `gpt-6-luna`, Responses API | Full-image OCR transcription |
 | `--ocr-provider mistral` | `mistral-ocr-4-1`, Mistral OCR API | OCR transcription and available block geometry |
-| `--decision-provider openai` (default) | `gpt-6-luna`, OpenAI Decisions API | Visual OCR review and default final injection check |
-| `--decision-provider jev` | `jev-1.14.0`, TypeSafe API | Visual OCR review and default final injection check |
+| `--decision-provider openai` (default) | `gpt-6-luna`, OpenAI Decisions API | Visual OCR review and default text and image injection checks |
+| `--decision-provider jev` | `jev-1.14.0`, TypeSafe API | Visual OCR review and default text and image injection checks |
 
 ## Overrides
 

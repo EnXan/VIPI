@@ -29,7 +29,7 @@ vipi scan examples/ --ocr-mode balanced --verbose
 vipi scan examples/ --modus cloud --verbose
 ```
 
-In local `balanced` mode with VIPI 0.14.2, `clean.png` is reported clean and
-both injection images are detections. For `hidden-injection.png`, the first OCR
+In the recorded local `balanced` run with VIPI 0.14.2, `clean.png` was reported
+clean and both injection images were detections. For `hidden-injection.png`, the first OCR
 pass reads only the last line; VIPI then reads an upscaled copy and recovers
 the whole sentence. Other modes and models can give different results.

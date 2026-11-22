@@ -76,7 +76,7 @@ class DetectionResult:
     answers: list[dict]
     check_id: str
     elapsed_seconds: float
-    ocr_complete: bool
+    ocr_complete: bool | None
     incomplete: tuple[str, ...] = ()
 
     @classmethod
@@ -91,7 +91,7 @@ class DetectionResult:
             for answer in self.answers
             if answer["status"] != "completed"
         ]
-        if not self.ocr_complete:
+        if self.ocr_complete is False:
             errors.append("The final OCR text is not available.")
         errors.extend(self.incomplete)
         if self.verdict is None and not errors:
@@ -101,9 +101,10 @@ class DetectionResult:
 
 @dataclass(frozen=True)
 class ScanResult:
-    ocr: OcrResult
+    ocr: OcrResult | None
     detection: DetectionResult
     detector_model: str
     detector_identity: str | dict
     # A `vipi.svg.SvgInput` when the scanned file was an SVG.
     svg: object | None = None
+    artifacts: Path | None = None

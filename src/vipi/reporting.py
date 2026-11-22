@@ -20,7 +20,9 @@ def finish(report, started):
     report["summary"] = {
         "selected": len(files),
         "completed": sum(item["status"] == "completed" for item in files),
-        "detections": sum(item.get("verdict") == "injection_detected" for item in files),
+        "detections": sum(
+            item.get("verdict") == "injection_detected" for item in files
+        ),
         "ocr_incomplete": sum(item.get("ocr_incomplete") is True for item in files),
         "failed": sum(item["status"] == "error" for item in files),
         "not_scanned": sum(item["status"] == "not_scanned" for item in files),
@@ -42,27 +44,35 @@ def finish(report, started):
 
 def file_record(result):
     ocr, detection = result.ocr, result.detection
+    artifacts = ocr.artifacts if ocr else result.artifacts
     fees = [answer.get("estimated_usd") for answer in detection.answers]
     detector_fee = (
         sum(fees)
         if fees and all(isinstance(value, (int, float)) for value in fees)
         else None
     )
-    remote = [
-        a
-        for a in detection.answers
-        if a.get("provider") in {"jev", "openai"}
-    ]
-    ocr_fee = ocr.cost.get("estimated_usd")
+    remote = [a for a in detection.answers if a.get("provider") in {"jev", "openai"}]
+    ocr_fee = ocr.cost.get("estimated_usd") if ocr else 0.0
+    image_answer = next(
+        (a for a in detection.answers if a.get("kind") == "image"), None
+    )
+    image_check = (
+        {
+            key: image_answer.get(key)
+            for key in ("status", "verdict", "probability", "submitted_image_size")
+        }
+        if image_answer is not None
+        else None
+    )
     return {
         "status": "error" if detection.errors else "completed",
-        "artifacts": str(ocr.artifacts) if ocr.artifacts is not None else None,
-        "run_id": ocr.run_id,
-        "ocr_seconds": ocr.elapsed_seconds,
-        "ocr_profile": ocr.ocr_profile,
-        "ocr_passes": len(ocr.variants),
-        "ocr_selection": ocr.selection,
-        "ocr_cost": ocr.cost,
+        "artifacts": str(artifacts) if artifacts is not None else None,
+        "run_id": ocr.run_id if ocr else artifacts.name,
+        "ocr_seconds": ocr.elapsed_seconds if ocr else None,
+        "ocr_profile": ocr.ocr_profile if ocr else None,
+        "ocr_passes": len(ocr.variants) if ocr else 0,
+        "ocr_selection": ocr.selection if ocr else None,
+        "ocr_cost": ocr.cost if ocr else None,
         "detection_cost": {
             "estimated_usd": detector_fee,
             "api_calls": len(remote),
@@ -72,7 +82,7 @@ def file_record(result):
         if ocr_fee is not None and detector_fee is not None
         else None,
         "verdict": detection.verdict,
-        "ocr_incomplete": ocr.ocr_incomplete,
+        "ocr_incomplete": ocr.ocr_incomplete if ocr else None,
         "injection_probability": detection.injection_probability,
         "threshold": detection.threshold,
         "signals": detection.signals,
@@ -81,5 +91,6 @@ def file_record(result):
         "detector_identity": result.detector_identity,
         "detection_seconds": detection.elapsed_seconds,
         "errors": detection.errors,
+        **({"image_check": image_check} if image_check is not None else {}),
         **({"svg": result.svg.report(detection.answers)} if result.svg else {}),
     }

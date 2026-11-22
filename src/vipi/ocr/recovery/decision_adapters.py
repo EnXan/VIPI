@@ -3,39 +3,28 @@
 import base64
 from io import BytesIO
 import json
-import math
 import time
 import urllib.error
 
-from PIL import Image, ImageOps
-
 from vipi.config import JEV_MODEL, api_key
 from vipi.detection.providers.http import post_json
+from vipi.images import (
+    OPENAI_MAX_IMAGE_PATCHES as OPENAI_MAX_IMAGE_PATCHES,
+    OPENAI_PATCH_SIZE as OPENAI_PATCH_SIZE,
+    decision_preview,
+    openai_decision_image,
+)
 from vipi.ocr.costs import decisions_estimated_usd
 from vipi.storage.files import write_json
 
 from .decisions import _AdaptiveDecider, read_choice
 
-OPENAI_PATCH_SIZE = 32
-OPENAI_MAX_IMAGE_PATCHES = 30_000
 LOCAL_MODE_PREVIEW_LIMITS = {
     "speed": 512,
     "fast": 512,
     "balanced": 1024,
     "quality": None,
 }
-
-
-def decision_preview(image, maximum=1568):
-    """Prepare a bounded visual preview without changing the OCR raster."""
-    preview = image.convert("RGB").copy()
-    if maximum is not None:
-        preview.thumbnail((maximum, maximum), Image.Resampling.LANCZOS)
-    return ImageOps.expand(
-        preview,
-        (0, 0, max(0, 280 - preview.width), max(0, 280 - preview.height)),
-        fill="white",
-    )
 
 
 def local_preview_maximum(mode, device, image_count):
@@ -47,28 +36,6 @@ def local_preview_maximum(mode, device, image_count):
         hardware_maximum = 1024 if image_count == 1 else 512
         return hardware_maximum if maximum is None else min(maximum, hardware_maximum)
     return maximum
-
-
-def openai_decision_image(image):
-    """Keep full-size input unless it exceeds OpenAI's image patch limit."""
-    raster = image.convert("RGB")
-    width, height = raster.size
-
-    def patch_count(size):
-        width, height = size
-        return math.ceil(width / OPENAI_PATCH_SIZE) * math.ceil(
-            height / OPENAI_PATCH_SIZE
-        )
-
-    if patch_count(raster.size) <= OPENAI_MAX_IMAGE_PATCHES:
-        return raster
-
-    scale = math.sqrt(OPENAI_MAX_IMAGE_PATCHES / patch_count(raster.size))
-    while True:
-        target = (max(1, int(width * scale)), max(1, int(height * scale)))
-        if patch_count(target) <= OPENAI_MAX_IMAGE_PATCHES:
-            return raster.resize(target, Image.Resampling.LANCZOS)
-        scale *= 0.99
 
 
 class JevDecider(_AdaptiveDecider):

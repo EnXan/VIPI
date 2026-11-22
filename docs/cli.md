@@ -11,7 +11,7 @@ uv run vipi setup --ocr-mode balanced
 uv run vipi scan image.png --ocr-mode balanced --output report.json
 ```
 
-![Local mode installs the detector-local extra, downloads pinned models with vipi setup and scans without API calls; cloud mode downloads nothing, needs provider API keys and bills each request. Local and cloud cannot be mixed.](../assets/diagrams/vipi-modes.svg)
+![Local mode uses pinned models. Cloud mode needs provider API keys and bills requests. Image-only scans send the image directly to the selected detector.](../assets/diagrams/vipi-modes.svg)
 
 ## Commands and options
 
@@ -32,7 +32,7 @@ Without `--diff`, at least one path is required.
 | `--ocr-model ID` | Override OCR with `ppocr-v6`, `ppocr-v6-medium`, `ppocr-v6-small`, `ppocr-v6-tiny`, `google-cloud-vision`, `gpt-6-luna` or `mistral-ocr-4-1`. |
 | `--ocr-provider google|openai|mistral` | Cloud OCR selection, default Google. Requires explicit `--modus cloud`; cannot be combined with `--ocr-model`. |
 | `--decision-provider clef-flash|d1|jev|openai` | OCR review model. Default local quality: Clef-Flash; other local profiles: d1; cloud: OpenAI Decisions. |
-| `--detector auto|jev|openai|prompt-guard|clef-flash|d1` | Final text detector. Default `auto` follows the decision provider. |
+| `--detector auto|jev|openai|prompt-guard|clef-flash|d1` | Injection detector. Default `auto` follows the decision provider in regular scans and selects `openai` with `--image-only`. |
 | `-h`, `--help` | Show root or command help and exit without preparing models. |
 
 | Scan-only option | Meaning and default |
@@ -43,12 +43,15 @@ Without `--diff`, at least one path is required.
 | `--output FILE` | Also write an atomic JSON report, including findings or incomplete scans. |
 | `--verbose` | Print each image's final OCR text. Off by default. |
 | `--list-only` | Run input selection only and list the selected images; no models, providers or keys are used. Selected files have status `selected` and the report status is `listed`; exit 2 on selection errors, otherwise 0. |
+| `--image-only` | Send the whole image directly to `openai` (default) or `jev` for injection detection. No OCR or setup is needed. Off by default. It selects cloud detection, accepts `--modus cloud`, and conflicts with local mode, OCR options, `--decision-provider` and `--verbose`. |
 
 Local/cloud choices must agree. Explicit cloud mode rejects `--ocr-mode`, and
 local/cloud detector or decision providers cannot be mixed. A local explicit
 OCR model does not change the profile's decision model. There is no provider
-fallback. The final detector receives the selected OCR text, never dataset
-references or individual transformation variants. See
+fallback. The text check receives the selected OCR text and any SVG source
+reading. If it finds no injection in a regular cloud scan, the same detector
+checks the whole image with the same policy and threshold. An image finding is
+sufficient to mark the file. See
 [recovery stages](ocr-recovery.md) for spatial retries and retained evidence.
 
 ```bash
@@ -56,6 +59,7 @@ uv run vipi scan label.png screenshot.jpg
 uv run vipi scan ./images --verbose
 uv run vipi scan ./images --ocr-mode speed
 uv run vipi scan image.png --modus cloud --ocr-provider mistral --decision-provider jev
+uv run vipi scan image.png --image-only --detector jev --output report.json
 uv run vipi setup --ocr-mode balanced --detector prompt-guard
 uv run vipi scan ./images --ocr-mode balanced --detector prompt-guard
 ```
@@ -82,6 +86,13 @@ CUDA, Apple MPS or CPU. Research scan configurations use the same OCR execution
 path as the public scanner.
 Cloud recovery can submit additional transformed images and make billable OCR
 and decision requests. Reports retain actual usage and unknown costs as unknown.
+
+`--image-only` uses the `ocr` extra's image libraries and only the selected
+detector's API key. It checks the whole raster with Jev or GPT-6 Luna through
+OpenAI Decisions. Jev accepts 280–1568 pixels per side, so VIPI scales down or
+adds white padding where needed. OpenAI uses `detail: original` and VIPI scales
+down inputs above 30,000 image patches. SVGs are safely rendered first. This mode
+checks the rendered pixels and leaves hidden SVG source text to regular scans.
 
 ## Excluding images
 
@@ -217,7 +228,9 @@ Errors take precedence. Each file record has a `verdict`: `injection_detected`,
 complete (the file is then an error). `injection_probability` is the highest
 native detector probability over all completed checks, reported next to the
 `threshold` that decides the verdict; it is `null` when the final OCR text (and,
-for SVG, the source text) is empty. An image without text calls no detector and is `no_injection_detected`.
+for SVG, the source text) is empty and there is no completed image check.
+Local scans without a text reading are `no_injection_detected`. Cloud scans
+without a text reading go straight to the image check after OCR.
 Very long text is checked in chunks. d1 and Clef-Flash also check text of more
 than 80 words in overlapping windows of whole sentences or lines, up to 80
 words each, one about every 40 words (ADR 0077). Every detector also checks
@@ -225,6 +238,13 @@ the plaintext of base64 strings in the text, repaired for typical OCR errors,
 when it reads as text (ADR 0079). Any check at or above the
 threshold detects; all checks below it do not. The report `schema_version`
 is 2.
+
+Image checks appear as `image_check` on the file record with `status`, `verdict`,
+`probability` and `submitted_image_size` when available. They count toward
+`detection_cost`. A required image check that fails leaves the scan incomplete.
+The report has `evidence_scope: image_only` for `--image-only` and
+`final_ocr_with_image_check` for a regular cloud scan. Image-only reports have
+zero OCR passes and null OCR metadata.
 
 `ocr_incomplete` says whether readable image text is missing from the final OCR
 text: `true`, `false`, or `null` when it was not judged. When recovery kept the

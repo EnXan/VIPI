@@ -144,6 +144,11 @@ def scanner_runtime(tmp_path, monkeypatch, scanner_decisions):
                 raise ValueError("Fixture provider failure")
             return {"status": "completed", "probability": self.score}
 
+        def check_image(self, image):
+            if self.failure:
+                raise ValueError("Fixture provider failure")
+            return {"status": "completed", "probability": self.score}
+
     provider = Provider()
     monkeypatch.setattr(
         "vipi.detection.providers.create_provider", lambda *args: provider
