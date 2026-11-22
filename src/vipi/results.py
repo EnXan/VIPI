@@ -101,10 +101,9 @@ class DetectionResult:
 
 @dataclass(frozen=True)
 class ScanResult:
-    ocr: OcrResult | None
+    ocr: OcrResult
     detection: DetectionResult
     detector_model: str
     detector_identity: str | dict
     # A `vipi.svg.SvgInput` when the scanned file was an SVG.
     svg: object | None = None
-    artifacts: Path | None = None
