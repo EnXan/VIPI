@@ -16,7 +16,7 @@ jobs:
           fetch-depth: 0
 
       # The released Action, installing VIPI from this PR's commit.
-      - uses: EnXan/vipi-action@41990d11430e1a2a88ce0487c2354c14d4d3355f # v1.3.0
+      - uses: EnXan/vipi-action@5423148a2a7aaf9c2953e41d0ac68fc2f3efab4b # v2.0.0
         with:
           vipi-ref: ${{ github.event.pull_request.head.sha }}
           detector: prompt-guard
