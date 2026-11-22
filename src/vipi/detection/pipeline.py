@@ -1,6 +1,7 @@
-"""Check final OCR text with one detector and persist its verdict."""
+"""Check scan evidence with one detector and persist its verdict."""
 
 from concurrent.futures import CancelledError, ThreadPoolExecutor, as_completed
+from io import BytesIO
 import time
 
 from .decoding import decoded
@@ -9,6 +10,7 @@ from .policy import INSTRUCTIONS, POLICY_VERSION, state
 from .providers import create_provider
 from .providers.prompt_guard import MODEL_DIR
 from vipi.storage.detection import DetectionStore
+from vipi.storage.files import sha256
 from vipi.cancellation import check_cancelled
 from vipi.config import (
     CLOUD_DECISION_PROVIDERS,
@@ -64,8 +66,18 @@ def jobs_for(evidence, options):
     return jobs
 
 
-def _check_job(job, provider, error, store, cancel_event):
-    """Execute one text check against the already frozen evidence."""
+def _image_job(name, index):
+    return {
+        "id": f"{index:04d}",
+        "provider": name,
+        "signal": name,
+        "kind": "image",
+        "evidence": {"image": "input.png"},
+    }
+
+
+def _check_job(job, provider, error, store, cancel_event, load_image=None):
+    """Execute one check against the already frozen evidence."""
     check_cancelled(cancel_event)
     answer = {
         key: value for key, value in job.items() if key not in {"text", "evidence"}
@@ -82,7 +94,10 @@ def _check_job(job, provider, error, store, cancel_event):
     try:
         if provider is None:
             raise ValueError(error)
-        result = provider.check(state(job["evidence"]))
+        if job["kind"] == "image":
+            result = provider.check_image(load_image())
+        else:
+            result = provider.check(state(job["evidence"]))
         if result.get("status") == "completed":
             probability(result.get("probability"))
         answer.update(result)
@@ -97,6 +112,17 @@ def _check_job(job, provider, error, store, cancel_event):
     return answer
 
 
+def _save_answer(store, answer, signals, thresholds, evidence_complete):
+    single = summarize(
+        [answer],
+        signals,
+        thresholds,
+        evidence_complete=evidence_complete or answer["kind"] == "image",
+    )
+    answer.update(verdict=single["verdict"], check_id=store.id)
+    store.save_answer(answer)
+
+
 def detect(
     evidence,
     *,
@@ -106,40 +132,48 @@ def detect(
     on_event=None,
     provider_factory=None,
     cancel_event=None,
+    load_image=None,
 ):
-    """Check final OCR evidence, preserving cancellation and partial answers."""
+    """Check the requested evidence, preserving cancellation and partial answers."""
     options = settings(**(options or {}))
     incomplete = evidence.get("incomplete", [])
-    evidence_complete = evidence["ocr_complete"] and not incomplete
+    evidence_complete = evidence["ocr_complete"] is not False and not incomplete
     store = store or DetectionStore(on_event=on_event, run_id=evidence["run_id"])
     factory = provider_factory or (lambda name: create_provider(name, model_dir))
     started = time.perf_counter()
     name = options["text_classifier"]
     signals = [name]
+    scope = evidence.get("scope", "final_ocr")
+    check_image_after_text = scope != "image_only" and load_image is not None
+    thresholds = options["thresholds"]
     try:
         check_cancelled(cancel_event)
-        jobs = jobs_for(evidence, options)
-        store.save_document(
-            "inputs.json",
-            {
-                "schema_version": 3,
-                "evidence_scope": evidence.get("scope", "final_ocr"),
-                "policy_version": POLICY_VERSION,
-                "instructions": INSTRUCTIONS,
-                "options": options,
-                "evidence": evidence,
-                "jobs": jobs,
-            },
+        jobs = (
+            [_image_job(name, 1)]
+            if scope == "image_only"
+            else jobs_for(evidence, options)
         )
+        inputs = {
+            "schema_version": 3,
+            "evidence_scope": scope,
+            "policy_version": POLICY_VERSION,
+            "instructions": INSTRUCTIONS,
+            "options": options,
+            "evidence": evidence,
+            "jobs": jobs,
+        }
+        if check_image_after_text:
+            inputs["image_check_after_text"] = True
+        store.save_document("inputs.json", inputs)
         store.emit(
             "detection_started",
             state="running",
             total=len(jobs),
-            evidence_scope=evidence.get("scope", "final_ocr"),
+            evidence_scope=scope,
             signals=signals,
         )
         provider, error = None, None
-        if jobs:
+        if jobs or check_image_after_text:
             check_cancelled(cancel_event)
             try:
                 provider = factory(name)
@@ -150,7 +184,9 @@ def detect(
             thread_name_prefix="detector",
         ) as pool:
             futures = [
-                pool.submit(_check_job, job, provider, error, store, cancel_event)
+                pool.submit(
+                    _check_job, job, provider, error, store, cancel_event, load_image
+                )
                 for job in jobs
             ]
             for future in as_completed(futures):
@@ -158,25 +194,32 @@ def detect(
                     answer = future.result()
                 except CancelledError:
                     continue
-                summary = summarize(
-                    [answer],
-                    signals,
-                    options["thresholds"],
-                    evidence_complete=evidence_complete,
-                )
-                answer.update(verdict=summary["verdict"], check_id=store.id)
-                store.save_answer(answer)
+                _save_answer(store, answer, signals, thresholds, evidence_complete)
         check_cancelled(cancel_event)
         answers = sorted(store.results, key=lambda answer: answer["id"])
         summary = summarize(
             answers,
             signals,
-            options["thresholds"],
+            thresholds,
             evidence_complete=evidence_complete,
         )
+        if check_image_after_text and summary["verdict"] != "injection_detected":
+            job = _image_job(name, len(jobs) + 1)
+            jobs.append(job)
+            scope += "_and_image"
+            inputs["evidence_scope"] = scope
+            store.save_document("inputs.json", inputs)
+            store.emit("image_check_scheduled", total=len(jobs))
+            answer = _check_job(job, provider, error, store, cancel_event, load_image)
+            _save_answer(store, answer, signals, thresholds, evidence_complete)
+            answers.append(answer)
+            check_cancelled(cancel_event)
+            summary = summarize(
+                answers, signals, thresholds, evidence_complete=evidence_complete
+            )
         result = {
             "schema_version": 3,
-            "evidence_scope": evidence.get("scope", "final_ocr"),
+            "evidence_scope": scope,
             "run_id": evidence["run_id"],
             "check_id": store.id,
             "policy_version": POLICY_VERSION,
@@ -184,7 +227,7 @@ def detect(
             "ocr_complete": evidence["ocr_complete"],
             "incomplete": incomplete,
             "readings": len(evidence["readings"]),
-            "thresholds": options["thresholds"],
+            "thresholds": thresholds,
             "answers": answers,
             **summary,
             "elapsed_seconds": time.perf_counter() - started,
@@ -224,6 +267,7 @@ def detect_ocr(
     on_event=None,
     source_text=None,
     incomplete=(),
+    text_only=False,
 ):
     """Use a typed OCR result directly; persistence follows its artifact location.
 
@@ -240,11 +284,52 @@ def detect_ocr(
         incomplete=incomplete,
     )
     store = DetectionStore(ocr.artifacts, on_event, run_id=ocr.run_id)
+    check_image = (
+        not text_only
+        and (options or {}).get("text_classifier", "jev") in CLOUD_DECISION_PROVIDERS
+    )
+
+    def load_image():
+        from vipi.images import decode_image
+
+        if ocr.image is None:
+            raise ValueError("The input image is unavailable for image detection.")
+        return decode_image(BytesIO(ocr.image), max_pixels=None)
+
     payload = detect(
         evidence,
         options=options,
         store=store,
         provider_factory=provider_factory,
         on_event=on_event,
+        load_image=load_image if check_image else None,
+    )
+    return DetectionResult.from_dict(payload)
+
+
+def detect_image(
+    image, *, artifacts, options, provider_factory=None, on_event=None, incomplete=()
+):
+    """Check one decoded image and retain the raster and detector evidence."""
+    from vipi.results import DetectionResult
+
+    store = DetectionStore(artifacts, on_event, run_id=artifacts.name)
+    source = artifacts / "input.png"
+    image.save(source, format="PNG")
+    evidence = {
+        "run_id": artifacts.name,
+        "scope": "image_only",
+        "ocr_complete": None,
+        "readings": [],
+        "image_size": list(image.size),
+        "input_hash": sha256(source),
+        "incomplete": list(incomplete),
+    }
+    payload = detect(
+        evidence,
+        options=options,
+        store=store,
+        provider_factory=provider_factory,
+        load_image=lambda: image,
     )
     return DetectionResult.from_dict(payload)

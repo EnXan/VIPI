@@ -1,9 +1,10 @@
-"""Decisions API predicate checks for final OCR text."""
+"""Decisions API predicate checks for text and images."""
 
+import base64
 import json
 
 from vipi.config import api_key
-from ..policy import INSTRUCTIONS, QUESTION_ID
+from ..policy import INSTRUCTIONS, QUESTION_ID, state as policy_state
 from ..verdict import probability
 from .http import post_json
 
@@ -18,10 +19,36 @@ class Decisions:
         self.transport = transport
 
     def check(self, state):
+        return self._check(state)
+
+    def check_image(self, image):
+        from vipi.images import openai_decision_image, png_bytes
+        from vipi.ocr.costs import decisions_estimated_usd
+
+        submitted = openai_decision_image(image)
+        encoded = base64.b64encode(png_bytes(submitted)).decode("ascii")
+        result = self._check(
+            policy_state({"image": "The attached image in this message."}),
+            image={
+                "type": "input_image",
+                "image_url": f"data:image/png;base64,{encoded}",
+                "detail": "original",
+            },
+        )
+        usage = result.get("raw", {}).get("usage", {})
+        return {
+            **result,
+            "submitted_image_size": list(submitted.size),
+            "estimated_usd": decisions_estimated_usd(usage),
+        }
+
+    def _check(self, evidence_state, *, image=None):
         if not self.key:
             raise ValueError("Set OPENAI_API_KEY for Decisions.")
-        text = json.dumps(state, ensure_ascii=False, sort_keys=True)
+        text = json.dumps(evidence_state, ensure_ascii=False, sort_keys=True)
         content = [{"type": "input_text", "text": text}]
+        if image is not None:
+            content.append(image)
         raw, meta = self.transport(
             "https://api.openai.com/v1/decisions",
             self.key,

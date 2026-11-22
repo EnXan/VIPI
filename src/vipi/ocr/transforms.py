@@ -1,28 +1,13 @@
-"""Decode scan inputs and render the recovery views in source coordinates."""
+"""Render OCR recovery views in source coordinates."""
 
 from dataclasses import dataclass
-from pathlib import Path
-
 import numpy as np
 from PIL import Image, ImageOps
 
-MAX_INPUT_PIXELS = 40_000_000
+from vipi.images import MAX_INPUT_PIXELS as MAX_INPUT_PIXELS
+from vipi.images import decode_image as decode_image
+
 TWO_TIMES_MAX_PIXELS = 8_000_000
-
-
-def decode_image(path: str | Path, *, max_pixels=MAX_INPUT_PIXELS) -> Image.Image:
-    with Image.open(path) as image:
-        if (
-            image.format not in {"PNG", "JPEG", "WEBP"}
-            or getattr(image, "n_frames", 1) != 1
-        ):
-            raise ValueError("Use a static PNG, JPEG or WebP image.")
-        if max_pixels is not None and image.width * image.height > max_pixels:
-            raise ValueError(f"Input exceeds {max_pixels / 1_000_000:g} megapixels.")
-        image = ImageOps.exif_transpose(image)
-        rgba = image.convert("RGBA")
-        background = Image.new("RGBA", image.size, "white")
-        return Image.alpha_composite(background, rgba).convert("RGB")
 
 
 @dataclass(frozen=True)

@@ -12,7 +12,7 @@ import math
 import re
 import tempfile
 
-from vipi.ocr.transforms import MAX_INPUT_PIXELS
+from vipi.images import MAX_INPUT_PIXELS
 
 # SVG has no native pixel resolution; diagrams use 10–12 px labels, which 1x
 # leaves at the edge of local OCR. Browsers on HiDPI screens draw at 2x

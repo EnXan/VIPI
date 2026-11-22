@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1040 380" role="img" aria-labelledby="title desc">
   <title id="title">How VIPI scans an image</title>
-  <desc id="desc">An image goes in. VIPI reads its text with OCR; an SVG file is rendered first, and its source text also goes straight to the injection check. A clear result goes straight to the injection check; an uncertain one goes to a visual review, and if text is missing VIPI reads the image again. The injection check ends the scan clean (exit 0), with an injection (exit 1) or incomplete (exit 2). Models per step, local and cloud: OCR uses PP-OCRv6 locally, or Google Cloud Vision, GPT-6 Luna or Mistral OCR. The visual review uses Clef-Flash or d1 locally, or GPT-6 Luna or Jev. The injection check uses Clef-Flash, d1 or Prompt Guard 2 locally, or GPT-6 Luna or Jev.</desc>
+  <desc id="desc">VIPI reads and reviews image text, then checks it for prompt injections. A regular cloud scan also checks the whole image when text has no finding. Image-only scans run the image check directly. Regular SVG scans include the rendered text and the source text. The results are clean (exit 0), injection (exit 1) or incomplete (exit 2).</desc>
   <defs>
     <style>
       .bg { fill: #FFFFFF; stroke: rgba(11,12,16,.12); }
@@ -92,6 +92,11 @@
   <path class="dash" d="M505 211V254H245V219"/>
   <path class="head" d="M245 211l-5 9h10z"/>
   <text class="mono" x="375" y="276" text-anchor="middle">TEXT MISSING · READ AGAIN</text>
+
+  <!-- Whole-image check in cloud mode -->
+  <path class="dash" d="M74.5 211V290H773V220"/>
+  <path class="head" d="M773 211l-5 9h10z"/>
+  <text class="mono" x="501" y="282">IMAGE-ONLY OR NO CLOUD TEXT FINDING</text>
 
   <!-- Result -->
   <path class="wire" d="M796 160H816M816 110V210M816 110H832M816 210H832M816 160H832"/>

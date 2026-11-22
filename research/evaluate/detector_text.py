@@ -84,7 +84,7 @@ def detect_row(row, detector, options, provider):
     started = time.perf_counter()
     try:
         detection = detect_ocr(
-            ocr, options=options, provider_factory=lambda name: provider
+            ocr, options=options, provider_factory=lambda name: provider, text_only=True
         )
     except Exception as error:
         return {

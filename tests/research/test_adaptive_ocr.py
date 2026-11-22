@@ -489,12 +489,12 @@ def test_jev_assessment_sends_full_size_raster(tmp_path, monkeypatch):
 
 
 def test_openai_decision_image_resizes_only_above_provider_patch_limit(monkeypatch):
-    import vipi.ocr.recovery.decision_adapters as decisions
+    import vipi.images as images
 
     image = Image.new("RGB", (130, 100))
     assert openai_decision_image(image).size == image.size
 
-    monkeypatch.setattr(decisions, "OPENAI_MAX_IMAGE_PATCHES", 6)
+    monkeypatch.setattr(images, "OPENAI_MAX_IMAGE_PATCHES", 6)
     resized = openai_decision_image(image)
     assert resized.size != image.size
     assert ((resized.width + 31) // 32 * ((resized.height + 31) // 32)) <= 6
