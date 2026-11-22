@@ -156,6 +156,10 @@ reports with `if: always()` to retain either.
   matched case-insensitively and animated raster images are rejected. Local scans
   accept up to 40 megapixels; cloud scans follow the provider's limits. `.svgz`
   is not supported.
+- **Image metadata:** see [Image metadata](#image-metadata). Values Pillow
+  cannot parse leave the scan incomplete instead of being skipped. Not read:
+  ICC profiles, thumbnails, C2PA manifests and other binary values, and text
+  in formats VIPI does not accept.
 - **SVG:** see [SVG files](#svg-files). The renderer (resvg) draws neither
   `<foreignObject>`, embedded fonts, animation nor text inside embedded SVG
   images, and ignores dark-mode `@media` rules; text in them is covered by the
@@ -172,10 +176,40 @@ reports with `if: always()` to retain either.
   calibrated attack probability. Scores are not comparable across detectors: the
   local decision models score injections far lower than the cloud detectors, so
   their default thresholds are lower. `no_injection_detected` means the detector
-  stayed below the threshold on the final OCR text; it does not prove the image
+  stayed below the threshold on the final OCR text and the SVG source or
+  metadata text; it does not prove the image
   is safe, and it does not say whether OCR missed readable text.
 - **Cost:** cloud scans can make additional billable requests when OCR is
   unclear and the image is reviewed or read again.
+
+## Image metadata
+
+For PNG, JPEG and WebP files, the text in the file's metadata is a second
+reading next to the OCR text ([ADR 0083](../adr-code/0083-image-metadata-reading.md)).
+Applications, agents and tools such as `exiftool` read it, while OCR sees only
+pixels. The reading holds one `field: value` line per text value:
+
+- PNG `tEXt`, `zTXt` and `iTXt` chunks, including chunks after the image data;
+- JPEG comments (`COM`);
+- XMP (PNG `XML:com.adobe.xmp`, JPEG standard and extended XMP, WebP): element
+  text, attribute values except `xmlns`, `rdf:parseType` and `xml:lang`,
+  comments and processing instructions except `xpacket`;
+- EXIF text in IFD0, the Exif IFD and the GPS IFD, including `UserComment`
+  and the GPS method and area fields with their character code and the UTF-16
+  `XP*` fields; byte values count only when they decode as UTF-8 text;
+- IPTC application record values in JPEG files.
+
+Numbers, dates stored as numbers and binary values are not text. Unicode tag
+characters are decoded and other invisible characters are removed, as for the
+SVG source text. An injection in the metadata is a finding. Metadata that
+cannot be parsed (for example EXIF data Pillow ignores, or malformed XMP)
+leaves the scan incomplete: the file is an error (exit 2), and its verdict is
+`injection_detected` when a reading is detected, otherwise `null`.
+
+The file record gains a `metadata` object: `fields` (the field names found),
+`characters`, `invisible_characters`, `unreadable` (the groups that could not
+be parsed) and `scores`, the highest score per reading (`ocr`,
+`image_metadata`). `--verbose` prints the metadata text after the OCR text.
 
 ## SVG files
 
@@ -224,8 +258,8 @@ Errors take precedence. Each file record has a `verdict`: `injection_detected`,
 `no_injection_detected`, or `null` when a required detector check did not
 complete (the file is then an error). `injection_probability` is the highest
 native detector probability over all completed checks, reported next to the
-`threshold` that decides the verdict; it is `null` when the final OCR text (and,
-for SVG, the source text) is empty and there is no completed image check.
+`threshold` that decides the verdict; it is `null` when the final OCR text and
+the SVG source or metadata text are empty and there is no completed image check.
 Local scans without a text reading are `no_injection_detected`. Cloud scans
 without a text reading go straight to the image check after OCR.
 Very long text is checked in chunks. d1 and Clef-Flash also check text of more

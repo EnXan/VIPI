@@ -107,3 +107,5 @@ class ScanResult:
     detector_identity: str | dict
     # A `vipi.svg.SvgInput` when the scanned file was an SVG.
     svg: object | None = None
+    # A `vipi.image_metadata.ImageMetadata` when the file was a raster image.
+    metadata: object | None = None

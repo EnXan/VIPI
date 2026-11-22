@@ -93,4 +93,9 @@ def file_record(result):
         "errors": detection.errors,
         **({"image_check": image_check} if image_check is not None else {}),
         **({"svg": result.svg.report(detection.answers)} if result.svg else {}),
+        **(
+            {"metadata": result.metadata.report(detection.answers)}
+            if result.metadata
+            else {}
+        ),
     }
