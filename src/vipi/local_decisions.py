@@ -9,6 +9,8 @@ from pathlib import Path
 import sys
 import threading
 
+from .torch_logging import quiet_redirects_notice
+
 MODELS = json.loads(Path(__file__).with_name("decision_models.json").read_text())
 _loaded = {}
 _load_lock = threading.Lock()
@@ -103,6 +105,7 @@ class LocalDecisionModel:
         key = (self.name, str(self.directory), self.identity["revision"])
         with _load_lock:
             if key not in _loaded:
+                quiet_redirects_notice()
                 import torch
 
                 if torch.cuda.is_available():
