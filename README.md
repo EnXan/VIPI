@@ -96,12 +96,7 @@ vipi scan image.png --modus cloud \
 ```
 
 Cloud scans also check the whole image with the selected detector when the text
-check finds no injection. To scan directly without OCR or OCR setup, use:
-
-```bash
-vipi scan image.png --image-only --detector openai --output report.json
-vipi scan image.png --image-only --detector jev --output report.json
-```
+check finds no injection.
 
 If `vipi` is not on `PATH`, run `uv tool update-shell` and restart the terminal.
 
@@ -112,10 +107,9 @@ result is unclear, a visual model compares it with the image; when text is
 missing, VIPI reads the image again rotated, with more contrast or upscaled. A
 detector then checks the final text for prompt injections at the selected score
 threshold. Cloud scans check the image when the text check finds no injection.
-The `--image-only` option runs the hosted image check directly.
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/EnXan/VIPI/main/assets/diagrams/vipi-scan-pipeline.svg" alt="VIPI reads, reviews and checks image text. A cloud scan without a text finding also checks the image. Image-only scans go straight to the image check. Exit codes are 0 for clean, 1 for a finding and 2 for incomplete." width="900">
+  <img src="https://raw.githubusercontent.com/EnXan/VIPI/main/assets/diagrams/vipi-scan-pipeline.svg" alt="VIPI reads, reviews and checks image text. A cloud scan without a text finding also checks the image. Exit codes are 0 for clean, 1 for a finding and 2 for incomplete." width="900">
 </p>
 
 <details>

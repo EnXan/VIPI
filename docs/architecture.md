@@ -14,7 +14,7 @@ the research web UI are not included in the wheel.
 
 ## Product boundaries
 
-![The scanner connects files and Git inputs to OCR, detection and reports. Whole-image detection can also receive the source raster directly. Research tools import the product package.](../assets/diagrams/vipi-architecture.svg)
+![The scanner connects files and Git inputs to OCR, detection and reports. Cloud detection can also receive the source raster. Research tools import the product package.](../assets/diagrams/vipi-architecture.svg)
 
 | Module | Owns |
 | --- | --- |
@@ -31,7 +31,7 @@ the research web UI are not included in the wheel.
 | `vipi.reporting` | Conversion to the CLI report schema and its exit policy |
 | `vipi.storage` | Atomic JSON, file hashes, run artifacts and transport-independent events |
 
-![VIPI checks final OCR text and checks the whole image when a cloud scan finds no injection in text. Image-only scans skip OCR.](../assets/diagrams/vipi-scan-pipeline.svg)
+![VIPI checks final OCR text and checks the whole image when a cloud scan finds no injection in text.](../assets/diagrams/vipi-scan-pipeline.svg)
 
 The data flow is:
 
@@ -53,9 +53,8 @@ The detector's `detect(evidence)` path operates in memory without filesystem
 artifacts. `detect_ocr()` consumes an `OcrResult` directly and persists its checks
 beside the OCR artifacts. The selected detector checks final OCR text and any
 SVG source reading. In a regular cloud scan it checks the same input raster
-after a text verdict with no finding. `detect_image()` runs only the image
-check. Both routes use the same detection policy and verdict threshold
-([ADR 0081](../adr-code/0081-direct-cloud-image-detection.md)). Dataset references
+after a text verdict with no finding, with the same detection policy and verdict
+threshold ([ADR 0082](../adr-code/0082-cloud-image-check-without-image-only-scans.md)). Dataset references
 remain scoring inputs. Evaluation reuse of complete
 OCR/detection results belongs to `research.ocr_eval.ocr_reuse`.
 

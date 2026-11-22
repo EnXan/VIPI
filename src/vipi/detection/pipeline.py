@@ -10,7 +10,6 @@ from .policy import INSTRUCTIONS, POLICY_VERSION, state
 from .providers import create_provider
 from .providers.prompt_guard import MODEL_DIR
 from vipi.storage.detection import DetectionStore
-from vipi.storage.files import sha256
 from vipi.cancellation import check_cancelled
 from vipi.config import (
     CLOUD_DECISION_PROVIDERS,
@@ -144,15 +143,11 @@ def detect(
     name = options["text_classifier"]
     signals = [name]
     scope = evidence.get("scope", "final_ocr")
-    check_image_after_text = scope != "image_only" and load_image is not None
+    check_image_after_text = load_image is not None
     thresholds = options["thresholds"]
     try:
         check_cancelled(cancel_event)
-        jobs = (
-            [_image_job(name, 1)]
-            if scope == "image_only"
-            else jobs_for(evidence, options)
-        )
+        jobs = jobs_for(evidence, options)
         inputs = {
             "schema_version": 3,
             "evidence_scope": scope,
@@ -303,33 +298,5 @@ def detect_ocr(
         provider_factory=provider_factory,
         on_event=on_event,
         load_image=load_image if check_image else None,
-    )
-    return DetectionResult.from_dict(payload)
-
-
-def detect_image(
-    image, *, artifacts, options, provider_factory=None, on_event=None, incomplete=()
-):
-    """Check one decoded image and retain the raster and detector evidence."""
-    from vipi.results import DetectionResult
-
-    store = DetectionStore(artifacts, on_event, run_id=artifacts.name)
-    source = artifacts / "input.png"
-    image.save(source, format="PNG")
-    evidence = {
-        "run_id": artifacts.name,
-        "scope": "image_only",
-        "ocr_complete": None,
-        "readings": [],
-        "image_size": list(image.size),
-        "input_hash": sha256(source),
-        "incomplete": list(incomplete),
-    }
-    payload = detect(
-        evidence,
-        options=options,
-        store=store,
-        provider_factory=provider_factory,
-        load_image=lambda: image,
     )
     return DetectionResult.from_dict(payload)

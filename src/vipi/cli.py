@@ -192,11 +192,6 @@ def build_parser():
         help="Only list the images a scan would select; no models, providers or keys",
     )
     command.add_argument(
-        "--image-only",
-        action="store_true",
-        help="Send the whole image directly to Jev or OpenAI (default), without OCR",
-    )
-    command.add_argument(
         "--verbose",
         action="store_true",
         help="Print the extracted OCR text for each scanned image",
@@ -230,8 +225,6 @@ def main(argv=None):
         )
     if args.command == "scan" and not args.paths and args.diff is None:
         parser.error("provide at least one path, or use --diff REFERENCE")
-    if args.command == "scan" and args.image_only and (args.ocr_mode or args.verbose):
-        parser.error("--image-only cannot be combined with --ocr-mode or --verbose.")
 
     console = Console()
     error_console = Console(stderr=True)
@@ -301,7 +294,6 @@ def main(argv=None):
                 progress=lambda message: status.update(Text(message, style="cyan")),
                 on_result=on_result,
                 list_only=args.list_only,
-                image_only=args.image_only,
             )
         for error in report["errors"]:
             message = error.get("error", error) if isinstance(error, dict) else error

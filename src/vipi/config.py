@@ -105,7 +105,6 @@ class ScanOptions:
     ocr_execution_mode: str | None = None
     ocr_provider: str | None = None
     decision_provider: str | None = None
-    image_only: bool = False
 
     def __post_init__(self):
         if self.detector not in DETECTORS:
@@ -117,22 +116,12 @@ class ScanOptions:
             or not 0 <= self.threshold <= 100
         ):
             raise ValueError("Threshold must be a number between 0 and 100.")
-        if self.image_only and (
-            self.ocr_execution_mode not in (None, "cloud")
-            or self.ocr_mode != DEFAULT_OCR_MODE
-            or self.ocr_model is not None
-            or self.ocr_provider is not None
-            or self.decision_provider is not None
-        ):
-            raise ValueError("--image-only uses cloud detection without OCR settings.")
         self.resolved_ocr_model
         self.resolved_decision_provider
         self.resolved_detector
 
     @property
     def resolved_ocr_model(self):
-        if self.image_only:
-            return None
         return resolve_ocr_model(
             self.ocr_mode,
             self.ocr_model,
@@ -142,8 +131,6 @@ class ScanOptions:
 
     @property
     def resolved_ocr_execution_mode(self):
-        if self.image_only:
-            return None
         return "cloud" if self.resolved_ocr_model in CLOUD_OCR_MODELS else "local"
 
     @property
@@ -164,8 +151,6 @@ class ScanOptions:
     @property
     def resolved_decision_provider(self):
         """Resolve OCR review without mixing local and hosted execution."""
-        if self.image_only:
-            return None
         local = self.resolved_ocr_execution_mode == "local"
         if self.decision_provider:
             selected = self.decision_provider
@@ -187,11 +172,6 @@ class ScanOptions:
 
     @property
     def resolved_detector(self):
-        if self.image_only:
-            selected = "openai" if self.detector == "auto" else self.detector
-            if selected not in CLOUD_DECISION_PROVIDERS:
-                raise ValueError("--image-only requires Jev or OpenAI as the detector.")
-            return selected
         selected = (
             self.resolved_decision_provider
             if self.detector == "auto"
