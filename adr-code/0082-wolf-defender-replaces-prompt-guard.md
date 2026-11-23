@@ -105,7 +105,9 @@ split is no independent estimate for it.
   `_x86` INT8 export (about 96 MB, no PyTorch) may help CI install time and is
   left to the OCR/CI speed work (#65); it was not measured.
 - *Wolf Defender as the default local detector*: not decided; it detects less
-  than d1 at 45 on development text (41.4 vs 45.4 %) and on the test split.
+  than d1 at 45 on development text (41.4 vs 45.4 %), on the test split and in
+  the end-to-end speed and balanced runs (41.4 vs 43.2 %, 44.1 vs 45.4 %), at
+  more false positives.
 
 ## Consequences
 
@@ -119,14 +121,22 @@ split is no independent estimate for it.
   change noticeably: the detector took about 0.1 s per image, while the last
   run spent 59 s in setup and 7 min 44 s on three images, dominated by OCR
   (#65).
-- The three saved `-prompt-guard` baselines stay as historical records. The
-  README results table and `vipi-results.svg` still show them until
-  `-wolf-defender` baselines exist.
+- End-to-end development baselines (Apple M4 Pro, commit `6600c048`, clean
+  tree): `local-speed-wolf-defender` 41.4 % recall at 3.6 % false positives
+  (Prompt Guard 18.5 / 2.2, d1 43.2 / 2.2) and `local-balanced-wolf-defender`
+  44.1 / 3.1 (Prompt Guard 16.7 / 1.8, d1 45.4 / 2.2), with the same words
+  recognized as the Prompt Guard runs (70.0 % and 72.3 %). The speed run
+  reproduces the `detect-text` rate at 40 exactly. The README results table
+  and `vipi-results.svg` show both; `local-quality-wolf-defender` is not
+  recorded yet, so its row still shows the last Prompt Guard baseline, marked
+  as removed.
+- The three saved `-prompt-guard` baselines stay as historical records.
 
 ## Validation boundary
 
-Detection rates come from retained OCR text through the product provider, not
-from end-to-end `-wolf-defender` runs. No GitHub runner (Linux, x86) run has
+The threshold comes from retained OCR text through the product provider. The
+speed and balanced rates are also confirmed by end-to-end development runs; the
+quality configuration (Clef-Flash review) has no Wolf Defender run yet. No GitHub runner (Linux, x86) run has
 been measured yet; the vendor warns that its INT8 ONNX files can misbehave on
 some x86 CPUs, which does not apply to the FP32 safetensors used here. Tests
 cover the manifest and checksum, the label check, windowing, offline loading
