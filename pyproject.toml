@@ -59,7 +59,7 @@ ocr-cuda = [
     "resvg-py==0.5.0",
     "zxing-cpp==3.1.1",
 ]
-test = ["fonttools==4.68.0", "pytest==8.4.2", "ruff==0.14.0"]
+test = ["fonttools==4.68.0", "pytest==9.2.0", "ruff==0.14.0"]
 detector-local = [
     "huggingface-hub>=1.32.0",
     "torch==2.11.0",
