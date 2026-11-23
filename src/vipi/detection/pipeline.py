@@ -262,14 +262,15 @@ def detect_ocr(
     on_event=None,
     source_text=None,
     metadata_text=None,
+    barcode_text=None,
     incomplete=(),
     text_only=False,
 ):
     """Use a typed OCR result directly; persistence follows its artifact location.
 
-    ``source_text`` adds an SVG source reading (ADR 0078) and ``metadata_text``
-    an image metadata reading (ADR 0083); ``incomplete`` reasons prevent a
-    clean verdict.
+    ``source_text`` adds an SVG source reading (ADR 0078), ``metadata_text``
+    an image metadata reading (ADR 0083) and ``barcode_text`` decoded code
+    payloads (ADR 0084); ``incomplete`` reasons prevent a clean verdict.
     """
     from vipi.results import DetectionResult
 
@@ -279,6 +280,7 @@ def detect_ocr(
         image=ocr.image,
         source_text=source_text,
         metadata_text=metadata_text,
+        barcode_text=barcode_text,
         incomplete=incomplete,
     )
     store = DetectionStore(ocr.artifacts, on_event, run_id=ocr.run_id)

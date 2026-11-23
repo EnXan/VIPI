@@ -98,4 +98,9 @@ def file_record(result):
             if result.metadata
             else {}
         ),
+        **(
+            {"barcodes": result.barcodes.report(detection.answers)}
+            if result.barcodes
+            else {}
+        ),
     }

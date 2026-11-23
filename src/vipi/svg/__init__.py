@@ -34,14 +34,9 @@ class SvgInput:
 
     def report(self, answers=()):
         """The report's `svg` object; `answers` adds the score per reading."""
-        scores = {}
-        for answer in answers:
-            score = answer.get("probability")
-            if answer.get("status") != "completed" or score is None:
-                continue
-            for source in answer.get("source_ids", ()):
-                reading = "svg_source" if source == "svg_source" else "ocr"
-                scores[reading] = max(score, scores.get(reading, score))
+        from vipi.detection.evidence import reading_scores
+
+        scores = reading_scores(answers, ("ocr", "svg_source"))
         document, rendered = self.document, self.rendered
         return {
             "intrinsic_size": list(rendered.intrinsic_size),

@@ -160,6 +160,8 @@ reports with `if: always()` to retain either.
   cannot parse leave the scan incomplete instead of being skipped. Not read:
   ICC profiles, thumbnails, C2PA manifests and other binary values, and text
   in formats VIPI does not accept.
+- **QR codes and barcodes:** see [QR codes and barcodes](#qr-codes-and-barcodes).
+  Codes too small, blurred or damaged to decode are counted, not checked.
 - **SVG:** see [SVG files](#svg-files). The renderer (resvg) draws neither
   `<foreignObject>`, embedded fonts, animation nor text inside embedded SVG
   images, and ignores dark-mode `@media` rules; text in them is covered by the
@@ -176,8 +178,8 @@ reports with `if: always()` to retain either.
   calibrated attack probability. Scores are not comparable across detectors: the
   local decision models score injections far lower than the cloud detectors, so
   their default thresholds are lower. `no_injection_detected` means the detector
-  stayed below the threshold on the final OCR text and the SVG source or
-  metadata text; it does not prove the image
+  stayed below the threshold on the final OCR text, the SVG source or metadata
+  text and the barcode payloads; it does not prove the image
   is safe, and it does not say whether OCR missed readable text.
 - **Cost:** cloud scans can make additional billable requests when OCR is
   unclear and the image is reviewed or read again.
@@ -210,6 +212,27 @@ The file record gains a `metadata` object: `fields` (the field names found),
 `characters`, `invisible_characters`, `unreadable` (the groups that could not
 be parsed) and `scores`, the highest score per reading (`ocr`,
 `image_metadata`). `--verbose` prints the metadata text after the OCR text.
+
+## QR codes and barcodes
+
+VIPI decodes every QR code and barcode in the scanned raster with zxing-cpp
+and checks the payloads as a further reading
+([ADR 0084](../adr-code/0084-barcode-reading.md)). The raster is the one OCR
+reads: the decoded image, or the safe render of an SVG. Phones, scanners and
+agents act on a payload that OCR cannot read. The reading holds one
+`Format: text` line per code, for every format zxing-cpp reads (for example
+QR Code, Micro QR, Data Matrix, Aztec, PDF417, Code 128, Code 39, EAN/UPC).
+Decoded URLs are checked as text and never fetched. Binary payloads are not
+text and are only counted. Invisible characters are handled as for the SVG
+source text.
+
+An injection in a payload is a finding. A code that is found but cannot be
+decoded is ignored. A failure of the decoder itself leaves the scan
+incomplete (exit 2, verdict `null` unless a reading is detected).
+
+The file record gains a `barcodes` object: `formats` (one entry per decoded
+code), `characters`, `invisible_characters`, `binary` and `scores`, the highest score per reading (`ocr`, `barcode`). `--verbose`
+prints the payloads after the OCR text.
 
 ## SVG files
 
@@ -258,8 +281,9 @@ Errors take precedence. Each file record has a `verdict`: `injection_detected`,
 `no_injection_detected`, or `null` when a required detector check did not
 complete (the file is then an error). `injection_probability` is the highest
 native detector probability over all completed checks, reported next to the
-`threshold` that decides the verdict; it is `null` when the final OCR text and
-the SVG source or metadata text are empty and there is no completed image check.
+`threshold` that decides the verdict; it is `null` when the final OCR text, the
+SVG source or metadata text and the barcode payloads are empty and there is no
+completed image check.
 Local scans without a text reading are `no_injection_detected`. Cloud scans
 without a text reading go straight to the image check after OCR.
 Very long text is checked in chunks. d1 and Clef-Flash also check text of more
