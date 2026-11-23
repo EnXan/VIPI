@@ -44,7 +44,7 @@ def finish(report, started):
 
 def file_record(result):
     ocr, detection = result.ocr, result.detection
-    artifacts = ocr.artifacts if ocr else result.artifacts
+    artifacts = ocr.artifacts
     fees = [answer.get("estimated_usd") for answer in detection.answers]
     detector_fee = (
         sum(fees)
@@ -52,7 +52,7 @@ def file_record(result):
         else None
     )
     remote = [a for a in detection.answers if a.get("provider") in {"jev", "openai"}]
-    ocr_fee = ocr.cost.get("estimated_usd") if ocr else 0.0
+    ocr_fee = ocr.cost.get("estimated_usd")
     image_answer = next(
         (a for a in detection.answers if a.get("kind") == "image"), None
     )
@@ -67,12 +67,12 @@ def file_record(result):
     return {
         "status": "error" if detection.errors else "completed",
         "artifacts": str(artifacts) if artifacts is not None else None,
-        "run_id": ocr.run_id if ocr else artifacts.name,
-        "ocr_seconds": ocr.elapsed_seconds if ocr else None,
-        "ocr_profile": ocr.ocr_profile if ocr else None,
-        "ocr_passes": len(ocr.variants) if ocr else 0,
-        "ocr_selection": ocr.selection if ocr else None,
-        "ocr_cost": ocr.cost if ocr else None,
+        "run_id": ocr.run_id,
+        "ocr_seconds": ocr.elapsed_seconds,
+        "ocr_profile": ocr.ocr_profile,
+        "ocr_passes": len(ocr.variants),
+        "ocr_selection": ocr.selection,
+        "ocr_cost": ocr.cost,
         "detection_cost": {
             "estimated_usd": detector_fee,
             "api_calls": len(remote),
@@ -82,7 +82,7 @@ def file_record(result):
         if ocr_fee is not None and detector_fee is not None
         else None,
         "verdict": detection.verdict,
-        "ocr_incomplete": ocr.ocr_incomplete if ocr else None,
+        "ocr_incomplete": ocr.ocr_incomplete,
         "injection_probability": detection.injection_probability,
         "threshold": detection.threshold,
         "signals": detection.signals,
@@ -93,4 +93,14 @@ def file_record(result):
         "errors": detection.errors,
         **({"image_check": image_check} if image_check is not None else {}),
         **({"svg": result.svg.report(detection.answers)} if result.svg else {}),
+        **(
+            {"metadata": result.metadata.report(detection.answers)}
+            if result.metadata
+            else {}
+        ),
+        **(
+            {"barcodes": result.barcodes.report(detection.answers)}
+            if result.barcodes
+            else {}
+        ),
     }

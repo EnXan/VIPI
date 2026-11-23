@@ -101,10 +101,13 @@ class DetectionResult:
 
 @dataclass(frozen=True)
 class ScanResult:
-    ocr: OcrResult | None
+    ocr: OcrResult
     detection: DetectionResult
     detector_model: str
     detector_identity: str | dict
     # A `vipi.svg.SvgInput` when the scanned file was an SVG.
     svg: object | None = None
-    artifacts: Path | None = None
+    # A `vipi.image_metadata.ImageMetadata` when the file was a raster image.
+    metadata: object | None = None
+    # A `vipi.barcodes.Barcodes` with the decoded QR and barcode payloads.
+    barcodes: object | None = None

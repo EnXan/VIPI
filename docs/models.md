@@ -35,7 +35,7 @@ only the final check: local choices are `clef-flash`, `d1` and `wolf-defender`; 
 choices are `openai` and `jev`. `auto` follows the decision provider.
 `wolf-defender` uses `patronus-studio/wolf-defender-prompt-injection-small`
 (Apache-2.0, not gated) on final OCR text on CPU; it does not perform visual
-OCR review ([ADR 0082](../adr-code/0082-wolf-defender-replaces-prompt-guard.md)). `--ocr-model` changes OCR without changing
+OCR review ([ADR 0085](../adr-code/0085-wolf-defender-replaces-prompt-guard.md)). `--ocr-model` changes OCR without changing
 the local profile's decision model. Local and cloud providers cannot be mixed.
 See the [CLI reference](cli.md#commands-and-options) for every option.
 

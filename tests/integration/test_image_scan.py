@@ -14,41 +14,41 @@ from vipi.scanner import scan
 
 
 @pytest.mark.parametrize("name,size", [("jev", (280, 280)), ("openai", (32, 24))])
-def test_image_only_cli_submits_pixels_and_skips_ocr(tmp_path, monkeypatch, name, size):
-    monkeypatch.chdir(tmp_path)
-    monkeypatch.setenv("XDG_CACHE_HOME", str(tmp_path / "cache"))
+def test_cloud_scan_submits_the_whole_image_after_no_text_finding(
+    monkeypatch, scanner_runtime, name, size
+):
     monkeypatch.setenv("TYPESAFE_API_KEY", "fixture-jev")
     monkeypatch.setenv("OPENAI_API_KEY", "fixture-openai")
-    monkeypatch.setenv("GOOGLE_CLOUD_API_KEY", "")
-    monkeypatch.setenv("GOOGLE_API_KEY", "")
-    calls = []
-
-    def unexpected(*args, **kwargs):
-        pytest.fail("--image-only must skip the OCR session")
+    monkeypatch.setenv("GOOGLE_CLOUD_API_KEY", "fixture-google")
+    images = []
 
     def transport(url, key, body, **kwargs):
-        calls.append((url, key))
         if name == "jev":
-            assert kwargs["headers"] == {"TypeSafe-Danger-Zone-Images": "true"}
-            assert body["state"]["untrusted_evidence"] == {"image": "<image>"}
+            image = "<image>" in body.get("assets", {})
+            if image:
+                assert kwargs["headers"] == {"TypeSafe-Danger-Zone-Images": "true"}
+                assert body["state"]["untrusted_evidence"] == {"image": "<image>"}
+                encoded = body["assets"]["<image>"]["data_base64"]
             assert body["questions"][QUESTION_ID]["instructions"] == INSTRUCTIONS
-            encoded = body["assets"]["<image>"]["data_base64"]
-            answers = {QUESTION_ID: {"type": "noul", "noul": 0.8}}
+            score = 0.8 if image else 0.1
+            answers = {QUESTION_ID: {"type": "noul", "noul": score}}
         else:
-            text, supplied = body["input"][0]["content"]
-            assert json.loads(text["text"])["untrusted_evidence"].keys() == {"image"}
-            assert supplied["detail"] == "original"
+            content = body["input"][0]["content"]
+            image = len(content) == 2
+            if image:
+                text, supplied = content
+                evidence = json.loads(text["text"])["untrusted_evidence"]
+                assert evidence.keys() == {"image"}
+                assert supplied["detail"] == "original"
+                _, encoded = supplied["image_url"].split(",", 1)
             assert body["questions"][0]["instructions"] == INSTRUCTIONS
-            _, encoded = supplied["image_url"].split(",", 1)
-            answers = [{"name": QUESTION_ID, "type": "predicate", "probability": 0.8}]
-        with Image.open(BytesIO(base64.b64decode(encoded))) as submitted:
-            assert submitted.size == size
-            assert submitted.getpixel((0, 0)) == (255, 0, 0)
-            assert submitted.getpixel((31, 23)) == (255, 0, 0)
+            score = 0.8 if image else 0.1
+            answers = [{"name": QUESTION_ID, "type": "predicate", "probability": score}]
+        if image:
+            images.append(encoded)
         return {"answers": answers, "usage": {"input_tokens": 1000}}, {"attempts": 1}
 
     model = Jev if name == "jev" else Decisions
-    monkeypatch.setattr("vipi.ocr.session.OcrSession", unexpected)
     monkeypatch.setattr(
         "vipi.detection.providers.create_provider",
         lambda selected, model_dir: model(transport=transport),
@@ -57,24 +57,29 @@ def test_image_only_cli_submits_pixels_and_skips_ocr(tmp_path, monkeypatch, name
     detector = ["--detector", "jev"] if name == "jev" else []
     assert (
         main(
-            ["scan", "image.png", "--image-only", *detector, "--output", "report.json"]
+            [
+                "scan",
+                "image.png",
+                "--modus",
+                "cloud",
+                *detector,
+                "--output",
+                "report.json",
+            ]
         )
         == 1
     )
     report = json.loads(Path("report.json").read_text())
     record = report["files"][0]
-    assert report["evidence_scope"] == "image_only"
+    assert report["evidence_scope"] == "final_ocr_with_image_check"
     assert report["detector"] == name
-    assert report["ocr"] is report["ocr_model"] is None
-    assert record["ocr_passes"] == 0
     assert record["image_check"]["submitted_image_size"] == list(size)
     assert record["image_check"]["verdict"] == "injection_detected"
-    assert record["detection_cost"]["api_calls"] == len(calls) == 1
-    assert (
-        record["estimated_total_api_cost_usd"]
-        == record["detection_cost"]["estimated_usd"]
-    )
-    assert (Path(record["artifacts"]) / "input.png").is_file()
+    assert len(images) == 1
+    with Image.open(BytesIO(base64.b64decode(images[0]))) as submitted:
+        assert submitted.size == size
+        assert submitted.getpixel((0, 0)) == (255, 0, 0)
+        assert submitted.getpixel((31, 23)) == (255, 0, 0)
 
 
 @pytest.mark.parametrize(

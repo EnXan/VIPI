@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1040 392" role="img" aria-labelledby="title desc">
   <title id="title">Local and cloud mode</title>
-  <desc id="desc">Local scans prepare pinned models and keep images on the machine. Use the ocr extra and provider keys for cloud scans. The image-only option sends the image directly to the selected detector without model setup. Cloud requests are billed by the selected providers.</desc>
+  <desc id="desc">Local scans prepare pinned models and keep images on the machine. Use the ocr extra and provider keys for cloud scans. Cloud requests are billed by the selected providers.</desc>
   <defs>
     <style>
       .bg { fill: #FFFFFF; stroke: rgba(11,12,16,.12); }
@@ -101,5 +101,4 @@
   <text class="mono-inv" x="802" y="352">BILLED PER REQUEST</text>
   <path class="wire" d="M758 302H778"/>
   <path class="head" d="M786 302l-9-5v10z"/>
-  <text class="mono" x="1012" y="226" text-anchor="end">DIRECT SCAN: --image-only</text>
 </svg>

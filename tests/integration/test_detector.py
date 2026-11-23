@@ -649,6 +649,36 @@ def test_without_svg_source_the_evidence_is_unchanged():
     assert "incomplete" not in evidence
 
 
+def test_image_metadata_is_a_second_reading():
+    evidence = build_evidence(
+        {"text": "Visible label"}, run_id="fixture", metadata_text="PNG Comment: hi"
+    )
+    assert evidence["scope"] == "final_ocr_and_image_metadata"
+    assert [reading["sources"][0]["kind"] for reading in evidence["readings"]] == [
+        "assembled",
+        "image_metadata",
+    ]
+    empty = build_evidence(
+        {"text": "Visible label"}, run_id="fixture", metadata_text=""
+    )
+    assert len(empty["readings"]) == 1
+
+
+def test_barcode_payloads_are_a_further_reading():
+    evidence = build_evidence(
+        {"text": "Visible label"},
+        run_id="fixture",
+        metadata_text="PNG Comment: hi",
+        barcode_text="QR Code: https://example.com",
+    )
+    assert evidence["scope"] == "final_ocr_and_image_metadata_and_barcodes"
+    assert [reading["sources"][0]["kind"] for reading in evidence["readings"]] == [
+        "assembled",
+        "image_metadata",
+        "barcode",
+    ]
+
+
 def test_incomplete_evidence_cannot_be_cleared_but_can_detect():
     reason = "The SVG embeds a font."
     clean = build_evidence({"text": "x"}, run_id="fixture", incomplete=(reason,))

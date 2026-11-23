@@ -11,7 +11,7 @@ uv run vipi setup --ocr-mode balanced
 uv run vipi scan image.png --ocr-mode balanced --output report.json
 ```
 
-![Local mode uses pinned models. Cloud mode needs provider API keys and bills requests. Image-only scans send the image directly to the selected detector.](../assets/diagrams/vipi-modes.svg)
+![Local mode uses pinned models. Cloud mode needs provider API keys and bills requests.](../assets/diagrams/vipi-modes.svg)
 
 ## Commands and options
 
@@ -32,18 +32,17 @@ Without `--diff`, at least one path is required.
 | `--ocr-model ID` | Override OCR with `ppocr-v6`, `ppocr-v6-medium`, `ppocr-v6-small`, `ppocr-v6-tiny`, `google-cloud-vision`, `gpt-6-luna` or `mistral-ocr-4-1`. |
 | `--ocr-provider google|openai|mistral` | Cloud OCR selection, default Google. Requires explicit `--modus cloud`; cannot be combined with `--ocr-model`. |
 | `--decision-provider clef-flash|d1|jev|openai` | OCR review model. Default local quality: Clef-Flash; other local profiles: d1; cloud: OpenAI Decisions. |
-| `--detector auto|jev|openai|wolf-defender|clef-flash|d1` | Injection detector. Default `auto` follows the decision provider in regular scans and selects `openai` with `--image-only`. |
+| `--detector auto|jev|openai|wolf-defender|clef-flash|d1` | Injection detector. Default `auto` follows the decision provider. |
 | `-h`, `--help` | Show root or command help and exit without preparing models. |
 
 | Scan-only option | Meaning and default |
 | --- | --- |
 | `--diff REFERENCE` | Select committed images added/modified since the common ancestor of REFERENCE and HEAD. |
 | `--exclude PATTERN` | Repeatable ordered filesystem exclusion; `!` re-includes matching paths. No user rules by default. |
-| `--threshold 0–100` | Finding threshold. Default: the detector's calibrated value, 45 for `d1`, 8 for `clef-flash`, 40 for `wolf-defender` and 80 for `jev` and `openai` (ADR 0075, ADR 0077, ADR 0082). Equality is a finding. The report records the threshold used. |
+| `--threshold 0–100` | Finding threshold. Default: the detector's calibrated value, 45 for `d1`, 8 for `clef-flash`, 40 for `wolf-defender` and 80 for `jev` and `openai` (ADR 0075, ADR 0077, ADR 0085). Equality is a finding. The report records the threshold used. |
 | `--output FILE` | Also write an atomic JSON report, including findings or incomplete scans. |
 | `--verbose` | Print each image's final OCR text. Off by default. |
 | `--list-only` | Run input selection only and list the selected images; no models, providers or keys are used. Selected files have status `selected` and the report status is `listed`; exit 2 on selection errors, otherwise 0. |
-| `--image-only` | Send the whole image directly to `openai` (default) or `jev` for injection detection. No OCR or setup is needed. Off by default. It selects cloud detection, accepts `--modus cloud`, and conflicts with local mode, OCR options, `--decision-provider` and `--verbose`. |
 
 Local/cloud choices must agree. Explicit cloud mode rejects `--ocr-mode`, and
 local/cloud detector or decision providers cannot be mixed. A local explicit
@@ -59,7 +58,6 @@ uv run vipi scan label.png screenshot.jpg
 uv run vipi scan ./images --verbose
 uv run vipi scan ./images --ocr-mode speed
 uv run vipi scan image.png --modus cloud --ocr-provider mistral --decision-provider jev
-uv run vipi scan image.png --image-only --detector jev --output report.json
 uv run vipi setup --ocr-mode balanced --detector wolf-defender
 uv run vipi scan ./images --ocr-mode balanced --detector wolf-defender
 ```
@@ -87,12 +85,11 @@ path as the public scanner.
 Cloud recovery can submit additional transformed images and make billable OCR
 and decision requests. Reports retain actual usage and unknown costs as unknown.
 
-`--image-only` uses the `ocr` extra's image libraries and only the selected
-detector's API key. It checks the whole raster with Jev or GPT-6 Luna through
-OpenAI Decisions. Jev accepts 280–1568 pixels per side, so VIPI scales down or
-adds white padding where needed. OpenAI uses `detail: original` and VIPI scales
-down inputs above 30,000 image patches. SVGs are safely rendered first. This mode
-checks the rendered pixels and leaves hidden SVG source text to regular scans.
+The image check of a cloud scan sends the whole raster to Jev or GPT-6 Luna
+through OpenAI Decisions. Jev accepts 280–1568 pixels per side, so VIPI scales
+down or adds white padding where needed. OpenAI uses `detail: original` and VIPI
+scales down inputs above 30,000 image patches. For SVGs it checks the safe
+render; the source text is a separate text reading.
 
 ## Excluding images
 
@@ -159,6 +156,12 @@ reports with `if: always()` to retain either.
   matched case-insensitively and animated raster images are rejected. Local scans
   accept up to 40 megapixels; cloud scans follow the provider's limits. `.svgz`
   is not supported.
+- **Image metadata:** see [Image metadata](#image-metadata). Values Pillow
+  cannot parse leave the scan incomplete instead of being skipped. Not read:
+  ICC profiles, thumbnails, C2PA manifests and other binary values, and text
+  in formats VIPI does not accept.
+- **QR codes and barcodes:** see [QR codes and barcodes](#qr-codes-and-barcodes).
+  Codes too small, blurred or damaged to decode are counted, not checked.
 - **SVG:** see [SVG files](#svg-files). The renderer (resvg) draws neither
   `<foreignObject>`, embedded fonts, animation nor text inside embedded SVG
   images, and ignores dark-mode `@media` rules; text in them is covered by the
@@ -175,10 +178,61 @@ reports with `if: always()` to retain either.
   calibrated attack probability. Scores are not comparable across detectors: the
   local decision models score injections far lower than the cloud detectors, so
   their default thresholds are lower. `no_injection_detected` means the detector
-  stayed below the threshold on the final OCR text; it does not prove the image
+  stayed below the threshold on the final OCR text, the SVG source or metadata
+  text and the barcode payloads; it does not prove the image
   is safe, and it does not say whether OCR missed readable text.
 - **Cost:** cloud scans can make additional billable requests when OCR is
   unclear and the image is reviewed or read again.
+
+## Image metadata
+
+For PNG, JPEG and WebP files, the text in the file's metadata is a second
+reading next to the OCR text ([ADR 0083](../adr-code/0083-image-metadata-reading.md)).
+Applications, agents and tools such as `exiftool` read it, while OCR sees only
+pixels. The reading holds one `field: value` line per text value:
+
+- PNG `tEXt`, `zTXt` and `iTXt` chunks, including chunks after the image data;
+- JPEG comments (`COM`);
+- XMP (PNG `XML:com.adobe.xmp`, JPEG standard and extended XMP, WebP): element
+  text, attribute values except `xmlns`, `rdf:parseType` and `xml:lang`,
+  comments and processing instructions except `xpacket`;
+- EXIF text in IFD0, the Exif IFD and the GPS IFD, including `UserComment`
+  and the GPS method and area fields with their character code and the UTF-16
+  `XP*` fields; byte values count only when they decode as UTF-8 text;
+- IPTC application record values in JPEG files.
+
+Numbers, dates stored as numbers and binary values are not text. Unicode tag
+characters are decoded and other invisible characters are removed, as for the
+SVG source text. An injection in the metadata is a finding. Metadata that
+cannot be parsed (for example EXIF data Pillow ignores, or malformed XMP)
+leaves the scan incomplete: the file is an error (exit 2), and its verdict is
+`injection_detected` when a reading is detected, otherwise `null`.
+
+The file record gains a `metadata` object: `fields` (the field names found),
+`characters`, `invisible_characters`, `unreadable` (the groups that could not
+be parsed) and `scores`, the highest score per reading (`ocr`,
+`image_metadata`). `--verbose` prints the metadata text after the OCR text.
+
+## QR codes and barcodes
+
+VIPI decodes every QR code and barcode in the scanned raster with zxing-cpp
+and checks the payloads as a further reading
+([ADR 0084](../adr-code/0084-barcode-reading.md)). The raster is the one OCR
+reads: the decoded image, or the safe render of an SVG. Phones, scanners and
+agents act on a payload that OCR cannot read. The reading holds one
+`Format: text` line per code, for every format zxing-cpp reads (for example
+QR Code, Micro QR, Data Matrix, Aztec, PDF417, Code 128, Code 39, EAN/UPC).
+Decoded URLs are checked as text and never fetched. Binary payloads are not
+text and are only counted. Invisible characters are handled as for the SVG
+source text.
+
+An injection in a payload is a finding. A code that is found but cannot be
+decoded is ignored. A failure of the decoder itself leaves the scan
+incomplete (exit 2, verdict `null` unless a reading is detected).
+
+The file record gains a `barcodes` object: `formats` (one entry per decoded
+code), `characters`, `invisible_characters`, `binary` and `scores`, the highest score per reading (`ocr`, `barcode`). `--verbose`
+prints the payloads after the OCR text.
 
 ## SVG files
 
@@ -227,8 +281,9 @@ Errors take precedence. Each file record has a `verdict`: `injection_detected`,
 `no_injection_detected`, or `null` when a required detector check did not
 complete (the file is then an error). `injection_probability` is the highest
 native detector probability over all completed checks, reported next to the
-`threshold` that decides the verdict; it is `null` when the final OCR text (and,
-for SVG, the source text) is empty and there is no completed image check.
+`threshold` that decides the verdict; it is `null` when the final OCR text, the
+SVG source or metadata text and the barcode payloads are empty and there is no
+completed image check.
 Local scans without a text reading are `no_injection_detected`. Cloud scans
 without a text reading go straight to the image check after OCR.
 Very long text is checked in chunks. d1 and Clef-Flash also check text of more
@@ -242,9 +297,8 @@ is 2.
 Image checks appear as `image_check` on the file record with `status`, `verdict`,
 `probability` and `submitted_image_size` when available. They count toward
 `detection_cost`. A required image check that fails leaves the scan incomplete.
-The report has `evidence_scope: image_only` for `--image-only` and
-`final_ocr_with_image_check` for a regular cloud scan. Image-only reports have
-zero OCR passes and null OCR metadata.
+The report has `evidence_scope: final_ocr_with_image_check` for a cloud scan
+with Jev or OpenAI as detector.
 
 `ocr_incomplete` says whether readable image text is missing from the final OCR
 text: `true`, `false`, or `null` when it was not judged. When recovery kept the
