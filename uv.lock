@@ -1,5 +1,5 @@
 version = 1
-revision = 3
+revision = 5
 requires-python = "==3.12.*"
 resolution-markers = [
     "platform_machine == 'aarch64' and sys_platform == 'linux'",
@@ -23,8 +23,8 @@ dependencies = [
     { name = "psutil" },
     { name = "pyyaml" },
     { name = "safetensors" },
-    { name = "torch", version = "2.11.0", source = { registry = "https://pypi.org/simple" }, marker = "(sys_platform != 'linux' and sys_platform != 'win32') or (sys_platform == 'linux' and extra == 'extra-12-vipi-scanner-ocr' and extra == 'extra-12-vipi-scanner-ocr-cuda') or (sys_platform == 'win32' and extra == 'extra-12-vipi-scanner-ocr' and extra == 'extra-12-vipi-scanner-ocr-cuda')" },
-    { name = "torch", version = "2.11.0+cpu", source = { registry = "https://download.pytorch.org/whl/cpu" }, marker = "sys_platform == 'linux' or sys_platform == 'win32' or (extra == 'extra-12-vipi-scanner-ocr' and extra == 'extra-12-vipi-scanner-ocr-cuda')" },
+    { name = "torch", version = "2.11.0", source = { registry = "https://pypi.org/simple" }, marker = "sys_platform != 'linux' and sys_platform != 'win32'" },
+    { name = "torch", version = "2.11.0+cpu", source = { registry = "https://download.pytorch.org/whl/cpu" }, marker = "sys_platform == 'linux' or sys_platform == 'win32'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/f5/b5/1d3ed029ac71d3f2961346829a268da923698e9fd63f218f78841f216bfd/accelerate-1.15.0.tar.gz", hash = "sha256:5654f8c5eaa0d4fa68b33e287a97765da6849bf6d51dcac874e73fbbddfb6134", size = 422615, upload-time = "2026-09-09T13:04:49.078Z" }
 wheels = [
@@ -91,7 +91,7 @@ name = "cffi"
 version = "2.1.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "pycparser", marker = "implementation_name != 'PyPy' or (extra == 'extra-12-vipi-scanner-ocr' and extra == 'extra-12-vipi-scanner-ocr-cuda')" },
+    { name = "pycparser", marker = "implementation_name != 'PyPy'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/9e/ef/008a1939e372c06329a3fce4279c02f328488f3526744906eeec3da7ad5f/cffi-2.1.1.tar.gz", hash = "sha256:dd31f52ea1086513bb9df30f8fcee9b8918323ae067a3d5b78bc826a000712be", size = 530807, upload-time = "2026-08-03T21:21:18.939Z" }
 wheels = [
@@ -197,7 +197,7 @@ name = "cryptography"
 version = "50.0.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "cffi", marker = "platform_python_implementation != 'PyPy' or (extra == 'extra-12-vipi-scanner-ocr' and extra == 'extra-12-vipi-scanner-ocr-cuda')" },
+    { name = "cffi", marker = "platform_python_implementation != 'PyPy'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/9d/af/182eb91b0df3fe75c4d9f26fe70684569566745f6ba7e5c9c73a862c5252/cryptography-50.0.2.tar.gz", hash = "sha256:7b46165bb56eb4704e2eaaf86f3c940d19154535d9b0ca7d6d590b04060e00d5", size = 880623, upload-time = "2026-09-30T15:30:04.884Z" }
 wheels = [
@@ -376,7 +376,7 @@ dependencies = [
     { name = "click" },
     { name = "filelock" },
     { name = "fsspec" },
-    { name = "hf-xet", marker = "platform_machine == 'AMD64' or platform_machine == 'aarch64' or platform_machine == 'amd64' or platform_machine == 'arm64' or platform_machine == 'x86_64' or (extra == 'extra-12-vipi-scanner-ocr' and extra == 'extra-12-vipi-scanner-ocr-cuda')" },
+    { name = "hf-xet", marker = "platform_machine == 'AMD64' or platform_machine == 'aarch64' or platform_machine == 'amd64' or platform_machine == 'arm64' or platform_machine == 'x86_64'" },
     { name = "httpx" },
     { name = "packaging" },
     { name = "pyyaml" },
@@ -567,18 +567,21 @@ wheels = [
 
 [[package]]
 name = "numpy"
-version = "1.26.4"
+version = "2.5.5"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/65/6e/09db70a523a96d25e115e71cc56a6f9031e7b8cd166c1ac8438307c14058/numpy-1.26.4.tar.gz", hash = "sha256:2a02aba9ed12e4ac4eb3ea9421c420301a0c6460d9830d74a9df87efa4912010", size = 15786129, upload-time = "2024-02-06T00:26:44.495Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/4e/3a/8770c288c47f0b5c2a786d3c20e79f66fd245f2d42cd232d7cd5e00e83e5/numpy-2.5.5.tar.gz", hash = "sha256:5cddc243c75114ba845f01b1f87aca1572dbf7b6c2d88636ed3e1d2bccd7f1bf", size = 20873892, upload-time = "2026-11-15T21:32:28.607Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/95/12/8f2020a8e8b8383ac0177dc9570aad031a3beb12e38847f7129bacd96228/numpy-1.26.4-cp312-cp312-macosx_10_9_x86_64.whl", hash = "sha256:b3ce300f3644fb06443ee2222c2201dd3a89ea6040541412b8fa189341847218", size = 20335901, upload-time = "2024-02-05T23:55:32.801Z" },
-    { url = "https://files.pythonhosted.org/packages/75/5b/ca6c8bd14007e5ca171c7c03102d17b4f4e0ceb53957e8c44343a9546dcc/numpy-1.26.4-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:03a8c78d01d9781b28a6989f6fa1bb2c4f2d51201cf99d3dd875df6fbd96b23b", size = 13685868, upload-time = "2024-02-05T23:55:56.28Z" },
-    { url = "https://files.pythonhosted.org/packages/79/f8/97f10e6755e2a7d027ca783f63044d5b1bc1ae7acb12afe6a9b4286eac17/numpy-1.26.4-cp312-cp312-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:9fad7dcb1aac3c7f0584a5a8133e3a43eeb2fe127f47e3632d43d677c66c102b", size = 13925109, upload-time = "2024-02-05T23:56:20.368Z" },
-    { url = "https://files.pythonhosted.org/packages/0f/50/de23fde84e45f5c4fda2488c759b69990fd4512387a8632860f3ac9cd225/numpy-1.26.4-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:675d61ffbfa78604709862923189bad94014bef562cc35cf61d3a07bba02a7ed", size = 17950613, upload-time = "2024-02-05T23:56:56.054Z" },
-    { url = "https://files.pythonhosted.org/packages/4c/0c/9c603826b6465e82591e05ca230dfc13376da512b25ccd0894709b054ed0/numpy-1.26.4-cp312-cp312-musllinux_1_1_aarch64.whl", hash = "sha256:ab47dbe5cc8210f55aa58e4805fe224dac469cde56b9f731a4c098b91917159a", size = 13572172, upload-time = "2024-02-05T23:57:21.56Z" },
-    { url = "https://files.pythonhosted.org/packages/76/8c/2ba3902e1a0fc1c74962ea9bb33a534bb05984ad7ff9515bf8d07527cadd/numpy-1.26.4-cp312-cp312-musllinux_1_1_x86_64.whl", hash = "sha256:1dda2e7b4ec9dd512f84935c5f126c8bd8b9f2fc001e9f54af255e8c5f16b0e0", size = 17786643, upload-time = "2024-02-05T23:57:56.585Z" },
-    { url = "https://files.pythonhosted.org/packages/28/4a/46d9e65106879492374999e76eb85f87b15328e06bd1550668f79f7b18c6/numpy-1.26.4-cp312-cp312-win32.whl", hash = "sha256:50193e430acfc1346175fcbdaa28ffec49947a06918b7b92130744e81e640110", size = 5677803, upload-time = "2024-02-05T23:58:08.963Z" },
-    { url = "https://files.pythonhosted.org/packages/16/2e/86f24451c2d530c88daf997cb8d6ac622c1d40d19f5a031ed68a4b73a374/numpy-1.26.4-cp312-cp312-win_amd64.whl", hash = "sha256:08beddf13648eb95f8d867350f6a018a4be2e5ad54c8d8caed89ebca558b2818", size = 15517754, upload-time = "2024-02-05T23:58:36.364Z" },
+    { url = "https://files.pythonhosted.org/packages/20/74/5b99f425938870958d43dc9f7b17c684e793ce47ec46b7885cdc7acea285/numpy-2.5.5-cp312-cp312-macosx_10_13_x86_64.whl", hash = "sha256:7da9a248f149cfbb220c6da964a59c8d051d516704f7758acfb81eb382a05d97", size = 14750374, upload-time = "2026-11-15T21:30:10.113Z" },
+    { url = "https://files.pythonhosted.org/packages/5c/f4/06db317e93dd6d618786004c1761214b113832bb77294c8513776956702a/numpy-2.5.5-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:b96e9ee49ccbdb5676359f852a4497f7a9c5df6c377d8877f5330d6fd3ff42e4", size = 10749920, upload-time = "2026-11-15T21:30:13.092Z" },
+    { url = "https://files.pythonhosted.org/packages/8a/92/6de34324a266b73c04ba977db5864b9016500076b26f09078a565f527d34/numpy-2.5.5-cp312-cp312-macosx_14_0_arm64.whl", hash = "sha256:a3856a97e48ed8371c680fb04120b99fbcc29f2076ebe6dc3deb34f77947c5ca", size = 5513680, upload-time = "2026-11-15T21:30:15.201Z" },
+    { url = "https://files.pythonhosted.org/packages/1e/a1/6563b74cd67e3873f9897afebb3244529b1494d4c0df30f3201329a7e316/numpy-2.5.5-cp312-cp312-macosx_14_0_x86_64.whl", hash = "sha256:f5e8603f0892d1b848e12124863b5b29af72383ee9b25ddc6fe4967d4c1ee6ef", size = 6797540, upload-time = "2026-11-15T21:30:17.172Z" },
+    { url = "https://files.pythonhosted.org/packages/c2/22/82184e9a5b50a4a298e9f8fe0bd8cfc483672dbfea8a3b57c78e2376b139/numpy-2.5.5-cp312-cp312-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:a0750f2156d53446caca85663d0b65d67214e1664b9050454a731ea1418d176a", size = 15284117, upload-time = "2026-11-15T21:30:19.167Z" },
+    { url = "https://files.pythonhosted.org/packages/99/61/522b973ba38987b22a4a71beaed2ea6ac9fd4f687baaa2bc9a45100625e0/numpy-2.5.5-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:704d819265e5d1064d932968e9ee85fff2103ccc78c05b878c06943ba27b8507", size = 15720599, upload-time = "2026-11-15T21:30:21.273Z" },
+    { url = "https://files.pythonhosted.org/packages/25/cd/182cf60bd9c34e617c516f138f2f68988760062fa65fca8fcc97875cf7cf/numpy-2.5.5-cp312-cp312-musllinux_1_2_aarch64.whl", hash = "sha256:86868185bf4b6c4e5a8628ac42cfa165cd9530266c731f7dd1d11b4ad7e7cd1c", size = 16503566, upload-time = "2026-11-15T21:30:24.023Z" },
+    { url = "https://files.pythonhosted.org/packages/f3/57/4fa4723e80be805f68af552731ed483974b2a11e511284a9ef6aafbcb3cf/numpy-2.5.5-cp312-cp312-musllinux_1_2_x86_64.whl", hash = "sha256:7fb87c4bcc73850ef433a0c42f096b010d3d3d284e9d00028bb030b43df3d078", size = 17082560, upload-time = "2026-11-15T21:30:26.224Z" },
+    { url = "https://files.pythonhosted.org/packages/d5/0b/73d2bd5be85d3178a862e8354e2d6441b4040fadf1e7d999e01b0bdfa5c6/numpy-2.5.5-cp312-cp312-win32.whl", hash = "sha256:263b2aa236d752b18f90c5107137d24b2e3856d7db37725609f0ab5bcdb58881", size = 6146378, upload-time = "2026-11-15T21:30:28.328Z" },
+    { url = "https://files.pythonhosted.org/packages/d1/71/b1ce51834c21020d189332979d38ba7350eb6cd7ca8c8ec424a663b0ca6f/numpy-2.5.5-cp312-cp312-win_amd64.whl", hash = "sha256:919eb420662b0b4ba34889df503f3d5329775b0c1d5f7e5f5af4fba8315b1e30", size = 12580189, upload-time = "2026-11-15T21:30:30.025Z" },
+    { url = "https://files.pythonhosted.org/packages/c2/5e/09ae9d0d02fbfe6b160043349bbe73e6bbbbfb2565bb46146dd943687271/numpy-2.5.5-cp312-cp312-win_arm64.whl", hash = "sha256:f6622e32cb46c60bee3b2c7dd7f5c22bdc86fcb8630336b4822ec81c3986111a", size = 10535386, upload-time = "2026-11-15T21:30:32.112Z" },
 ]
 
 [[package]]
@@ -878,7 +881,7 @@ name = "pytest"
 version = "8.4.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "colorama", marker = "sys_platform == 'win32' or (extra == 'extra-12-vipi-scanner-ocr' and extra == 'extra-12-vipi-scanner-ocr-cuda')" },
+    { name = "colorama", marker = "sys_platform == 'win32'" },
     { name = "iniconfig" },
     { name = "packaging" },
     { name = "pluggy" },
@@ -1222,19 +1225,16 @@ resolution-markers = [
     "sys_platform != 'darwin' and sys_platform != 'linux' and sys_platform != 'win32'",
 ]
 dependencies = [
-    { name = "filelock", marker = "(sys_platform != 'linux' and sys_platform != 'win32') or (sys_platform == 'linux' and extra == 'extra-12-vipi-scanner-ocr' and extra == 'extra-12-vipi-scanner-ocr-cuda') or (sys_platform == 'win32' and extra == 'extra-12-vipi-scanner-ocr' and extra == 'extra-12-vipi-scanner-ocr-cuda')" },
-    { name = "fsspec", marker = "(sys_platform != 'linux' and sys_platform != 'win32') or (sys_platform == 'linux' and extra == 'extra-12-vipi-scanner-ocr' and extra == 'extra-12-vipi-scanner-ocr-cuda') or (sys_platform == 'win32' and extra == 'extra-12-vipi-scanner-ocr' and extra == 'extra-12-vipi-scanner-ocr-cuda')" },
-    { name = "jinja2", marker = "(sys_platform != 'linux' and sys_platform != 'win32') or (sys_platform == 'linux' and extra == 'extra-12-vipi-scanner-ocr' and extra == 'extra-12-vipi-scanner-ocr-cuda') or (sys_platform == 'win32' and extra == 'extra-12-vipi-scanner-ocr' and extra == 'extra-12-vipi-scanner-ocr-cuda')" },
-    { name = "networkx", marker = "(sys_platform != 'linux' and sys_platform != 'win32') or (sys_platform == 'linux' and extra == 'extra-12-vipi-scanner-ocr' and extra == 'extra-12-vipi-scanner-ocr-cuda') or (sys_platform == 'win32' and extra == 'extra-12-vipi-scanner-ocr' and extra == 'extra-12-vipi-scanner-ocr-cuda')" },
-    { name = "setuptools", marker = "(sys_platform != 'linux' and sys_platform != 'win32') or (sys_platform == 'linux' and extra == 'extra-12-vipi-scanner-ocr' and extra == 'extra-12-vipi-scanner-ocr-cuda') or (sys_platform == 'win32' and extra == 'extra-12-vipi-scanner-ocr' and extra == 'extra-12-vipi-scanner-ocr-cuda')" },
-    { name = "sympy", marker = "(sys_platform != 'linux' and sys_platform != 'win32') or (sys_platform == 'linux' and extra == 'extra-12-vipi-scanner-ocr' and extra == 'extra-12-vipi-scanner-ocr-cuda') or (sys_platform == 'win32' and extra == 'extra-12-vipi-scanner-ocr' and extra == 'extra-12-vipi-scanner-ocr-cuda')" },
-    { name = "typing-extensions", marker = "(sys_platform != 'linux' and sys_platform != 'win32') or (sys_platform == 'linux' and extra == 'extra-12-vipi-scanner-ocr' and extra == 'extra-12-vipi-scanner-ocr-cuda') or (sys_platform == 'win32' and extra == 'extra-12-vipi-scanner-ocr' and extra == 'extra-12-vipi-scanner-ocr-cuda')" },
+    { name = "filelock" },
+    { name = "fsspec" },
+    { name = "jinja2" },
+    { name = "networkx" },
+    { name = "setuptools" },
+    { name = "sympy" },
+    { name = "typing-extensions" },
 ]
 wheels = [
     { url = "https://files.pythonhosted.org/packages/6f/8b/69e3008d78e5cee2b30183340cc425081b78afc5eff3d080daab0adda9aa/torch-2.11.0-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:4b5866312ee6e52ea625cd211dcb97d6a2cdc1131a5f15cc0d87eec948f6dd34", size = 80606338, upload-time = "2026-03-23T18:11:34.781Z" },
-    { url = "https://files.pythonhosted.org/packages/13/16/42e5915ebe4868caa6bac83a8ed59db57f12e9a61b7d749d584776ed53d5/torch-2.11.0-cp312-cp312-manylinux_2_28_aarch64.whl", hash = "sha256:f99924682ef0aa6a4ab3b1b76f40dc6e273fca09f367d15a524266db100a723f", size = 419731115, upload-time = "2026-03-23T18:11:06.944Z" },
-    { url = "https://files.pythonhosted.org/packages/1a/c9/82638ef24d7877510f83baf821f5619a61b45568ce21c0a87a91576510aa/torch-2.11.0-cp312-cp312-manylinux_2_28_x86_64.whl", hash = "sha256:0f68f4ac6d95d12e896c3b7a912b5871619542ec54d3649cf48cc1edd4dd2756", size = 530712279, upload-time = "2026-03-23T18:10:31.481Z" },
-    { url = "https://files.pythonhosted.org/packages/1c/ff/6756f1c7ee302f6d202120e0f4f05b432b839908f9071157302cedfc5232/torch-2.11.0-cp312-cp312-win_amd64.whl", hash = "sha256:fbf39280699d1b869f55eac536deceaa1b60bd6788ba74f399cc67e60a5fab10", size = 114556047, upload-time = "2026-03-23T18:10:55.931Z" },
 ]
 
 [[package]]
@@ -1246,13 +1246,13 @@ resolution-markers = [
     "(platform_machine != 'aarch64' and sys_platform == 'linux') or sys_platform == 'win32'",
 ]
 dependencies = [
-    { name = "filelock", marker = "sys_platform == 'linux' or sys_platform == 'win32' or (extra == 'extra-12-vipi-scanner-ocr' and extra == 'extra-12-vipi-scanner-ocr-cuda')" },
-    { name = "fsspec", marker = "sys_platform == 'linux' or sys_platform == 'win32' or (extra == 'extra-12-vipi-scanner-ocr' and extra == 'extra-12-vipi-scanner-ocr-cuda')" },
-    { name = "jinja2", marker = "sys_platform == 'linux' or sys_platform == 'win32' or (extra == 'extra-12-vipi-scanner-ocr' and extra == 'extra-12-vipi-scanner-ocr-cuda')" },
-    { name = "networkx", marker = "sys_platform == 'linux' or sys_platform == 'win32' or (extra == 'extra-12-vipi-scanner-ocr' and extra == 'extra-12-vipi-scanner-ocr-cuda')" },
-    { name = "setuptools", marker = "sys_platform == 'linux' or sys_platform == 'win32' or (extra == 'extra-12-vipi-scanner-ocr' and extra == 'extra-12-vipi-scanner-ocr-cuda')" },
-    { name = "sympy", marker = "sys_platform == 'linux' or sys_platform == 'win32' or (extra == 'extra-12-vipi-scanner-ocr' and extra == 'extra-12-vipi-scanner-ocr-cuda')" },
-    { name = "typing-extensions", marker = "sys_platform == 'linux' or sys_platform == 'win32' or (extra == 'extra-12-vipi-scanner-ocr' and extra == 'extra-12-vipi-scanner-ocr-cuda')" },
+    { name = "filelock" },
+    { name = "fsspec" },
+    { name = "jinja2" },
+    { name = "networkx" },
+    { name = "setuptools" },
+    { name = "sympy" },
+    { name = "typing-extensions" },
 ]
 wheels = [
     { url = "https://download-r2.pytorch.org/whl/cpu/torch-2.11.0%2Bcpu-cp312-cp312-linux_s390x.whl", hash = "sha256:2db3ae5404e32cb42b5fcbd94f13607761eaec0cf1687fde95095289d1e26cfb", upload-time = "2026-04-28T00:06:06Z" },
@@ -1270,15 +1270,12 @@ resolution-markers = [
     "sys_platform != 'darwin' and sys_platform != 'linux' and sys_platform != 'win32'",
 ]
 dependencies = [
-    { name = "numpy", marker = "(sys_platform != 'linux' and sys_platform != 'win32') or (sys_platform == 'linux' and extra == 'extra-12-vipi-scanner-ocr' and extra == 'extra-12-vipi-scanner-ocr-cuda') or (sys_platform == 'win32' and extra == 'extra-12-vipi-scanner-ocr' and extra == 'extra-12-vipi-scanner-ocr-cuda')" },
-    { name = "pillow", marker = "(sys_platform != 'linux' and sys_platform != 'win32') or (sys_platform == 'linux' and extra == 'extra-12-vipi-scanner-ocr' and extra == 'extra-12-vipi-scanner-ocr-cuda') or (sys_platform == 'win32' and extra == 'extra-12-vipi-scanner-ocr' and extra == 'extra-12-vipi-scanner-ocr-cuda')" },
-    { name = "torch", version = "2.11.0", source = { registry = "https://pypi.org/simple" }, marker = "(sys_platform != 'linux' and sys_platform != 'win32') or (sys_platform == 'linux' and extra == 'extra-12-vipi-scanner-ocr' and extra == 'extra-12-vipi-scanner-ocr-cuda') or (sys_platform == 'win32' and extra == 'extra-12-vipi-scanner-ocr' and extra == 'extra-12-vipi-scanner-ocr-cuda')" },
+    { name = "numpy" },
+    { name = "pillow" },
+    { name = "torch", version = "2.11.0", source = { registry = "https://pypi.org/simple" } },
 ]
 wheels = [
     { url = "https://files.pythonhosted.org/packages/ae/e7/56b47cc3b132aea90ccce22bcb8975dec688b002150012acc842846039d0/torchvision-0.26.0-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:c409e1c3fdebec7a3834465086dbda8bf7680eff79abf7fd2f10c6b59520a7a4", size = 1863502, upload-time = "2026-03-23T18:12:57.326Z" },
-    { url = "https://files.pythonhosted.org/packages/f4/ec/5c31c92c08b65662fe9604a4067ae8232582805949f11ddc042cebe818ed/torchvision-0.26.0-cp312-cp312-manylinux_2_28_aarch64.whl", hash = "sha256:406557718e62fdf10f5706e88d8a5ec000f872da913bf629aab9297622585547", size = 7767944, upload-time = "2026-03-23T18:12:42.805Z" },
-    { url = "https://files.pythonhosted.org/packages/f5/d8/cb6ccda1a1f35a6597645818641701207b3e8e13553e75fce5d86bac74b2/torchvision-0.26.0-cp312-cp312-manylinux_2_28_x86_64.whl", hash = "sha256:d61a5abb6b42a0c0c311996c2ac4b83a94418a97182c83b055a2a4ae985e05aa", size = 7522205, upload-time = "2026-03-23T18:12:54.654Z" },
-    { url = "https://files.pythonhosted.org/packages/1c/a9/c272623a0f735c35f0f6cd6dc74784d4f970e800cf063bb76687895a2ab9/torchvision-0.26.0-cp312-cp312-win_amd64.whl", hash = "sha256:7993c01648e7c61d191b018e84d38fe0825c8fcb2720cd0f37caf7ba14404aa1", size = 4255155, upload-time = "2026-03-23T18:12:32.652Z" },
 ]
 
 [[package]]
@@ -1290,9 +1287,9 @@ resolution-markers = [
     "(platform_machine != 'aarch64' and sys_platform == 'linux') or sys_platform == 'win32'",
 ]
 dependencies = [
-    { name = "numpy", marker = "sys_platform == 'linux' or sys_platform == 'win32' or (extra == 'extra-12-vipi-scanner-ocr' and extra == 'extra-12-vipi-scanner-ocr-cuda')" },
-    { name = "pillow", marker = "sys_platform == 'linux' or sys_platform == 'win32' or (extra == 'extra-12-vipi-scanner-ocr' and extra == 'extra-12-vipi-scanner-ocr-cuda')" },
-    { name = "torch", version = "2.11.0+cpu", source = { registry = "https://download.pytorch.org/whl/cpu" }, marker = "sys_platform == 'linux' or sys_platform == 'win32' or (extra == 'extra-12-vipi-scanner-ocr' and extra == 'extra-12-vipi-scanner-ocr-cuda')" },
+    { name = "numpy" },
+    { name = "pillow" },
+    { name = "torch", version = "2.11.0+cpu", source = { registry = "https://download.pytorch.org/whl/cpu" } },
 ]
 wheels = [
     { url = "https://download-r2.pytorch.org/whl/cpu/torchvision-0.26.0%2Bcpu-cp312-cp312-manylinux_2_28_aarch64.whl", hash = "sha256:17f0b542331fc94230b4214c6d123f038af7330fd81019608c0d2402f3bc3079", upload-time = "2026-03-23T15:36:09Z" },
@@ -1305,7 +1302,7 @@ name = "tqdm"
 version = "4.70.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "colorama", marker = "sys_platform == 'win32' or (extra == 'extra-12-vipi-scanner-ocr' and extra == 'extra-12-vipi-scanner-ocr-cuda')" },
+    { name = "colorama", marker = "sys_platform == 'win32'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/0d/ea/b2a5bd54b28a324dae8211928b2d730b6547500342c7e6c6dea08bd0a485/tqdm-4.70.1.tar.gz", hash = "sha256:cefd0eca11b2a37a3aee776544d4f4ae913f02688135b5556b8788dfa474afc4", size = 171846, upload-time = "2026-09-11T07:25:16.601Z" }
 wheels = [
@@ -1338,7 +1335,7 @@ version = "0.26.8"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "annotated-doc" },
-    { name = "colorama", marker = "sys_platform == 'win32' or (extra == 'extra-12-vipi-scanner-ocr' and extra == 'extra-12-vipi-scanner-ocr-cuda')" },
+    { name = "colorama", marker = "sys_platform == 'win32'" },
     { name = "rich" },
     { name = "shellingham" },
 ]
@@ -1380,10 +1377,10 @@ detector-local = [
     { name = "huggingface-hub" },
     { name = "safetensors" },
     { name = "sentencepiece" },
-    { name = "torch", version = "2.11.0", source = { registry = "https://pypi.org/simple" }, marker = "(sys_platform != 'linux' and sys_platform != 'win32') or (sys_platform == 'linux' and extra == 'extra-12-vipi-scanner-ocr' and extra == 'extra-12-vipi-scanner-ocr-cuda') or (sys_platform == 'win32' and extra == 'extra-12-vipi-scanner-ocr' and extra == 'extra-12-vipi-scanner-ocr-cuda')" },
-    { name = "torch", version = "2.11.0+cpu", source = { registry = "https://download.pytorch.org/whl/cpu" }, marker = "sys_platform == 'linux' or sys_platform == 'win32' or (extra == 'extra-12-vipi-scanner-ocr' and extra == 'extra-12-vipi-scanner-ocr-cuda')" },
-    { name = "torchvision", version = "0.26.0", source = { registry = "https://pypi.org/simple" }, marker = "(sys_platform != 'linux' and sys_platform != 'win32') or (sys_platform == 'linux' and extra == 'extra-12-vipi-scanner-ocr' and extra == 'extra-12-vipi-scanner-ocr-cuda') or (sys_platform == 'win32' and extra == 'extra-12-vipi-scanner-ocr' and extra == 'extra-12-vipi-scanner-ocr-cuda')" },
-    { name = "torchvision", version = "0.26.0+cpu", source = { registry = "https://download.pytorch.org/whl/cpu" }, marker = "sys_platform == 'linux' or sys_platform == 'win32' or (extra == 'extra-12-vipi-scanner-ocr' and extra == 'extra-12-vipi-scanner-ocr-cuda')" },
+    { name = "torch", version = "2.11.0", source = { registry = "https://pypi.org/simple" }, marker = "sys_platform != 'linux' and sys_platform != 'win32'" },
+    { name = "torch", version = "2.11.0+cpu", source = { registry = "https://download.pytorch.org/whl/cpu" }, marker = "sys_platform == 'linux' or sys_platform == 'win32'" },
+    { name = "torchvision", version = "0.26.0", source = { registry = "https://pypi.org/simple" }, marker = "sys_platform != 'linux' and sys_platform != 'win32'" },
+    { name = "torchvision", version = "0.26.0+cpu", source = { registry = "https://download.pytorch.org/whl/cpu" }, marker = "sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "transformers" },
 ]
 ocr = [
@@ -1431,8 +1428,8 @@ requires-dist = [
     { name = "huggingface-hub", marker = "extra == 'detector-local'", specifier = ">=1.32.0" },
     { name = "huggingface-hub", marker = "extra == 'research'", specifier = ">=1.32.0" },
     { name = "jsonschema", marker = "extra == 'research'", specifier = ">=4.26.0" },
-    { name = "numpy", marker = "extra == 'ocr'", specifier = "==1.26.4" },
-    { name = "numpy", marker = "extra == 'ocr-cuda'", specifier = "==1.26.4" },
+    { name = "numpy", marker = "extra == 'ocr'", specifier = "==2.5.5" },
+    { name = "numpy", marker = "extra == 'ocr-cuda'", specifier = "==2.5.5" },
     { name = "nvidia-cuda-runtime-cu12", marker = "(sys_platform == 'linux' and extra == 'ocr-cuda') or (sys_platform == 'win32' and extra == 'ocr-cuda')", specifier = ">=12.8,<13" },
     { name = "onnxruntime", marker = "extra == 'ocr'", specifier = "==1.23.2" },
     { name = "onnxruntime-gpu", extras = ["cuda", "cudnn"], marker = "(sys_platform == 'linux' and extra == 'ocr-cuda') or (sys_platform == 'win32' and extra == 'ocr-cuda')", specifier = "==1.23.2" },
