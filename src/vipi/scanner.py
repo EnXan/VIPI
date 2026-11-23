@@ -1,6 +1,7 @@
 """Shared image scanning; CLI/file selection and report formatting stay adapters."""
 
 from contextlib import ExitStack
+from io import BytesIO
 import time
 
 from .config import (
@@ -20,14 +21,17 @@ def scan_image(image, *, options=None, session=None, provider=None, on_event=Non
 
     An `.svg` path is rendered for OCR, and its source text is checked as a
     second reading (ADR 0078). For a raster image, the text in its metadata is
-    the second reading (ADR 0083).
+    the second reading (ADR 0083). QR and barcode payloads in the scanned
+    raster are a further reading (ADR 0084).
 
     A caller can reuse a session/provider across images. No existing run directory,
     Flask application or dataset catalog is required.
     """
     from .detection.pipeline import detect_ocr
+    from .barcodes import read_codes
     from .detection.providers import prepare_provider
     from .image_metadata import read_metadata
+    from .images import decode_image
     from .svg import is_svg, prepare_svg
 
     svg = prepare_svg(image) if is_svg(image) else None
@@ -49,6 +53,8 @@ def scan_image(image, *, options=None, session=None, provider=None, on_event=Non
             )
         ocr = session.extract(source, on_event)
         metadata = None if svg else read_metadata(image)
+        raster = BytesIO(source) if isinstance(source, bytes) else source
+        barcodes = read_codes(decode_image(raster, max_pixels=None))
         if svg and ocr.artifacts is not None:
             (ocr.artifacts / "input.svg").write_bytes(svg.data)
         detection = detect_ocr(
@@ -58,9 +64,13 @@ def scan_image(image, *, options=None, session=None, provider=None, on_event=Non
             on_event=on_event,
             source_text=svg.document.detector_text if svg else None,
             metadata_text=metadata.detector_text if metadata else None,
-            incomplete=svg.incomplete if svg else metadata.incomplete,
+            barcode_text=barcodes.detector_text,
+            incomplete=(svg.incomplete if svg else metadata.incomplete)
+            + barcodes.incomplete,
         )
-    return ScanResult(ocr, detection, provider.model, provider.identity, svg, metadata)
+    return ScanResult(
+        ocr, detection, provider.model, provider.identity, svg, metadata, barcodes
+    )
 
 
 def scan(

@@ -51,14 +51,9 @@ class ImageMetadata:
 
     def report(self, answers=()):
         """The report's `metadata` object; `answers` adds the score per reading."""
-        scores = {}
-        for answer in answers:
-            score = answer.get("probability")
-            if answer.get("status") != "completed" or score is None:
-                continue
-            for source in answer.get("source_ids", ()):
-                reading = READING if source == READING else "ocr"
-                scores[reading] = max(score, scores.get(reading, score))
+        from .detection.evidence import reading_scores
+
+        scores = reading_scores(answers, ("ocr", READING))
         return {
             "fields": list(self.fields),
             "characters": len(self.text),

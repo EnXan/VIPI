@@ -56,6 +56,7 @@ Temporary planning and review queues belong in `.llm-plans/`.
 | [0080](0080-explicit-attention-for-local-d1-on-mps.md) | Local d1 on MPS computes attention with explicit operations, because MPS SDPA keeps driver memory per input shape (amends 0044) |
 | [0082](0082-cloud-image-check-without-image-only-scans.md) | Jev and Luna whole-image check only inside cloud scans; `--image-only` removed (replaces 0081) |
 | [0083](0083-image-metadata-reading.md) | Text in PNG, JPEG and WebP metadata is a detector reading; unreadable metadata leaves a scan incomplete (amends 0071) |
+| [0084](0084-barcode-reading.md) | QR and barcode payloads decoded with zxing-cpp are a detector reading; URLs are never fetched (amends 0071) |
 
 When revising an agreed decision, write its replacement with a summary of the
 old ADR (identifier, decision, rationale and reason for revision), then delete

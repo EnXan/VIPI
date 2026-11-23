@@ -109,3 +109,5 @@ class ScanResult:
     svg: object | None = None
     # A `vipi.image_metadata.ImageMetadata` when the file was a raster image.
     metadata: object | None = None
+    # A `vipi.barcodes.Barcodes` with the decoded QR and barcode payloads.
+    barcodes: object | None = None
