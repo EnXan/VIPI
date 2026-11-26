@@ -162,6 +162,8 @@ reports with `if: always()` to retain either.
   in formats VIPI does not accept.
 - **QR codes and barcodes:** see [QR codes and barcodes](#qr-codes-and-barcodes).
   Codes too small, blurred or damaged to decode are counted, not checked.
+- **Hidden PNG data:** see [Legacy OpenStego](#legacy-openstego) for the
+  supported pixel layout and how unavailable payloads are reported.
 - **Transparency:** see [Transparent images](#transparent-images). Only white,
   black and the raw colour values are scanned; text visible only on another
   background colour relies on OCR contrast recovery. Codes are decoded in the
@@ -182,8 +184,8 @@ reports with `if: always()` to retain either.
   calibrated attack probability. Scores are not comparable across detectors: the
   local decision models score injections far lower than the cloud detectors, so
   their default thresholds are lower. `no_injection_detected` means the detector
-  stayed below the threshold on the final OCR text, the SVG source or metadata
-  text and the barcode payloads; it does not prove the image
+  stayed below the threshold on the final OCR text and additional readings;
+  it does not prove the image
   is safe, and it does not say whether OCR missed readable text.
 - **Cost:** cloud scans can make additional billable requests when OCR is
   unclear and the image is reviewed or read again.
@@ -237,6 +239,30 @@ incomplete (exit 2, verdict `null` unless a reading is detected).
 The file record gains a `barcodes` object: `formats` (one entry per decoded
 code), `characters`, `invisible_characters`, `binary` and `scores`, the highest score per reading (`ocr`, `barcode`). `--verbose`
 prints the payloads after the OCR text.
+
+## Legacy OpenStego
+
+VIPI checks static 8-bit RGB PNGs for the legacy OpenStego version 1 header
+in the low bits of the original colour samples
+([ADR 0086](../adr-code/0086-legacy-openstego-reading.md)). With the one-bit
+layout, it extracts unencrypted, uncompressed UTF-8 payload text as a
+separate detector reading. The selected detector processes it like OCR text,
+including in cloud mode. `--verbose` displays the normalized reading.
+
+When VIPI encounters a header, the file record adds an `openstego` object
+with `status`, `stored_bytes` (the declared payload size, when valid),
+`characters`, `invisible_characters`, and `scores` for `ocr` and `openstego`
+when available. A header alone does not determine the injection verdict.
+
+- `text` is a decoded UTF-8 payload. `binary` is a payload that fails UTF-8
+  decoding or contains control characters other than tab and line breaks.
+  Binary payloads are reported without submitting their bytes as text.
+- `encrypted`, `compressed`, `unsupported`, `malformed` and `unreadable`
+  leave the scan incomplete (exit 2). A finding in another reading is retained.
+
+The check covers the specific legacy layout above. Modern OpenStego RandomLSB,
+PngLoader, other pixel layouts, non-RGB PNGs and SVG renders are outside that
+coverage.
 
 ## Transparent images
 
@@ -311,9 +337,8 @@ Errors take precedence. Each file record has a `verdict`: `injection_detected`,
 `no_injection_detected`, or `null` when a required detector check did not
 complete (the file is then an error). `injection_probability` is the highest
 native detector probability over all completed checks, reported next to the
-`threshold` that decides the verdict; it is `null` when the final OCR text, the
-SVG source or metadata text and the barcode payloads are empty and there is no
-completed image check.
+`threshold` that decides the verdict; it is `null` when all text readings are
+empty and there is no completed image check.
 Local scans without a text reading are `no_injection_detected`. Cloud scans
 without a text reading go straight to the image check after OCR.
 Very long text is checked in chunks. d1 and Clef-Flash also check text of more

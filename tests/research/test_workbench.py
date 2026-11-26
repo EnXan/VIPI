@@ -13,6 +13,7 @@ from research.evaluate import runs as evaluate_runs
 from research.ocr_eval import benchmark
 from research.workbench import evaluations
 from research.workbench.web import create_app
+from vipi.results import ScanResult
 
 
 def wait(predicate, seconds=5):
@@ -64,15 +65,11 @@ def fake_scanner(
             cost={"estimated_usd": 0.0},
             text="Hello",
         )
-        return SimpleNamespace(
+        return ScanResult(
             ocr=ocr,
             detection=detection,
             detector_model="d1",
             detector_identity="d1",
-            svg=None,
-            metadata=None,
-            barcodes=None,
-            transparency=None,
         )
 
     return scan, calls

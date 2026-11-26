@@ -114,3 +114,5 @@ class ScanResult:
     # A scanned `vipi.transparency.TransparencyViews` for an image with
     # transparent pixels.
     transparency: object | None = None
+    # A vipi.openstego.OpenStego when an OpenStego header was encountered.
+    openstego: object | None = None

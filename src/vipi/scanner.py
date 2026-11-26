@@ -23,7 +23,8 @@ def scan_image(image, *, options=None, session=None, provider=None, on_event=Non
     second reading (ADR 0078). For a raster image, the text in its metadata is
     the second reading (ADR 0083). QR and barcode payloads in the scanned
     raster are a further reading (ADR 0084). An image with transparent pixels
-    is also scanned on black and with alpha dropped (ADR 0085).
+    is also scanned on black and with alpha dropped (ADR 0085). Legacy
+    OpenStego text is read from the original PNG samples (ADR 0086).
 
     A caller can reuse a session/provider across images. No existing run directory,
     Flask application or dataset catalog is required.
@@ -33,6 +34,7 @@ def scan_image(image, *, options=None, session=None, provider=None, on_event=Non
     from .detection.providers import prepare_provider
     from .image_metadata import read_metadata
     from .images import decode_image
+    from .openstego import read_openstego
     from .svg import is_svg, prepare_svg
     from .transparency import read_views
 
@@ -64,6 +66,7 @@ def scan_image(image, *, options=None, session=None, provider=None, on_event=Non
                 ocr, lambda png: session.extract(png, on_event)
             )
         metadata = None if svg else read_metadata(image)
+        openstego = None if svg else read_openstego(image)
         raster = BytesIO(source) if isinstance(source, bytes) else source
         barcodes = read_codes(decode_image(raster, max_pixels=None))
         if svg and ocr.artifacts is not None:
@@ -76,10 +79,12 @@ def scan_image(image, *, options=None, session=None, provider=None, on_event=Non
             source_text=svg.document.detector_text if svg else None,
             metadata_text=metadata.detector_text if metadata else None,
             barcode_text=barcodes.detector_text,
+            openstego_text=openstego.detector_text if openstego else None,
             views=transparency.ocr_views if transparency else None,
             incomplete=(svg.incomplete if svg else metadata.incomplete)
             + barcodes.incomplete
-            + (transparency.incomplete if transparency else ()),
+            + (transparency.incomplete if transparency else ())
+            + (openstego.incomplete if openstego else ()),
         )
     return ScanResult(
         ocr,
@@ -90,6 +95,7 @@ def scan_image(image, *, options=None, session=None, provider=None, on_event=Non
         metadata,
         barcodes,
         transparency,
+        openstego=openstego,
     )
 
 
