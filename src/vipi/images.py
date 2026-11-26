@@ -10,7 +10,8 @@ OPENAI_PATCH_SIZE = 32
 OPENAI_MAX_IMAGE_PATCHES = 30_000
 
 
-def decode_image(source, *, max_pixels=MAX_INPUT_PIXELS):
+def decode_rgba(source, *, max_pixels=MAX_INPUT_PIXELS):
+    """Decode a static PNG, JPEG or WebP image upright, with its alpha channel."""
     with Image.open(source) as image:
         if (
             image.format not in {"PNG", "JPEG", "WEBP"}
@@ -19,10 +20,17 @@ def decode_image(source, *, max_pixels=MAX_INPUT_PIXELS):
             raise ValueError("Use a static PNG, JPEG or WebP image.")
         if max_pixels is not None and image.width * image.height > max_pixels:
             raise ValueError(f"Input exceeds {max_pixels / 1_000_000:g} megapixels.")
-        image = ImageOps.exif_transpose(image)
-        rgba = image.convert("RGBA")
-        background = Image.new("RGBA", image.size, "white")
-        return Image.alpha_composite(background, rgba).convert("RGB")
+        return ImageOps.exif_transpose(image).convert("RGBA")
+
+
+def composite(rgba, background):
+    """Draw an RGBA image over an opaque ``background`` colour."""
+    canvas = Image.new("RGBA", rgba.size, background)
+    return Image.alpha_composite(canvas, rgba).convert("RGB")
+
+
+def decode_image(source, *, max_pixels=MAX_INPUT_PIXELS):
+    return composite(decode_rgba(source, max_pixels=max_pixels), "white")
 
 
 def decision_preview(image, maximum=1568):

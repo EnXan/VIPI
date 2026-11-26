@@ -57,6 +57,7 @@ Temporary planning and review queues belong in `.llm-plans/`.
 | [0082](0082-cloud-image-check-without-image-only-scans.md) | Jev and Luna whole-image check only inside cloud scans; `--image-only` removed (replaces 0081) |
 | [0083](0083-image-metadata-reading.md) | Text in PNG, JPEG and WebP metadata is a detector reading; unreadable metadata leaves a scan incomplete (amends 0071) |
 | [0084](0084-barcode-reading.md) | QR and barcode payloads decoded with zxing-cpp are a detector reading; URLs are never fetched (amends 0071) |
+| [0085](0085-transparency-views.md) | Images with transparent pixels are also scanned on black and with alpha dropped (amends 0071, 0082) |
 
 When revising an agreed decision, write its replacement with a summary of the
 old ADR (identifier, decision, rationale and reason for revision), then delete
