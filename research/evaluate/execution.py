@@ -5,7 +5,7 @@ hardware they were measured on (ADR 0062). The torch rule mirrors
 ``vipi.local_decisions.LocalDecisionModel._runtime``; it is repeated here so
 product sources, and with them reusable earlier results (ADR 0058), stay
 unchanged. Local OCR runs on CPU through ONNX Runtime (``vipi.ocr.session``)
-and Prompt Guard is loaded on CPU (``vipi.detection.providers.prompt_guard``).
+and Wolf Defender is loaded on CPU (``vipi.detection.providers.wolf_defender``).
 """
 
 import os
@@ -17,7 +17,7 @@ from vipi.config import LOCAL_DECISION_PROVIDERS, ScanOptions
 from vipi.detection.providers.jev import Jev
 from vipi.detection.providers.openai import Decisions
 
-TORCH_MODELS = (*LOCAL_DECISION_PROVIDERS, "prompt-guard")
+TORCH_MODELS = (*LOCAL_DECISION_PROVIDERS, "wolf-defender")
 # Hosted decision providers: the model ID each sends and the API it calls.
 CLOUD_DECISION_MODELS = {
     "openai": (Decisions.model, "OpenAI Decisions API"),
@@ -99,7 +99,7 @@ def record(scan_options, *, device=None, host=None):
                 "device": selected["device"],
                 "dtype": selected["dtype"],
             }
-        if name == "prompt-guard":
+        if name == "wolf-defender":
             return {"model": name, "device": "cpu", "dtype": "float32"}
         model, service = CLOUD_DECISION_MODELS[name]
         return {"model": model, "provider": name, "service": service, "device": "api"}

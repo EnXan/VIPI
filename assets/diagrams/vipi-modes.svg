@@ -54,7 +54,6 @@
   <text class="title" x="294" y="108">Download models</text>
   <text class="mono" x="294" y="134">vipi setup</text>
   <text class="mono" x="294" y="150">--ocr-mode balanced</text>
-  <text class="mono" x="294" y="166">PROMPT GUARD: HF_TOKEN</text>
   <path class="wire" d="M250 116H270"/>
   <path class="head" d="M278 116l-9-5v10z"/>
   <rect class="card" x="532.5" y="54.5" width="226" height="124" rx="4"/>

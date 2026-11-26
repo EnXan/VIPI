@@ -43,16 +43,16 @@ def test_local_models_record_the_selected_torch_device():
     )
 
 
-def test_prompt_guard_runs_on_cpu_and_cuda_records_gpu_memory():
+def test_wolf_defender_runs_on_cpu_and_cuda_records_gpu_memory():
     cuda = {
         "device": "cuda",
         "dtype": "bfloat16",
         "name": "NVIDIA L4",
         "memory_bytes": 24 * 1024**3,
     }
-    value, _ = record("local-speed-prompt-guard", cuda)
+    value, _ = record("local-speed-wolf-defender", cuda)
     assert value["detector"] == {
-        "model": "prompt-guard",
+        "model": "wolf-defender",
         "device": "cpu",
         "dtype": "float32",
     }
