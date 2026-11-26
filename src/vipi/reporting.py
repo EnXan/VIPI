@@ -116,9 +116,8 @@ def file_record(result):
             if result.transparency
             else {}
         ),
-        **(
-            {"openstego": result.openstego.report(detection.answers)}
-            if result.openstego
-            else {}
-        ),
+        **{
+            payload.kind: payload.report(detection.answers)
+            for payload in result.openstego
+        },
     }

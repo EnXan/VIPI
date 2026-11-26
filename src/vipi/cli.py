@@ -65,8 +65,11 @@ def print_extracted_text(console, path, result):
         readings.append(("Metadata text of ", result.metadata.text))
     if result.barcodes and result.barcodes.text:
         readings.append(("Barcode payloads of ", result.barcodes.text))
-    if result.openstego and result.openstego.detector_text:
-        readings.append(("OpenStego text of ", result.openstego.detector_text))
+    readings.extend(
+        (f"{payload.label} text of ", payload.detector_text)
+        for payload in result.openstego
+        if payload.detector_text
+    )
     for label, text in readings:
         console.print()
         heading = Text(label, style="bold cyan")

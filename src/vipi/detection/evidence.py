@@ -48,7 +48,7 @@ def build_evidence(
     source_text=None,
     metadata_text=None,
     barcode_text=None,
-    openstego_text=None,
+    openstego_texts=None,
     view_texts=None,
     incomplete=(),
 ):
@@ -83,7 +83,7 @@ def build_evidence(
         ("svg_source", source_text),
         ("image_metadata", metadata_text),
         ("barcode", barcode_text),
-        ("openstego", openstego_text),
+        *(openstego_texts or {}).items(),
     ):
         if extra is None or not extra.strip():
             continue
@@ -102,8 +102,8 @@ def build_evidence(
         scope += "_and_image_metadata"
     if barcode_text is not None:
         scope += "_and_barcodes"
-    if openstego_text is not None:
-        scope += "_and_openstego"
+    for kind in openstego_texts or ():
+        scope += f"_and_{kind}"
     return {
         "run_id": run_id,
         "ocr_model": result.get("model"),

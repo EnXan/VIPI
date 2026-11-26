@@ -23,8 +23,8 @@ def scan_image(image, *, options=None, session=None, provider=None, on_event=Non
     second reading (ADR 0078). For a raster image, the text in its metadata is
     the second reading (ADR 0083). QR and barcode payloads in the scanned
     raster are a further reading (ADR 0084). An image with transparent pixels
-    is also scanned on black and with alpha dropped (ADR 0085). Legacy
-    OpenStego text is read from the original PNG samples (ADR 0086).
+    is also scanned on black and with alpha dropped (ADR 0085). OpenStego text
+    is read from the original PNG samples (ADRs 0086 and 0087).
 
     A caller can reuse a session/provider across images. No existing run directory,
     Flask application or dataset catalog is required.
@@ -66,7 +66,7 @@ def scan_image(image, *, options=None, session=None, provider=None, on_event=Non
                 ocr, lambda png: session.extract(png, on_event)
             )
         metadata = None if svg else read_metadata(image)
-        openstego = None if svg else read_openstego(image)
+        openstego = () if svg else read_openstego(image)
         raster = BytesIO(source) if isinstance(source, bytes) else source
         barcodes = read_codes(decode_image(raster, max_pixels=None))
         if svg and ocr.artifacts is not None:
@@ -79,12 +79,12 @@ def scan_image(image, *, options=None, session=None, provider=None, on_event=Non
             source_text=svg.document.detector_text if svg else None,
             metadata_text=metadata.detector_text if metadata else None,
             barcode_text=barcodes.detector_text,
-            openstego_text=openstego.detector_text if openstego else None,
+            openstego_texts={p.kind: p.detector_text for p in openstego},
             views=transparency.ocr_views if transparency else None,
             incomplete=(svg.incomplete if svg else metadata.incomplete)
             + barcodes.incomplete
             + (transparency.incomplete if transparency else ())
-            + (openstego.incomplete if openstego else ()),
+            + tuple(reason for p in openstego for reason in p.incomplete),
         )
     return ScanResult(
         ocr,

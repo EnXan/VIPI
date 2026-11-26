@@ -1,6 +1,7 @@
 """OpenStego evidence through the scanner with inert bytes and fake inference."""
 
 import json
+from pathlib import Path
 import struct
 
 import numpy as np
@@ -11,6 +12,8 @@ from vipi.openstego import read_openstego
 from vipi.scanner import scan
 
 MARKER_TEXT = "VIPI test marker"
+RANDOM_FIXTURES = Path(__file__).resolve().parents[1] / "fixtures" / "openstego"
+RANDOM_MARKER = "VIPI RandomLSB coverage marker"
 
 
 def fixture_png(path, data, *, length=None, channel_bits=1, flags=(0, 0)):
@@ -55,7 +58,7 @@ def test_openstego_text_is_checked_as_a_separate_reading(tmp_path, scanner_runti
         "scores": {"ocr": 0.0, "openstego": 0.9},
     }
     assert len(provider.calls) == 2
-    reading = read_openstego(path.read_bytes())
+    (reading,) = read_openstego(path.read_bytes())
     assert reading.text == payload.decode()
     assert reading.detector_text == MARKER_TEXT
 
@@ -92,4 +95,39 @@ def test_ordinary_png_does_not_add_a_reading(tmp_path, scanner_runtime):
     report = scan([path])
     assert "openstego" not in report["files"][0]
     assert report["exit_code"] == 0
+    assert len(provider.calls) == 1
+
+
+def test_upstream_random_lsb_plaintext_is_checked(scanner_runtime):
+    provider, _ = scanner_runtime
+
+    def check(request, image=None):
+        provider.calls.append(request)
+        return {
+            "status": "completed",
+            "probability": 0.9 if RANDOM_MARKER in json.dumps(request) else 0.0,
+        }
+
+    provider.check = check
+    # OpenStego 0.8.6 used two bits for the data and one for the header.
+    path = RANDOM_FIXTURES / "random-lsb-two-bit.png"
+    (reading,) = read_openstego(path.read_bytes())
+    assert reading.text == f"{RANDOM_MARKER}\n" + "Harmless fixture text.\n" * 45
+    report = scan([path])
+    assert report["exit_code"] == 1
+    record = report["files"][0]
+    assert "openstego" not in record
+    random_lsb = record["openstego_random_lsb"]
+    assert random_lsb["status"] == "text"
+    assert random_lsb["scores"] == {"ocr": 0, "openstego_random_lsb": 0.9}
+
+
+def test_upstream_random_lsb_default_compression_is_reported(scanner_runtime):
+    provider, _ = scanner_runtime
+    provider.score = 0.0
+    report = scan([RANDOM_FIXTURES / "random-lsb-compressed.png"])
+    assert report["exit_code"] == 2
+    record = report["files"][0]
+    assert record["openstego_random_lsb"]["status"] == "compressed"
+    assert record["verdict"] is None
     assert len(provider.calls) == 1

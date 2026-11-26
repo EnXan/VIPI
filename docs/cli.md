@@ -162,7 +162,7 @@ reports with `if: always()` to retain either.
   in formats VIPI does not accept.
 - **QR codes and barcodes:** see [QR codes and barcodes](#qr-codes-and-barcodes).
   Codes too small, blurred or damaged to decode are counted, not checked.
-- **Hidden PNG data:** see [Legacy OpenStego](#legacy-openstego) for the
+- **Hidden PNG data:** see [OpenStego in PNGs](#openstego-in-pngs) for the
   supported pixel layout and how unavailable payloads are reported.
 - **Transparency:** see [Transparent images](#transparent-images). Only white,
   black and the raw colour values are scanned; text visible only on another
@@ -240,19 +240,24 @@ The file record gains a `barcodes` object: `formats` (one entry per decoded
 code), `characters`, `invisible_characters`, `binary` and `scores`, the highest score per reading (`ocr`, `barcode`). `--verbose`
 prints the payloads after the OCR text.
 
-## Legacy OpenStego
+## OpenStego in PNGs
 
-VIPI checks static 8-bit RGB PNGs for the legacy OpenStego version 1 header
-in the low bits of the original colour samples
-([ADR 0086](../adr-code/0086-legacy-openstego-reading.md)). With the one-bit
-layout, it extracts unencrypted, uncompressed UTF-8 payload text as a
-separate detector reading. The selected detector processes it like OCR text,
-including in cloud mode. `--verbose` displays the normalized reading.
+VIPI checks the original colour samples of static 8-bit RGB PNGs for two
+OpenStego layouts.
 
-When VIPI encounters a header, the file record adds an `openstego` object
-with `status`, `stored_bytes` (the declared payload size, when valid),
-`characters`, `invisible_characters`, and `scores` for `ocr` and `openstego`
-when available. A header alone does not determine the injection verdict.
+- Legacy version 1 with one low bit per RGB channel. [ADR 0086](../adr-code/0086-legacy-openstego-reading.md)
+- RandomLSB version 2 with the default, password-free positioning sequence and
+  the one to eight bits per channel declared by its header. [ADR 0087](../adr-code/0087-openstego-random-lsb-reading.md)
+
+VIPI extracts unencrypted, uncompressed UTF-8 payload text as a detector
+reading for each layout found. The selected detector processes it like OCR
+text, including in cloud mode. `--verbose` displays the normalized readings.
+
+When VIPI encounters a header, the file record adds an `openstego` or
+`openstego_random_lsb` object, or both. Each records `status`, `stored_bytes`
+(the declared payload size, when valid), `characters`, `invisible_characters`,
+and `scores` for `ocr` and the layout's reading when available. A header
+alone does not determine the injection verdict.
 
 - `text` is a decoded UTF-8 payload. `binary` is a payload that fails UTF-8
   decoding or contains control characters other than tab and line breaks.
@@ -260,9 +265,8 @@ when available. A header alone does not determine the injection verdict.
 - `encrypted`, `compressed`, `unsupported`, `malformed` and `unreadable`
   leave the scan incomplete (exit 2). A finding in another reading is retained.
 
-The check covers the specific legacy layout above. Modern OpenStego RandomLSB,
-PngLoader, other pixel layouts, non-RGB PNGs and SVG renders are outside that
-coverage.
+Coverage is limited to these two layouts. It omits password-dependent
+RandomLSB positioning, PngLoader, headerless LSB, non-RGB PNGs and SVG renders.
 
 ## Transparent images
 

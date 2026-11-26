@@ -59,6 +59,7 @@ Temporary planning and review queues belong in `.llm-plans/`.
 | [0084](0084-barcode-reading.md) | QR and barcode payloads decoded with zxing-cpp are a detector reading; URLs are never fetched (amends 0071) |
 | [0085](0085-transparency-views.md) | Images with transparent pixels are also scanned on black and with alpha dropped (amends 0071, 0082) |
 | [0086](0086-legacy-openstego-reading.md) | Plaintext in supported legacy OpenStego PNGs is a detector reading (amends 0071) |
+| [0087](0087-openstego-random-lsb-reading.md) | Plaintext in supported OpenStego RandomLSB v2 PNGs is a detector reading (extends 0086) |
 
 When revising an agreed decision, write its replacement with a summary of the
 old ADR (identifier, decision, rationale and reason for revision), then delete
