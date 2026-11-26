@@ -12,8 +12,19 @@ from vipi.storage.files import sha256 as file_hash
 from vipi.torch_logging import quiet_redirects_notice
 from vipi.weight_loading import load_weights_sequentially
 
-MODEL_ID = "meta-llama/Llama-Prompt-Guard-2-86M"
-MODEL_DIR = "models/detector/prompt-guard-2-86m"
+MODEL_ID = "patronus-studio/wolf-defender-prompt-injection-small"
+MODEL_DIR = "models/detector/wolf-defender"
+# Exact root files: the repository also holds ONNX exports, a pickled
+# PyTorch checkpoint and vendor Python code, none of which VIPI loads.
+MODEL_FILES = (
+    "config.json",
+    "tokenizer.json",
+    "tokenizer_config.json",
+    "special_tokens_map.json",
+    "model.safetensors",
+    "LICENSE",
+    "README.md",
+)
 _loaded = {}
 _load_lock = threading.Lock()
 
@@ -38,7 +49,7 @@ def model_manifest(directory, *, verify=True):
         manifest = json.loads((directory / "manifest.json").read_text())
     except (OSError, ValueError) as error:
         raise ValueError(
-            "Prepare Prompt Guard with 'vipi setup --detector prompt-guard'."
+            "Prepare Wolf Defender with 'vipi setup --detector wolf-defender'."
         ) from error
     if (
         not isinstance(manifest, dict)
@@ -47,7 +58,7 @@ def model_manifest(directory, *, verify=True):
         or not re.fullmatch(r"[a-f0-9]{40}", manifest.get("revision", ""))
         or not manifest.get("files")
     ):
-        raise ValueError("Invalid Prompt Guard model manifest.")
+        raise ValueError("Invalid Wolf Defender model manifest.")
     for name, expected in manifest["files"].items():
         path = directory / name
         if (
@@ -57,7 +68,7 @@ def model_manifest(directory, *, verify=True):
             or (verify and file_hash(path) != expected)
         ):
             raise ValueError(
-                "Prompt Guard files are missing or fail checksum verification."
+                "Wolf Defender files are missing or fail checksum verification."
             )
     return manifest
 
@@ -75,7 +86,7 @@ def prepare_model(directory=MODEL_DIR, *, revision):
         return manifest
     directory.parent.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(
-        prefix=".prompt-guard-", dir=directory.parent
+        prefix=".wolf-defender-", dir=directory.parent
     ) as temporary:
         staging = Path(temporary)
         manifest = download_snapshot(staging, revision)
@@ -92,20 +103,10 @@ def download_snapshot(directory, revision):
         MODEL_ID,
         revision=revision,
         local_dir=directory,
-        allow_patterns=[
-            "*.json",
-            "*.model",
-            "*.txt",
-            "*.safetensors",
-            "LICENSE*",
-            "README.md",
-            "USE_POLICY*",
-        ],
+        allow_patterns=list(MODEL_FILES),
     )
-    if not (directory / "config.json").is_file() or not list(
-        directory.glob("*.safetensors")
-    ):
-        raise ValueError("Downloaded snapshot lacks config or safetensors weights.")
+    if not all((directory / name).is_file() for name in MODEL_FILES):
+        raise ValueError("Downloaded snapshot lacks required Wolf Defender files.")
     files = {
         str(path.relative_to(directory)): file_hash(path)
         for path in directory.rglob("*")
@@ -114,7 +115,7 @@ def download_snapshot(directory, revision):
     manifest = {
         "model": MODEL_ID,
         "revision": revision,
-        "license": "Llama 4 Community License",
+        "license": "Apache-2.0",
         "files": files,
     }
     (directory / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")
@@ -155,18 +156,13 @@ def token_windows(tokenizer, text, *, overlap=64):
 
 def native_labels(config):
     labels = {int(k): str(v).upper() for k, v in config.id2label.items()}
-    # The official 86M config omits semantic names, so Transformers uses LABEL_0/1.
-    # Meta's inference contract defines malicious as column 1:
-    # https://github.com/meta-llama/llama-cookbook/blob/main/getting-started/responsible_ai/prompt_guard/inference.py
-    if config.num_labels == 2 and labels == {0: "LABEL_0", 1: "LABEL_1"}:
-        return {0: "BENIGN", 1: "MALICIOUS"}
-    if config.num_labels != 2 or labels != {0: "BENIGN", 1: "MALICIOUS"}:
-        raise ValueError("Unexpected native Prompt Guard label mapping.")
+    if config.num_labels != 2 or labels != {0: "BENIGN", 1: "INJECTION"}:
+        raise ValueError("Unexpected native Wolf Defender label mapping.")
     return labels
 
 
-class PromptGuard:
-    name = "prompt-guard"
+class WolfDefender:
+    name = "wolf-defender"
     model = MODEL_ID
 
     def __init__(self, directory=MODEL_DIR):
@@ -178,7 +174,7 @@ class PromptGuard:
                 versions[name] = importlib.metadata.version(name)
             except importlib.metadata.PackageNotFoundError:
                 raise ValueError(
-                    "Install the detector-local extra to use Prompt Guard."
+                    "Install the detector-local extra to use Wolf Defender."
                 ) from None
         self.identity = {
             "model": MODEL_ID,
@@ -187,7 +183,7 @@ class PromptGuard:
             "runtime": versions,
             "window_tokens": 512,
             "overlap_tokens": 64,
-            "label_mapping": "meta-prompt-guard-2-v1",
+            "label_mapping": "config-id2label",
             "padding": "disabled-before-windowing",
         }
 
@@ -215,7 +211,7 @@ class PromptGuard:
                 )
                 if not hasattr(tokenizer, "backend_tokenizer"):
                     raise ValueError(
-                        "Prompt Guard requires tokenizer offsets for window provenance."
+                        "Wolf Defender requires tokenizer offsets for window provenance."
                     )
                 with suppress_transformers_progress():
                     model = AutoModelForSequenceClassification.from_pretrained(
@@ -231,7 +227,7 @@ class PromptGuard:
     def check(self, state):
         tokenizer, model, torch, labels, lock = self._runtime()
         text = state["untrusted_evidence"]["text"]
-        malicious_id = next(k for k, v in labels.items() if v == "MALICIOUS")
+        injection_id = next(k for k, v in labels.items() if v == "INJECTION")
         windows = []
         with lock, torch.inference_mode():
             for inputs, bounds in token_windows(tokenizer, text):
@@ -244,7 +240,7 @@ class PromptGuard:
                 windows.append(
                     {
                         **bounds,
-                        "probability": scores[malicious_id],
+                        "probability": scores[injection_id],
                         "native_label": labels[
                             max(range(len(scores)), key=scores.__getitem__)
                         ],

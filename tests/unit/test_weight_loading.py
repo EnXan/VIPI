@@ -9,7 +9,7 @@ from types import SimpleNamespace
 import pytest
 
 from vipi import local_decisions
-from vipi.detection.providers import prompt_guard
+from vipi.detection.providers import wolf_defender
 from vipi.weight_loading import ASYNC_LOAD_SWITCH, load_weights_sequentially
 
 
@@ -47,7 +47,7 @@ def test_decision_models_load_sequentially(monkeypatch):
     assert os.environ[ASYNC_LOAD_SWITCH] == "1"
 
 
-def test_prompt_guard_loads_sequentially(monkeypatch):
+def test_wolf_defender_loads_sequentially(monkeypatch):
     monkeypatch.delenv(ASYNC_LOAD_SWITCH, raising=False)
     seen = []
 
@@ -56,8 +56,8 @@ def test_prompt_guard_loads_sequentially(monkeypatch):
         stop()
 
     # quiet_redirects_notice() runs right before torch and transformers import.
-    monkeypatch.setattr(prompt_guard, "quiet_redirects_notice", record_and_stop)
-    detector = object.__new__(prompt_guard.PromptGuard)
+    monkeypatch.setattr(wolf_defender, "quiet_redirects_notice", record_and_stop)
+    detector = object.__new__(wolf_defender.WolfDefender)
     detector.directory = "unused"
     detector.manifest = {"revision": "test", "files": {}}
     with pytest.raises(StopBeforeLoading):

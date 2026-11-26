@@ -44,7 +44,7 @@ def scan_image(image, *, options=None, session=None, provider=None, on_event=Non
     )
     options = options or ScanOptions()
     provider = provider or prepare_provider(
-        options.resolved_detector, cache_directory() / "prompt-guard"
+        options.resolved_detector, cache_directory() / "wolf-defender"
     )
     source = svg.rendered.png if svg else image
     with ExitStack() as resources:
@@ -181,7 +181,7 @@ def scan(
 
         from .detection.providers import prepare_provider
 
-        provider = prepare_provider(detector, root / "prompt-guard")
+        provider = prepare_provider(detector, root / "wolf-defender")
         with ExitStack() as resources:
             from .ocr.session import OcrSession
 
@@ -229,7 +229,7 @@ def scan(
     except (Exception, KeyboardInterrupt) as error:
         message = (
             "Missing runtime dependencies. Install VIPI with the ocr extra "
-            "and detector-local for local decision models or Prompt Guard."
+            "and detector-local for local decision models or Wolf Defender."
             if isinstance(error, ModuleNotFoundError)
             else str(error) or "Scan interrupted."
         )

@@ -25,7 +25,7 @@ OCR_LABELS = {
 DETECTOR_LABELS = {
     "d1": "d1 (LiquidAI d1-3B)",
     "clef-flash": "Clef-Flash (Cloudflare)",
-    "prompt-guard": "Prompt Guard 2 (Meta)",
+    "wolf-defender": "Wolf Defender small (Patronus Studio)",
     "openai": "OpenAI Luna",
     "jev": "Jev",
 }

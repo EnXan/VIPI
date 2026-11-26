@@ -90,7 +90,7 @@ def test_configurations_are_the_product_options_with_the_product_default(tmp_pat
     assert data["threshold"] == 8
     thresholds = {item["id"]: item["threshold"] for item in data["configurations"]}
     assert thresholds["local-speed"] == 45
-    assert thresholds["local-speed-prompt-guard"] == 80
+    assert thresholds["local-speed-wolf-defender"] == 40
     assert thresholds["cloud-mistral"] == 80
     assert data["splits"] == ["development", "test"]
     labels = {
@@ -112,8 +112,8 @@ def test_configurations_are_the_product_options_with_the_product_default(tmp_pat
         "Cloud · Google Cloud Vision · Jev detector",
         True,
     )
-    assert labels["local-speed-prompt-guard"][0] == (
-        "Local · Speed OCR · Prompt Guard 2 (Meta) detector"
+    assert labels["local-speed-wolf-defender"][0] == (
+        "Local · Speed OCR · Wolf Defender small (Patronus Studio) detector"
     )
     detectors = {item["id"]: item["detector"] for item in data["configurations"]}
     assert detectors["cloud-mistral-jev"] == "jev"

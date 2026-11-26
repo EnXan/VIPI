@@ -181,9 +181,9 @@ def test_configurations_are_the_product_scan_options():
         "local-speed",
         "local-balanced",
         "local-quality-clef-flash",
-        "local-speed-prompt-guard",
-        "local-balanced-prompt-guard",
-        "local-quality-prompt-guard",
+        "local-speed-wolf-defender",
+        "local-balanced-wolf-defender",
+        "local-quality-wolf-defender",
         "cloud-google",
         "cloud-openai",
         "cloud-mistral",
@@ -277,16 +277,16 @@ def test_only_used_registry_entries_make_a_baseline_stale(manifest_root):
     assert suite.status("cloud-google", root=root)["state"] == "fresh"
 
 
-def test_quality_prompt_guard_differs_from_clef_flash_only_by_detector():
+def test_quality_wolf_defender_differs_from_clef_flash_only_by_detector():
     # Explicit scan options, not the product default, so the OCR of runs
     # recorded before Clef-Flash became the default is reused (ADR 0058).
-    guard = dict(suite.CONFIGURATIONS["local-quality-prompt-guard"])
-    assert guard.pop("detector") == "prompt-guard"
+    guard = dict(suite.CONFIGURATIONS["local-quality-wolf-defender"])
+    assert guard.pop("detector") == "wolf-defender"
     assert guard == suite.CONFIGURATIONS["local-quality-clef-flash"]
 
 
-def test_prompt_guard_configurations_change_only_the_detector(manifest_root):
-    from vipi.config import PROMPT_GUARD_REVISION, ScanOptions
+def test_wolf_defender_configurations_change_only_the_detector(manifest_root):
+    from vipi.config import WOLF_DEFENDER_REVISION, ScanOptions
 
     root, _rows, _document = manifest_root
     for mode, default in (
@@ -295,15 +295,15 @@ def test_prompt_guard_configurations_change_only_the_detector(manifest_root):
         ("quality", "local-quality-clef-flash"),
     ):
         default = ScanOptions(**suite.CONFIGURATIONS[default])
-        guard = ScanOptions(**suite.CONFIGURATIONS[f"local-{mode}-prompt-guard"])
-        assert guard.resolved_detector == "prompt-guard"
+        guard = ScanOptions(**suite.CONFIGURATIONS[f"local-{mode}-wolf-defender"])
+        assert guard.resolved_detector == "wolf-defender"
         assert guard.resolved_ocr_model == default.resolved_ocr_model
         assert guard.resolved_decision_provider == default.resolved_decision_provider
-    identity = suite.manifest("local-speed-prompt-guard", root=root)["configuration"][
+    identity = suite.manifest("local-speed-wolf-defender", root=root)["configuration"][
         "model_identity"
     ]
-    assert identity["detector_models"]["prompt-guard"]["revision"] == (
-        PROMPT_GUARD_REVISION
+    assert identity["detector_models"]["wolf-defender"]["revision"] == (
+        WOLF_DEFENDER_REVISION
     )
     assert list(identity["registries"][suite.DECISION_REGISTRY]) == ["d1"]
     plain = suite.manifest("local-speed", root=root)["configuration"]["model_identity"]

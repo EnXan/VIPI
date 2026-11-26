@@ -31,10 +31,11 @@ orientation classifier. All local scans use RapidOCR's native pipeline.
 ## Overrides
 
 `--decision-provider clef-flash|d1` overrides local OCR review. `--detector` overrides
-only the final check: local choices are `clef-flash`, `d1` and `prompt-guard`; cloud
+only the final check: local choices are `clef-flash`, `d1` and `wolf-defender`; cloud
 choices are `openai` and `jev`. `auto` follows the decision provider.
-`prompt-guard` uses `meta-llama/Llama-Prompt-Guard-2-86M` on final OCR text;
-it does not perform visual OCR review. `--ocr-model` changes OCR without changing
+`wolf-defender` uses `patronus-studio/wolf-defender-prompt-injection-small`
+(Apache-2.0, not gated) on final OCR text on CPU; it does not perform visual
+OCR review ([ADR 0087](../adr-code/0087-wolf-defender-replaces-prompt-guard.md)). `--ocr-model` changes OCR without changing
 the local profile's decision model. Local and cloud providers cannot be mixed.
 See the [CLI reference](cli.md#commands-and-options) for every option.
 
@@ -50,7 +51,7 @@ Setup prepares local weights and verifies pinned code; scanning has no model
 download or hosted fallback. Exact OCR hashes are in
 [`model_files.json`](../src/vipi/ocr/model_files.json), Clef-Flash and d1 repositories and
 immutable revisions in [`decision_models.json`](../src/vipi/decision_models.json),
-and the Prompt Guard revision in [`config.py`](../src/vipi/config.py). Clef-Flash
+and the Wolf Defender revision in [`config.py`](../src/vipi/config.py). Clef-Flash
 requires substantially more memory than d1. These defaults are configuration
 choices, not a measured quality ranking across profiles.
 
@@ -76,7 +77,7 @@ upstream model sizes at the pinned revisions and VIPI's loading precision:
 | --- | --- | ---: | ---: |
 | [d1](https://huggingface.co/LiquidAI/d1-3B/tree/051bcc464b01b9f92942b364d9586b0ef5912432) | 3.12B parameters, BF16, 6.25 GB files | ~12.5 GB | ~6.3 GB |
 | [Clef-Flash](https://huggingface.co/Cloudflare/clef-flash/tree/fb4417d31c1d0f9e7e77f1141b40aaede7491e00) | ~9.5B parameters, BF16, 19 GB files | ~38 GB | ~19 GB |
-| [Prompt Guard 2](https://huggingface.co/meta-llama/Llama-Prompt-Guard-2-86M) | 279M parameters including embeddings, FP32, 1.1 GB file | ~1.1 GB | not used |
+| [Wolf Defender small](https://huggingface.co/patronus-studio/wolf-defender-prompt-injection-small/tree/2484cc9a13550aa4f2c29b577ff3ef331dc6ba07) | 141M parameters, FP32, 563 MB file | ~0.6 GB | not used |
 
 VIPI loads decision models in FP32 on CPU, BF16 on CUDA and FP16 on Apple MPS
 ([`local_decisions.py`](../src/vipi/local_decisions.py)). Local weights load with one

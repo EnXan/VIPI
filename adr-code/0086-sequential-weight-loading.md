@@ -25,7 +25,7 @@ days later, one from 2026-11-26) showed the same deadlock while weights loaded:
 
 The race depends on thread timing. It struck a few times in several hundred
 model loads, so it can also hang a `vipi scan` that loads Clef-Flash, d1 or
-Prompt Guard.
+Wolf Defender.
 
 Ctrl+C did not end a hung worker. SIGINT reaches the worker, but Python handles
 it only in the main thread, which needs the GIL. The benchmark parent then exited
@@ -35,7 +35,7 @@ and left the worker and its resource tracker running as orphans.
 
 - `vipi.weight_loading.load_weights_sequentially()` sets
   `HF_DEACTIVATE_ASYNC_LOAD=1` unless the environment already sets the variable.
-  `LocalDecisionModel` (Clef-Flash, d1) and the Prompt Guard detector call it
+  `LocalDecisionModel` (Clef-Flash, d1) and the Wolf Defender detector call it
   before they import torch and load weights. transformers reads the variable on
   each `from_pretrained()` call, so the process-wide setting applies to every
   later load.

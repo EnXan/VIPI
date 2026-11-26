@@ -8,7 +8,7 @@ from .decoding import decoded
 from .evidence import build_evidence, chunks, windows
 from .policy import INSTRUCTIONS, POLICY_VERSION, state
 from .providers import create_provider
-from .providers.prompt_guard import MODEL_DIR
+from .providers.wolf_defender import MODEL_DIR
 from vipi.storage.detection import DetectionStore
 from vipi.cancellation import check_cancelled
 from vipi.transparency import READINGS
@@ -45,7 +45,7 @@ def jobs_for(evidence, options):
                     "kind": "text",
                 }
             ]
-            if name == "prompt-guard"
+            if name == "wolf-defender"
             else list(chunks(reading["text"]))
         )
         if name in LOCAL_DECISION_PROVIDERS:
@@ -182,7 +182,7 @@ def detect(
             except Exception as failure:
                 error = str(failure)
         with ThreadPoolExecutor(
-            max_workers=1 if name == "prompt-guard" else 4,
+            max_workers=1 if name == "wolf-defender" else 4,
             thread_name_prefix="detector",
         ) as pool:
             futures = [

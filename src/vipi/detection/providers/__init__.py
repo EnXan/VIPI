@@ -2,7 +2,7 @@
 
 from .jev import Jev
 from .openai import Decisions
-from .prompt_guard import PromptGuard
+from .wolf_defender import WolfDefender
 from vipi.config import CLOUD_DECISION_PROVIDERS, LOCAL_DECISION_PROVIDERS
 
 
@@ -16,7 +16,7 @@ def create_provider(name, model_dir):
     return {
         "jev": Jev,
         "openai": Decisions,
-        "prompt-guard": lambda: PromptGuard(model_dir),
+        "wolf-defender": lambda: WolfDefender(model_dir),
     }[name]()
 
 
