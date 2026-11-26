@@ -58,8 +58,10 @@ and left the worker and its resource tracker running as orphans.
 
 ## Consequences
 
-- Weights load with one thread. With threads, Clef-Flash on the M4 Pro took
-  about 4 s per load (from the transformers progress bar in the run log).
+- Weights load with one thread. On the M4 Pro, Clef-Flash (760 tensors) took
+  about 4 s per load with threads (162–173 tensors/s) and 5–6 s sequentially
+  (126–140 tensors/s), from the transformers progress bars in the run log. A
+  scan loads each model once; the benchmark loads it once per four images.
   Inference per image is unchanged.
 - A user who sets `HF_DEACTIVATE_ASYNC_LOAD` explicitly keeps that value.
 - An interrupted benchmark leaves no worker processes behind.
@@ -70,5 +72,7 @@ Unit tests check that the variable is set, that an explicit value is kept, that
 both loaders set it before importing torch, that the locked transformers version
 still reads this switch, and that an interrupted run terminates its worker. The
 deadlock itself was not reproduced in a test because it depends on thread timing.
-The sequential load time and the absence of further hangs in a full
-`local-quality` run are not measured yet. Windows and Linux are unverified.
+With `HF_DEACTIVATE_ASYNC_LOAD=1` set in the shell, the resumed
+`local-quality-wolf-defender` run finished its remaining 133 images on the M4
+Pro without a hang; this is the same switch, but not this code path, and too
+few loads to prove the race gone. Windows and Linux are unverified.
