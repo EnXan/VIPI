@@ -72,6 +72,7 @@ def fake_scanner(
             svg=None,
             metadata=None,
             barcodes=None,
+            transparency=None,
         )
 
     return scan, calls

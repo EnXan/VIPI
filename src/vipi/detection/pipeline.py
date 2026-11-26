@@ -11,6 +11,7 @@ from .providers import create_provider
 from .providers.prompt_guard import MODEL_DIR
 from vipi.storage.detection import DetectionStore
 from vipi.cancellation import check_cancelled
+from vipi.transparency import READINGS
 from vipi.config import (
     CLOUD_DECISION_PROVIDERS,
     LOCAL_DECISION_PROVIDERS,
@@ -65,12 +66,13 @@ def jobs_for(evidence, options):
     return jobs
 
 
-def _image_job(name, index):
+def _image_job(name, index, view=None):
     return {
         "id": f"{index:04d}",
         "provider": name,
         "signal": name,
         "kind": "image",
+        **({"view": view} if view is not None else {}),
         "evidence": {"image": "input.png"},
     }
 
@@ -131,9 +133,14 @@ def detect(
     on_event=None,
     provider_factory=None,
     cancel_event=None,
-    load_image=None,
+    load_images=(),
 ):
-    """Check the requested evidence, preserving cancellation and partial answers."""
+    """Check the requested evidence, preserving cancellation and partial answers.
+
+    ``load_images`` lists ``(view, loader)`` pairs for the whole-image check
+    that follows a text check without a finding. Images are checked in order
+    until one detects; ``view`` is None for an image without transparency views.
+    """
     options = settings(**(options or {}))
     incomplete = evidence.get("incomplete", [])
     evidence_complete = evidence["ocr_complete"] is not False and not incomplete
@@ -143,7 +150,7 @@ def detect(
     name = options["text_classifier"]
     signals = [name]
     scope = evidence.get("scope", "final_ocr")
-    check_image_after_text = load_image is not None
+    check_image_after_text = bool(load_images)
     thresholds = options["thresholds"]
     try:
         check_cancelled(cancel_event)
@@ -179,9 +186,7 @@ def detect(
             thread_name_prefix="detector",
         ) as pool:
             futures = [
-                pool.submit(
-                    _check_job, job, provider, error, store, cancel_event, load_image
-                )
+                pool.submit(_check_job, job, provider, error, store, cancel_event)
                 for job in jobs
             ]
             for future in as_completed(futures):
@@ -199,19 +204,24 @@ def detect(
             evidence_complete=evidence_complete,
         )
         if check_image_after_text and summary["verdict"] != "injection_detected":
-            job = _image_job(name, len(jobs) + 1)
-            jobs.append(job)
             scope += "_and_image"
             inputs["evidence_scope"] = scope
-            store.save_document("inputs.json", inputs)
-            store.emit("image_check_scheduled", total=len(jobs))
-            answer = _check_job(job, provider, error, store, cancel_event, load_image)
-            _save_answer(store, answer, signals, thresholds, evidence_complete)
-            answers.append(answer)
-            check_cancelled(cancel_event)
-            summary = summarize(
-                answers, signals, thresholds, evidence_complete=evidence_complete
-            )
+            for view, load_image in load_images:
+                job = _image_job(name, len(jobs) + 1, view)
+                jobs.append(job)
+                store.save_document("inputs.json", inputs)
+                store.emit("image_check_scheduled", total=len(jobs))
+                answer = _check_job(
+                    job, provider, error, store, cancel_event, load_image
+                )
+                _save_answer(store, answer, signals, thresholds, evidence_complete)
+                answers.append(answer)
+                check_cancelled(cancel_event)
+                summary = summarize(
+                    answers, signals, thresholds, evidence_complete=evidence_complete
+                )
+                if summary["verdict"] == "injection_detected":
+                    break
         result = {
             "schema_version": 3,
             "evidence_scope": scope,
@@ -263,6 +273,7 @@ def detect_ocr(
     source_text=None,
     metadata_text=None,
     barcode_text=None,
+    views=None,
     incomplete=(),
     text_only=False,
 ):
@@ -271,6 +282,8 @@ def detect_ocr(
     ``source_text`` adds an SVG source reading (ADR 0078), ``metadata_text``
     an image metadata reading (ADR 0083) and ``barcode_text`` decoded code
     payloads (ADR 0084); ``incomplete`` reasons prevent a clean verdict.
+    ``views`` maps transparency views other than white to their OCR results
+    (ADR 0085); their texts are readings and their rasters are image checks.
     """
     from vipi.results import DetectionResult
 
@@ -281,6 +294,11 @@ def detect_ocr(
         source_text=source_text,
         metadata_text=metadata_text,
         barcode_text=barcode_text,
+        view_texts=(
+            {READINGS[name]: result.text for name, result in views.items()}
+            if views is not None
+            else None
+        ),
         incomplete=incomplete,
     )
     store = DetectionStore(ocr.artifacts, on_event, run_id=ocr.run_id)
@@ -289,12 +307,22 @@ def detect_ocr(
         and (options or {}).get("text_classifier", "jev") in CLOUD_DECISION_PROVIDERS
     )
 
-    def load_image():
-        from vipi.images import decode_image
+    def loader(result):
+        def load_image():
+            from vipi.images import decode_image
 
-        if ocr.image is None:
-            raise ValueError("The input image is unavailable for image detection.")
-        return decode_image(BytesIO(ocr.image), max_pixels=None)
+            if result.image is None:
+                raise ValueError("The input image is unavailable for image detection.")
+            return decode_image(BytesIO(result.image), max_pixels=None)
+
+        return load_image
+
+    load_images = []
+    if check_image:
+        load_images.append(("white" if views is not None else None, loader(ocr)))
+        load_images += [
+            (name, loader(result)) for name, result in (views or {}).items()
+        ]
 
     payload = detect(
         evidence,
@@ -302,6 +330,6 @@ def detect_ocr(
         store=store,
         provider_factory=provider_factory,
         on_event=on_event,
-        load_image=load_image if check_image else None,
+        load_images=load_images,
     )
     return DetectionResult.from_dict(payload)

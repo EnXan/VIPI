@@ -107,7 +107,8 @@ result is unclear, a visual model compares it with the image; when text is
 missing, VIPI reads the image again rotated, with more contrast or upscaled. A
 detector then checks the final text for prompt injections at the selected score
 threshold, together with the text in the image's metadata or an SVG's source
-and the payloads of QR codes and barcodes.
+and the payloads of QR codes and barcodes. Images with transparency are also
+read on black and with the alpha channel dropped.
 Cloud scans check the image when the text check finds no injection.
 
 <p align="center">

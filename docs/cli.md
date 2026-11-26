@@ -162,6 +162,10 @@ reports with `if: always()` to retain either.
   in formats VIPI does not accept.
 - **QR codes and barcodes:** see [QR codes and barcodes](#qr-codes-and-barcodes).
   Codes too small, blurred or damaged to decode are counted, not checked.
+- **Transparency:** see [Transparent images](#transparent-images). Only white,
+  black and the raw colour values are scanned; text visible only on another
+  background colour relies on OCR contrast recovery. Codes are decoded in the
+  white view only.
 - **SVG:** see [SVG files](#svg-files). The renderer (resvg) draws neither
   `<foreignObject>`, embedded fonts, animation nor text inside embedded SVG
   images, and ignores dark-mode `@media` rules; text in them is covered by the
@@ -233,6 +237,32 @@ incomplete (exit 2, verdict `null` unless a reading is detected).
 The file record gains a `barcodes` object: `formats` (one entry per decoded
 code), `characters`, `invisible_characters`, `binary` and `scores`, the highest score per reading (`ocr`, `barcode`). `--verbose`
 prints the payloads after the OCR text.
+
+## Transparent images
+
+VIPI draws every image on white before OCR. An agent may see it on a dark
+background or with its alpha channel dropped, as many image pipelines do,
+which keeps the colour values of fully transparent pixels. A PNG or WebP with
+any pixel below full opacity is therefore scanned in three views
+([ADR 0085](../adr-code/0085-transparency-views.md)):
+
+- `white`: drawn on white, as for every other image;
+- `black`: drawn on black;
+- `rgb`: alpha dropped, raw colour values.
+
+Views with identical pixels are scanned once. Every other view runs through
+the full OCR, and its final text is a further reading; any reading at or above
+the threshold detects. In a cloud scan without a text finding, each distinct
+view is submitted to the image check in this order until one detects. A view
+whose OCR fails leaves the scan incomplete (exit 2); the other views are still
+checked. Opaque images and JPEGs are scanned exactly as before.
+
+The file record gains a `transparency` object with one entry per view: `name`,
+`same_as` (the view it duplicates, or `null`), `score` (the highest score of its
+reading) and `image_check`; a scanned view adds `run_id`, `artifacts`,
+`ocr_seconds`, `ocr_text_characters` and `ocr_cost`, a failed one `error`. The
+top-level `ocr_*` fields describe the white view;
+`estimated_total_api_cost_usd` includes every view.
 
 ## SVG files
 
