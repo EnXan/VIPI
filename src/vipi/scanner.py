@@ -26,6 +26,7 @@ def scan_image(image, *, options=None, session=None, provider=None, on_event=Non
     is also scanned on black and with alpha dropped (ADR 0085). OpenStego text
     is read from the original PNG samples (ADRs 0086 and 0087), as is
     headerless text from any caller-declared LSB layout (ADR 0088).
+    Requested PNG low-bit statistics are computed from the same samples (ADR 0089).
 
     A caller can reuse a session/provider across images. No existing run directory,
     Flask application or dataset catalog is required.
@@ -70,8 +71,12 @@ def scan_image(image, *, options=None, session=None, provider=None, on_event=Non
         metadata = None if svg else read_metadata(image)
         openstego = () if svg else read_openstego(image)
         lsb = (
-            read_lsb(image, tuple(dict.fromkeys(options.lsb_layouts)))
-            if options.lsb_layouts and not svg
+            read_lsb(
+                image,
+                tuple(dict.fromkeys(options.lsb_layouts)),
+                statistics=options.lsb_stats,
+            )
+            if (options.lsb_layouts or options.lsb_stats) and not svg
             else None
         )
         raster = BytesIO(source) if isinstance(source, bytes) else source
@@ -87,7 +92,7 @@ def scan_image(image, *, options=None, session=None, provider=None, on_event=Non
             metadata_text=metadata.detector_text if metadata else None,
             barcode_text=barcodes.detector_text,
             openstego_texts={p.kind: p.detector_text for p in openstego},
-            lsb_text=lsb.detector_text if lsb else None,
+            lsb_text=lsb.detector_text if lsb and lsb.layouts else None,
             views=transparency.ocr_views if transparency else None,
             incomplete=(svg.incomplete if svg else metadata.incomplete)
             + barcodes.incomplete
@@ -122,6 +127,7 @@ def scan(
     diff=None,
     exclude_patterns=(),
     lsb_layouts=(),
+    lsb_stats=False,
     output=None,
     progress=None,
     on_result=None,
@@ -160,6 +166,7 @@ def scan(
             ocr_provider,
             decision_provider,
             lsb_layouts=tuple(lsb_layouts),
+            lsb_stats=lsb_stats,
         )
         detector = options.resolved_detector
         if detector in CLOUD_DECISION_PROVIDERS:

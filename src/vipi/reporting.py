@@ -120,5 +120,19 @@ def file_record(result):
             payload.kind: payload.report(detection.answers)
             for payload in result.openstego
         },
-        **({"png_lsb": result.lsb.report(detection.answers)} if result.lsb else {}),
+        **(
+            {"png_lsb": result.lsb.report(detection.answers)}
+            if result.lsb and result.lsb.layouts
+            else {}
+        ),
+        **(
+            {
+                "png_lsb_stats": {
+                    "unreadable": result.lsb.unreadable,
+                    "channels": result.lsb.statistics,
+                }
+            }
+            if result.lsb and result.lsb.statistics is not None
+            else {}
+        ),
     }

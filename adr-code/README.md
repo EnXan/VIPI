@@ -61,6 +61,7 @@ Temporary planning and review queues belong in `.llm-plans/`.
 | [0086](0086-legacy-openstego-reading.md) | Plaintext in supported legacy OpenStego PNGs is a detector reading (amends 0071) |
 | [0087](0087-openstego-random-lsb-reading.md) | Plaintext in supported OpenStego RandomLSB v2 PNGs is a detector reading (extends 0086) |
 | [0088](0088-declared-png-lsb-layouts.md) | An opt-in scan checks text previews from caller-declared headerless PNG layouts (amends 0071) |
+| [0089](0089-png-lsb-statistics.md) | An opt-in scan reports original PNG low-bit sample-pair statistics for forensic review |
 
 When revising an agreed decision, write its replacement with a summary of the
 old ADR (identifier, decision, rationale and reason for revision), then delete

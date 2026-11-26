@@ -106,6 +106,7 @@ class ScanOptions:
     ocr_provider: str | None = None
     decision_provider: str | None = None
     lsb_layouts: tuple[str, ...] = ()
+    lsb_stats: bool = False
 
     def __post_init__(self):
         if self.lsb_layouts:

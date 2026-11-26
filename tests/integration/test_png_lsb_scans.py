@@ -36,6 +36,7 @@ def test_declared_layout_adds_a_text_reading(tmp_path, scanner_runtime, capsys):
     default = scan([image])
     assert default["exit_code"] == 0
     assert "png_lsb" not in default["files"][0]
+    assert "png_lsb_stats" not in default["files"][0]
 
     output = tmp_path / "report.json"
     assert (
@@ -47,6 +48,7 @@ def test_declared_layout_adds_a_text_reading(tmp_path, scanner_runtime, capsys):
                 LAYOUT,
                 "--lsb-layout",
                 LAYOUT,
+                "--lsb-stats",
                 "--verbose",
                 "--output",
                 str(output),
@@ -58,6 +60,7 @@ def test_declared_layout_adds_a_text_reading(tmp_path, scanner_runtime, capsys):
     assert record["verdict"] == "injection_detected"
     assert record["png_lsb"]["layouts"] == [LAYOUT]
     assert record["png_lsb"]["scores"] == {"ocr": 0, "png_lsb": 0.9}
+    assert record["png_lsb_stats"]["channels"]["r"]["samples"] == 36 * 16
     assert len(provider.calls) == 3
     assert MARKER in capsys.readouterr().out
 
@@ -79,3 +82,31 @@ def test_invalid_layout_fails_before_scanning(tmp_path, scanner_runtime):
     assert report["exit_code"] == 2
     assert "Use an LSB layout" in report["errors"][0]["error"]
     assert not provider.calls
+
+
+def test_lsb_statistics_are_reported_without_an_extra_detector_call(
+    tmp_path, scanner_runtime, capsys
+):
+    provider, _ = scanner_runtime
+    provider.score = 0
+    path = tmp_path / "colour-pairs.png"
+    output = tmp_path / "report.json"
+    image = Image.new("RGB", (32, 24))
+    pixels = [(40, 120, 200), (41, 121, 200), (44, 120, 200), (44, 121, 201)]
+    image.putdata(pixels * 192)
+    image.save(path)
+
+    assert main(["scan", str(path), "--lsb-stats", "--output", str(output)]) == 0
+    record = json.loads(output.read_text())["files"][0]
+    assert record["verdict"] == "no_injection_detected"
+    assert "png_lsb" not in record
+    assert record["png_lsb_stats"] == {
+        "unreadable": False,
+        "channels": {
+            "r": {"samples": 768, "observed_pairs": 2, "chi_square": 384.0},
+            "g": {"samples": 768, "observed_pairs": 1, "chi_square": 0.0},
+            "b": {"samples": 768, "observed_pairs": 1, "chi_square": 192.0},
+        },
+    }
+    assert len(provider.calls) == 1
+    assert "PNG LSB statistics" in capsys.readouterr().out

@@ -25,7 +25,7 @@ the research web UI are not included in the wheel.
 | `vipi.transparency` | White, black and raw-colour views of images with transparent pixels ([ADR 0085](../adr-code/0085-transparency-views.md)) |
 | `vipi.svg` | SVG source text, the render-safe copy and resvg rendering ([ADR 0078](../adr-code/0078-svg-inputs.md)) |
 | `vipi.openstego` | Legacy OpenStego and RandomLSB headers and payload text in original PNG samples ([ADR 0086](../adr-code/0086-legacy-openstego-reading.md), [ADR 0087](../adr-code/0087-openstego-random-lsb-reading.md)) |
-| `vipi.png_lsb` | Text candidates in explicitly declared original PNG layouts ([ADR 0088](../adr-code/0088-declared-png-lsb-layouts.md)) |
+| `vipi.png_lsb` | Text candidates in declared PNG layouts and optional original sample-pair statistics ([ADR 0088](../adr-code/0088-declared-png-lsb-layouts.md), [ADR 0089](../adr-code/0089-png-lsb-statistics.md)) |
 | `vipi.ocr` | Transformations, OCR engines, assembly and reusable model sessions |
 | `vipi.detection` | Text and whole-image checks, one selected detector and score policy |
 | `vipi.results` | `OcrResult`, `DetectionResult` and `ScanResult` at component boundaries |
@@ -70,6 +70,8 @@ and the final OCR text of an image's black and raw-colour views where applicable
 threshold ([ADR 0082](../adr-code/0082-cloud-image-check-without-image-only-scans.md)). Dataset references
 remain scoring inputs. Evaluation reuse of complete
 OCR/detection results belongs to `research.ocr_eval.ocr_reuse`.
+Requested PNG low-bit statistics are carried to the report without adding
+detector evidence ([ADR 0089](../adr-code/0089-png-lsb-statistics.md)).
 
 ## OCR implementation
 

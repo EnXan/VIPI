@@ -1,8 +1,9 @@
-"""Read zsteg-style ASCII candidates from explicitly selected PNG layouts."""
+"""Read declared PNG LSB text and summarize low-bit sample statistics."""
 
 from dataclasses import dataclass
 from io import BytesIO
 from itertools import islice, product
+from math import fsum
 import re
 
 READING = "png_lsb"
@@ -23,6 +24,7 @@ class PngLsb:
     layouts: tuple[str, ...]
     candidates: tuple[tuple[str, str], ...] = ()
     unreadable: bool = False
+    statistics: dict | None = None
 
     @property
     def detector_text(self):
@@ -48,8 +50,8 @@ class PngLsb:
         }
 
 
-def read_lsb(source, layouts):
-    """Inspect original 8-bit RGB samples in the caller's declared layouts."""
+def read_lsb(source, layouts, *, statistics=False):
+    """Inspect original 8-bit RGB samples as requested by the caller."""
     from PIL import Image
 
     from .images import is_8bit_rgb_png
@@ -67,9 +69,27 @@ def read_lsb(source, layouts):
                     for layout in layouts
                     if (text := _text_candidate(image, layout))
                 )
+                counts = _sample_statistics(image) if statistics else None
         except (OSError, SyntaxError, ValueError, Image.DecompressionBombError):
-            return PngLsb(layouts, unreadable=True)
-    return PngLsb(layouts, candidates)
+            return PngLsb(
+                layouts, unreadable=True, statistics={} if statistics else None
+            )
+    return PngLsb(layouts, candidates, statistics=counts)
+
+
+def _sample_statistics(image):
+    """Pearson statistic for equal counts within each adjacent sample pair."""
+    hist = image.histogram()
+    result = {}
+    for index, channel in enumerate("rgb"):
+        bins = hist[index * 256 : (index + 1) * 256]
+        pairs = [(even, odd) for even, odd in zip(bins[::2], bins[1::2]) if even + odd]
+        result[channel] = {
+            "samples": sum(bins),
+            "observed_pairs": len(pairs),
+            "chi_square": fsum((even - odd) ** 2 / (even + odd) for even, odd in pairs),
+        }
+    return result
 
 
 def _text_candidate(image, layout):

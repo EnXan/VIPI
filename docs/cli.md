@@ -40,6 +40,7 @@ Without `--diff`, at least one path is required.
 | `--diff REFERENCE` | Select committed images added/modified since the common ancestor of REFERENCE and HEAD. |
 | `--exclude PATTERN` | Repeatable ordered filesystem exclusion; `!` re-includes matching paths. No user rules by default. |
 | `--lsb-layout LAYOUT` | Check text candidates read in a declared [PNG LSB layout](#headerless-lsb-in-pngs). Repeatable. No layouts by default. |
+| `--lsb-stats` | Report per-channel [low-bit statistics](#png-low-bit-statistics) for static 8-bit RGB PNGs. Off by default. |
 | `--threshold 0–100` | Finding threshold. Default: the detector's calibrated value, 45 for `d1`, 8 for `clef-flash` and 80 for `prompt-guard`, `jev` and `openai` (ADR 0075, ADR 0077). Equality is a finding. The report records the threshold used. |
 | `--output FILE` | Also write an atomic JSON report, including findings or incomplete scans. |
 | `--verbose` | Print each image's final OCR text and additional text readings. Off by default. |
@@ -165,7 +166,8 @@ reports with `if: always()` to retain either.
   Codes too small, blurred or damaged to decode are counted, not checked.
 - **Hidden PNG data:** see [OpenStego in PNGs](#openstego-in-pngs) for the
   known formats and [Headerless LSB in PNGs](#headerless-lsb-in-pngs) for
-  caller-declared layouts.
+  caller-declared layouts. [PNG low-bit statistics](#png-low-bit-statistics)
+  are available for forensic inspection.
 - **Transparency:** see [Transparent images](#transparent-images). Only white,
   black and the raw colour values are scanned; text visible only on another
   background colour relies on OCR contrast recovery. Codes are decoded in the
@@ -291,6 +293,26 @@ and character count, `unreadable`, and the `ocr` and `png_lsb` scores when
 available. `--verbose` shows the recovered text. A candidate is a finding
 if the detector score meets the configured threshold. Unreadable samples
 leave the scan incomplete (exit 2). Other input types skip this check.
+
+## PNG low-bit statistics
+
+Use `--lsb-stats` to inspect the sample-pair statistic suggested in
+[PngLoader’s detection guidance](https://github.com/i014n/PngLoader#detection-guidance).
+VIPI reports one statistic per RGB channel from all original samples in a
+static 8-bit RGB PNG. Each pair groups adjacent values that differ only in
+their lowest bit. A lower chi-square value means the counts in those pairs are
+closer to equal. Use the values with a matched reference or other evidence.
+Individual values provide neither a PngLoader attribution nor a
+prompt-injection verdict. See [ADR 0089](../adr-code/0089-png-lsb-statistics.md).
+
+```bash
+vipi scan image.png --lsb-stats --output report.json
+```
+
+The `png_lsb_stats` object has `unreadable` and `channels`. Each channel
+reports `samples`, `observed_pairs`, and `chi_square`. An unreadable result
+has empty `channels` and leaves a requested scan incomplete. Other input
+types skip the check. The statistics can be requested with `--lsb-layout`.
 
 ## Transparent images
 

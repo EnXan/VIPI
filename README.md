@@ -108,7 +108,8 @@ missing, VIPI reads the image again rotated, with more contrast or upscaled. A
 detector then checks the final text for prompt injections at the selected score
 threshold, together with the image metadata or SVG source text, QR and
 barcode payloads, and text extracted from supported OpenStego PNGs.
-Use `--lsb-layout` when the downstream workflow reads a known headerless PNG layout.
+Use `--lsb-layout` when the downstream workflow reads a known headerless PNG
+layout and `--lsb-stats` to include PNG sample-pair statistics in the report.
 Images with transparency are also read on black and with the alpha channel dropped.
 Cloud scans check the image when the text check finds no injection.
 
