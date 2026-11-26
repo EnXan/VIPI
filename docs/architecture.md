@@ -24,6 +24,8 @@ the research web UI are not included in the wheel.
 | `vipi.images` | Raster decoding and preparation for hosted image decisions |
 | `vipi.transparency` | White, black and raw-colour views of images with transparent pixels ([ADR 0085](../adr-code/0085-transparency-views.md)) |
 | `vipi.svg` | SVG source text, the render-safe copy and resvg rendering ([ADR 0078](../adr-code/0078-svg-inputs.md)) |
+| `vipi.openstego` | Legacy OpenStego and RandomLSB headers and payload text in original PNG samples ([ADR 0088](../adr-code/0088-legacy-openstego-reading.md), [ADR 0089](../adr-code/0089-openstego-random-lsb-reading.md)) |
+| `vipi.png_lsb` | Text candidates in declared PNG layouts and optional original sample-pair statistics ([ADR 0090](../adr-code/0090-declared-png-lsb-layouts.md), [ADR 0091](../adr-code/0091-png-lsb-statistics.md)) |
 | `vipi.ocr` | Transformations, OCR engines, assembly and reusable model sessions |
 | `vipi.detection` | Text and whole-image checks, one selected detector and score policy |
 | `vipi.results` | `OcrResult`, `DetectionResult` and `ScanResult` at component boundaries |
@@ -41,7 +43,8 @@ CLI -> file/Git inputs -> scanner.scan_image
                            -> (SVG: vipi.svg source text + rendered PNG)
                            -> OCR -> OcrResult
                               (transparent raster: OCR per distinct view)
-                           -> detection (+ SVG source text or whole image) -> DetectionResult
+                           -> detection (+ other text readings and cloud image checks)
+                           -> DetectionResult
                            -> ScanResult -> report/exit code
 ```
 
@@ -57,13 +60,18 @@ beside the OCR artifacts. The selected detector checks final OCR text and either
 the SVG source reading or, for raster images, the metadata reading
 (`vipi.image_metadata`, [ADR 0083](../adr-code/0083-image-metadata-reading.md)),
 plus the decoded QR and barcode payloads (`vipi.barcodes`,
-[ADR 0084](../adr-code/0084-barcode-reading.md)), and for an image with
-transparent pixels the final OCR text of its black and raw-colour views
+[ADR 0084](../adr-code/0084-barcode-reading.md)), text from supported OpenStego
+PNGs (`vipi.openstego`, [ADR 0088](../adr-code/0088-legacy-openstego-reading.md),
+[ADR 0089](../adr-code/0089-openstego-random-lsb-reading.md)),
+text candidates from caller-declared PNG LSB layouts ([ADR 0090](../adr-code/0090-declared-png-lsb-layouts.md)),
+and the final OCR text of an image's black and raw-colour views where applicable
 (`vipi.transparency`, [ADR 0085](../adr-code/0085-transparency-views.md)). In a regular cloud scan it checks the same input raster
 (each distinct view of a transparent image) after a text verdict with no finding, with the same detection policy and verdict
 threshold ([ADR 0082](../adr-code/0082-cloud-image-check-without-image-only-scans.md)). Dataset references
 remain scoring inputs. Evaluation reuse of complete
 OCR/detection results belongs to `research.ocr_eval.ocr_reuse`.
+Requested PNG low-bit statistics are carried to the report without adding
+detector evidence ([ADR 0091](../adr-code/0091-png-lsb-statistics.md)).
 
 ## OCR implementation
 

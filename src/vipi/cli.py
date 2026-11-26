@@ -65,6 +65,13 @@ def print_extracted_text(console, path, result):
         readings.append(("Metadata text of ", result.metadata.text))
     if result.barcodes and result.barcodes.text:
         readings.append(("Barcode payloads of ", result.barcodes.text))
+    readings.extend(
+        (f"{payload.label} text of ", payload.detector_text)
+        for payload in result.openstego
+        if payload.detector_text
+    )
+    if result.lsb and result.lsb.detector_text:
+        readings.append(("PNG LSB candidates of ", result.lsb.detector_text))
     for label, text in readings:
         console.print()
         heading = Text(label, style="bold cyan")
@@ -162,6 +169,18 @@ def build_parser():
         default=[],
         metavar="PATTERN",
         help="Exclude a local scan path (repeatable); prefix with ! to re-include",
+    )
+    command.add_argument(
+        "--lsb-layout",
+        action="append",
+        default=[],
+        metavar="LAYOUT",
+        help="Check text candidates in a declared PNG LSB layout, e.g. b1,rgb,lsb,xy (repeatable)",
+    )
+    command.add_argument(
+        "--lsb-stats",
+        action="store_true",
+        help="Report low-bit sample-pair statistics for original 8-bit RGB PNGs",
     )
     command.add_argument(
         "--detector",
@@ -273,10 +292,20 @@ def main(argv=None):
             console.print(next_step)
             return 0
         on_result = None
-        if args.verbose:
+        if args.verbose or args.lsb_stats:
 
             def on_result(path, result):
-                print_extracted_text(console, path, result)
+                if args.verbose:
+                    print_extracted_text(console, path, result)
+                if result.lsb and result.lsb.statistics:
+                    console.print(Text(f"PNG LSB statistics for {path}"))
+                    for channel, stats in result.lsb.statistics.items():
+                        console.print(
+                            Text(
+                                f"  {channel.upper()} · χ² {stats['chi_square']:.4g}"
+                                f" · {stats['observed_pairs']} observed pairs"
+                            )
+                        )
 
         with console.status(
             Text("Preparing scan", style="cyan"),
@@ -294,6 +323,8 @@ def main(argv=None):
                 decision_provider=args.decision_provider,
                 diff=args.diff,
                 exclude_patterns=args.exclude,
+                lsb_layouts=args.lsb_layout,
+                lsb_stats=args.lsb_stats,
                 output=args.output,
                 progress=lambda message: status.update(Text(message, style="cyan")),
                 on_result=on_result,

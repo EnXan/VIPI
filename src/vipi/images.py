@@ -10,6 +10,15 @@ OPENAI_PATCH_SIZE = 32
 OPENAI_MAX_IMAGE_PATCHES = 30_000
 
 
+def is_8bit_rgb_png(header):
+    """Check the signature and original sample layout from the first 26 bytes."""
+    return (
+        header[:8] == b"\x89PNG\r\n\x1a\n"
+        and header[12:16] == b"IHDR"
+        and header[24:26] == b"\x08\x02"
+    )
+
+
 def decode_rgba(source, *, max_pixels=MAX_INPUT_PIXELS):
     """Decode a static PNG, JPEG or WebP image upright, with its alpha channel."""
     with Image.open(source) as image:

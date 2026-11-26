@@ -23,7 +23,10 @@ def scan_image(image, *, options=None, session=None, provider=None, on_event=Non
     second reading (ADR 0078). For a raster image, the text in its metadata is
     the second reading (ADR 0083). QR and barcode payloads in the scanned
     raster are a further reading (ADR 0084). An image with transparent pixels
-    is also scanned on black and with alpha dropped (ADR 0085).
+    is also scanned on black and with alpha dropped (ADR 0085). OpenStego text
+    is read from the original PNG samples (ADRs 0088 and 0089), as is
+    headerless text from any caller-declared LSB layout (ADR 0090).
+    Requested PNG low-bit statistics are computed from the same samples (ADR 0091).
 
     A caller can reuse a session/provider across images. No existing run directory,
     Flask application or dataset catalog is required.
@@ -33,6 +36,8 @@ def scan_image(image, *, options=None, session=None, provider=None, on_event=Non
     from .detection.providers import prepare_provider
     from .image_metadata import read_metadata
     from .images import decode_image
+    from .openstego import read_openstego
+    from .png_lsb import read_lsb
     from .svg import is_svg, prepare_svg
     from .transparency import read_views
 
@@ -64,6 +69,16 @@ def scan_image(image, *, options=None, session=None, provider=None, on_event=Non
                 ocr, lambda png: session.extract(png, on_event)
             )
         metadata = None if svg else read_metadata(image)
+        openstego = () if svg else read_openstego(image)
+        lsb = (
+            read_lsb(
+                image,
+                tuple(dict.fromkeys(options.lsb_layouts)),
+                statistics=options.lsb_stats,
+            )
+            if (options.lsb_layouts or options.lsb_stats) and not svg
+            else None
+        )
         raster = BytesIO(source) if isinstance(source, bytes) else source
         barcodes = read_codes(decode_image(raster, max_pixels=None))
         if svg and ocr.artifacts is not None:
@@ -76,10 +91,14 @@ def scan_image(image, *, options=None, session=None, provider=None, on_event=Non
             source_text=svg.document.detector_text if svg else None,
             metadata_text=metadata.detector_text if metadata else None,
             barcode_text=barcodes.detector_text,
+            openstego_texts={p.kind: p.detector_text for p in openstego},
+            lsb_text=lsb.detector_text if lsb and lsb.layouts else None,
             views=transparency.ocr_views if transparency else None,
             incomplete=(svg.incomplete if svg else metadata.incomplete)
             + barcodes.incomplete
-            + (transparency.incomplete if transparency else ()),
+            + (transparency.incomplete if transparency else ())
+            + tuple(reason for p in openstego for reason in p.incomplete)
+            + (lsb.incomplete if lsb else ()),
         )
     return ScanResult(
         ocr,
@@ -90,6 +109,8 @@ def scan_image(image, *, options=None, session=None, provider=None, on_event=Non
         metadata,
         barcodes,
         transparency,
+        openstego=openstego,
+        lsb=lsb,
     )
 
 
@@ -105,6 +126,8 @@ def scan(
     decision_provider=None,
     diff=None,
     exclude_patterns=(),
+    lsb_layouts=(),
+    lsb_stats=False,
     output=None,
     progress=None,
     on_result=None,
@@ -142,6 +165,8 @@ def scan(
             ocr_execution_mode,
             ocr_provider,
             decision_provider,
+            lsb_layouts=tuple(lsb_layouts),
+            lsb_stats=lsb_stats,
         )
         detector = options.resolved_detector
         if detector in CLOUD_DECISION_PROVIDERS:

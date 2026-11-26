@@ -105,8 +105,15 @@ class ScanOptions:
     ocr_execution_mode: str | None = None
     ocr_provider: str | None = None
     decision_provider: str | None = None
+    lsb_layouts: tuple[str, ...] = ()
+    lsb_stats: bool = False
 
     def __post_init__(self):
+        if self.lsb_layouts:
+            from .png_lsb import validate_layout
+
+            for layout in self.lsb_layouts:
+                validate_layout(layout)
         if self.detector not in DETECTORS:
             raise ValueError("Choose a supported detector.")
         if self.threshold is not None and (

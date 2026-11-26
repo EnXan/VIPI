@@ -39,9 +39,11 @@ Without `--diff`, at least one path is required.
 | --- | --- |
 | `--diff REFERENCE` | Select committed images added/modified since the common ancestor of REFERENCE and HEAD. |
 | `--exclude PATTERN` | Repeatable ordered filesystem exclusion; `!` re-includes matching paths. No user rules by default. |
+| `--lsb-layout LAYOUT` | Check text candidates read in a declared [PNG LSB layout](#headerless-lsb-in-pngs). Repeatable. No layouts by default. |
+| `--lsb-stats` | Report per-channel [low-bit statistics](#png-low-bit-statistics) for static 8-bit RGB PNGs. Off by default. |
 | `--threshold 0–100` | Finding threshold. Default: the detector's calibrated value, 45 for `d1`, 8 for `clef-flash`, 40 for `wolf-defender` and 80 for `jev` and `openai` (ADR 0075, ADR 0077, ADR 0087). Equality is a finding. The report records the threshold used. |
 | `--output FILE` | Also write an atomic JSON report, including findings or incomplete scans. |
-| `--verbose` | Print each image's final OCR text. Off by default. |
+| `--verbose` | Print each image's final OCR text and additional text readings. Off by default. |
 | `--list-only` | Run input selection only and list the selected images; no models, providers or keys are used. Selected files have status `selected` and the report status is `listed`; exit 2 on selection errors, otherwise 0. |
 
 Local/cloud choices must agree. Explicit cloud mode rejects `--ocr-mode`, and
@@ -162,6 +164,10 @@ reports with `if: always()` to retain either.
   in formats VIPI does not accept.
 - **QR codes and barcodes:** see [QR codes and barcodes](#qr-codes-and-barcodes).
   Codes too small, blurred or damaged to decode are counted, not checked.
+- **Hidden PNG data:** see [OpenStego in PNGs](#openstego-in-pngs) for the
+  known formats and [Headerless LSB in PNGs](#headerless-lsb-in-pngs) for
+  caller-declared layouts. [PNG low-bit statistics](#png-low-bit-statistics)
+  are available for forensic inspection.
 - **Transparency:** see [Transparent images](#transparent-images). Only white,
   black and the raw colour values are scanned; text visible only on another
   background colour relies on OCR contrast recovery. Codes are decoded in the
@@ -182,8 +188,8 @@ reports with `if: always()` to retain either.
   calibrated attack probability. Scores are not comparable across detectors: the
   local decision models score injections far lower than the cloud detectors, so
   their default thresholds are lower. `no_injection_detected` means the detector
-  stayed below the threshold on the final OCR text, the SVG source or metadata
-  text and the barcode payloads; it does not prove the image
+  stayed below the threshold on the final OCR text and additional readings;
+  it does not prove the image
   is safe, and it does not say whether OCR missed readable text.
 - **Cost:** cloud scans can make additional billable requests when OCR is
   unclear and the image is reviewed or read again.
@@ -237,6 +243,76 @@ incomplete (exit 2, verdict `null` unless a reading is detected).
 The file record gains a `barcodes` object: `formats` (one entry per decoded
 code), `characters`, `invisible_characters`, `binary` and `scores`, the highest score per reading (`ocr`, `barcode`). `--verbose`
 prints the payloads after the OCR text.
+
+## OpenStego in PNGs
+
+VIPI checks the original colour samples of static 8-bit RGB PNGs for two
+OpenStego layouts.
+
+- Legacy version 1 with one low bit per RGB channel. [ADR 0088](../adr-code/0088-legacy-openstego-reading.md)
+- RandomLSB version 2 with the default, password-free positioning sequence and
+  the one to eight bits per channel declared by its header. [ADR 0089](../adr-code/0089-openstego-random-lsb-reading.md)
+
+VIPI extracts unencrypted, uncompressed UTF-8 payload text as a detector
+reading for each layout found. The selected detector processes it like OCR
+text, including in cloud mode. `--verbose` displays the normalized readings.
+
+When VIPI encounters a header, the file record adds an `openstego` or
+`openstego_random_lsb` object, or both. Each records `status`, `stored_bytes`
+(the declared payload size, when valid), `characters`, `invisible_characters`,
+and `scores` for `ocr` and the layout's reading when available. A header
+alone does not determine the injection verdict.
+
+- `text` is a decoded UTF-8 payload. `binary` is a payload that fails UTF-8
+  decoding or contains control characters other than tab and line breaks.
+  Binary payloads are reported without submitting their bytes as text.
+- `encrypted`, `compressed`, `unsupported`, `malformed` and `unreadable`
+  leave the scan incomplete (exit 2). A finding in another reading is retained.
+
+OpenStego coverage is limited to these two layouts. It omits password-dependent
+RandomLSB positioning, PngLoader, non-RGB PNGs and SVG renders.
+
+## Headerless LSB in PNGs
+
+Use `--lsb-layout` when a downstream tool reads text from the original RGB
+samples of static 8-bit PNGs. Pass the tool's known layout, for example
+`--lsb-layout b1,rgb,lsb,xy` ([ADR 0090](../adr-code/0090-declared-png-lsb-layouts.md)).
+Repeat the option for each layout the workflow reads. There is no headerless
+check by default because ordinary images can produce plausible text fragments.
+
+Layouts use zsteg's `bN,channels,order,traversal` notation. `N` is 1 through 8
+low bits per channel. Channels are `r`, `g`, `b`, `rgb` or `bgr`. `lsb` and
+`msb` use zsteg's byte assembly order. `xy` traverses rows and `yx` traverses
+columns, starting at the top left. VIPI reads the first printable ASCII run
+of at least 8 bytes in the first 256 decoded bytes per layout. These settings
+match zsteg's default fragment preview used by tools such as Aperi’Solve.
+Binary signatures and longer previews are outside this check.
+
+The `png_lsb` object reports the checked `layouts`, each candidate's layout
+and character count, `unreadable`, and the `ocr` and `png_lsb` scores when
+available. `--verbose` shows the recovered text. A candidate is a finding
+if the detector score meets the configured threshold. Unreadable samples
+leave the scan incomplete (exit 2). Other input types skip this check.
+
+## PNG low-bit statistics
+
+Use `--lsb-stats` to inspect the sample-pair statistic suggested in
+[PngLoader’s detection guidance](https://github.com/i014n/PngLoader#detection-guidance).
+VIPI reports one statistic per RGB channel from all original samples in a
+static 8-bit RGB PNG. Each pair groups adjacent values that differ only in
+their lowest bit. A lower chi-square value means the counts in those pairs are
+closer to equal. Use the values with a matched reference or other evidence.
+Individual values provide neither a PngLoader attribution nor a
+prompt-injection verdict. See [ADR 0091](../adr-code/0091-png-lsb-statistics.md).
+
+```bash
+vipi scan image.png --lsb-stats --output report.json
+```
+
+The `png_lsb_stats` object has `unreadable` and `channels`. Each channel
+reports `samples`, `observed_pairs`, and `chi_square`. An unreadable result
+has empty `channels` and leaves a requested scan incomplete. Other input
+types skip the check. The statistics can be requested with `--lsb-layout`.
 
 ## Transparent images
 
@@ -311,9 +387,8 @@ Errors take precedence. Each file record has a `verdict`: `injection_detected`,
 `no_injection_detected`, or `null` when a required detector check did not
 complete (the file is then an error). `injection_probability` is the highest
 native detector probability over all completed checks, reported next to the
-`threshold` that decides the verdict; it is `null` when the final OCR text, the
-SVG source or metadata text and the barcode payloads are empty and there is no
-completed image check.
+`threshold` that decides the verdict; it is `null` when all text readings are
+empty and there is no completed image check.
 Local scans without a text reading are `no_injection_detected`. Cloud scans
 without a text reading go straight to the image check after OCR.
 Very long text is checked in chunks. d1 and Clef-Flash also check text of more

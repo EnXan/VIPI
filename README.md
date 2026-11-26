@@ -106,9 +106,11 @@ In a standard scan, OCR reads the text in the image. If the
 result is unclear, a visual model compares it with the image; when text is
 missing, VIPI reads the image again rotated, with more contrast or upscaled. A
 detector then checks the final text for prompt injections at the selected score
-threshold, together with the text in the image's metadata or an SVG's source
-and the payloads of QR codes and barcodes. Images with transparency are also
-read on black and with the alpha channel dropped.
+threshold, together with the image metadata or SVG source text, QR and
+barcode payloads, and text extracted from supported OpenStego PNGs.
+Use `--lsb-layout` when the downstream workflow reads a known headerless PNG
+layout and `--lsb-stats` to include PNG sample-pair statistics in the report.
+Images with transparency are also read on black and with the alpha channel dropped.
 Cloud scans check the image when the text check finds no injection.
 
 <p align="center">

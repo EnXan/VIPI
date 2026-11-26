@@ -59,6 +59,10 @@ Temporary planning and review queues belong in `.llm-plans/`.
 | [0085](0085-transparency-views.md) | Images with transparent pixels are also scanned on black and with alpha dropped (amends 0071, 0082) |
 | [0086](0086-sequential-weight-loading.md) | Local weights load sequentially because threaded loading can deadlock in safetensors; interrupted benchmarks terminate their worker |
 | [0087](0087-wolf-defender-replaces-prompt-guard.md) | Wolf Defender small replaces Prompt Guard 2 as the local text classifier, default threshold 40; its evaluation configurations replace 0061's (replaces 0061, amends 0075) |
+| [0088](0088-legacy-openstego-reading.md) | Plaintext in supported legacy OpenStego PNGs is a detector reading (amends 0071) |
+| [0089](0089-openstego-random-lsb-reading.md) | Plaintext in supported OpenStego RandomLSB v2 PNGs is a detector reading (extends 0088) |
+| [0090](0090-declared-png-lsb-layouts.md) | An opt-in scan checks text previews from caller-declared headerless PNG layouts (amends 0071) |
+| [0091](0091-png-lsb-statistics.md) | An opt-in scan reports original PNG low-bit sample-pair statistics for forensic review |
 
 When revising an agreed decision, write its replacement with a summary of the
 old ADR (identifier, decision, rationale and reason for revision), then delete

@@ -48,10 +48,12 @@ def build_evidence(
     source_text=None,
     metadata_text=None,
     barcode_text=None,
+    openstego_texts=None,
+    lsb_text=None,
     view_texts=None,
     incomplete=(),
 ):
-    """Freeze the final OCR text plus SVG source, metadata and barcode readings.
+    """Freeze final OCR text and the additional scan readings.
 
     ``view_texts`` maps reading kinds such as ``ocr_black`` to the final OCR
     text of a transparency view (ADR 0085).
@@ -82,6 +84,8 @@ def build_evidence(
         ("svg_source", source_text),
         ("image_metadata", metadata_text),
         ("barcode", barcode_text),
+        *(openstego_texts or {}).items(),
+        ("png_lsb", lsb_text),
     ):
         if extra is None or not extra.strip():
             continue
@@ -100,6 +104,10 @@ def build_evidence(
         scope += "_and_image_metadata"
     if barcode_text is not None:
         scope += "_and_barcodes"
+    for kind in openstego_texts or ():
+        scope += f"_and_{kind}"
+    if lsb_text is not None:
+        scope += "_and_png_lsb"
     return {
         "run_id": run_id,
         "ocr_model": result.get("model"),
