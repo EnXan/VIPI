@@ -605,3 +605,47 @@ def test_partial_usage_includes_successful_calls_without_pricing_missing_respons
     assert summary["cost"]["estimated_usd"] is None
     assert summary["cost"]["recorded_estimate_subtotal"] == 0.0035
     assert summary["counts"]["at_least_80"] == 0
+
+
+class InterruptedWorker:
+    """A worker that never ends by itself while Ctrl+C reaches the parent."""
+
+    def __init__(self, target, args):
+        self.alive = False
+        self.calls = []
+
+    def start(self):
+        self.alive = True
+
+    def is_alive(self):
+        return self.alive
+
+    def join(self, timeout=None):
+        self.calls.append("join")
+        if self.calls.count("terminate") == 0:
+            raise KeyboardInterrupt
+
+    def terminate(self):
+        self.calls.append("terminate")
+        self.alive = False
+
+
+def test_interrupting_a_local_run_terminates_its_worker(tmp_path, monkeypatch):
+    workers = []
+
+    def process(target, args):
+        workers.append(InterruptedWorker(target, args))
+        return workers[-1]
+
+    monkeypatch.setattr(
+        benchmark.multiprocessing,
+        "get_context",
+        lambda method: SimpleNamespace(Process=process),
+    )
+    with pytest.raises(KeyboardInterrupt):
+        benchmark.run_configuration(
+            tmp_path, "local-speed", [{"key": "ocr_eval:a"}, {"key": "ocr_eval:b"}]
+        )
+    assert len(workers) == 1
+    assert workers[0].calls == ["join", "terminate", "join"]
+    assert not workers[0].is_alive()

@@ -79,7 +79,9 @@ upstream model sizes at the pinned revisions and VIPI's loading precision:
 | [Prompt Guard 2](https://huggingface.co/meta-llama/Llama-Prompt-Guard-2-86M) | 279M parameters including embeddings, FP32, 1.1 GB file | ~1.1 GB | not used |
 
 VIPI loads decision models in FP32 on CPU, BF16 on CUDA and FP16 on Apple MPS
-([`local_decisions.py`](../src/vipi/local_decisions.py)). Weights exclude OCR,
+([`local_decisions.py`](../src/vipi/local_decisions.py)). Local weights load with one
+thread (`HF_DEACTIVATE_ASYNC_LOAD=1`, unless already set), because threaded loading can
+deadlock ([ADR 0086](../adr-code/0086-sequential-weight-loading.md)). Weights exclude OCR,
 activations, image buffers and operating-system overhead. The measured `speed`
 run used MPS/FP16 with fresh processes every four images; it does not certify a
 minimum; neither does the measured `quality` run on an M4 Pro (MPS/FP16, median

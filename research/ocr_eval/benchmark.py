@@ -468,20 +468,28 @@ def run_configuration(
         )
         worker_started = time.perf_counter()
         process.start()
-        while process.is_alive():
-            process.join(0.5)
-            if cancel is not None and cancel.is_set():
+        try:
+            while process.is_alive():
+                process.join(0.5)
+                if cancel is not None and cancel.is_set():
+                    process.terminate()
+                    process.join()
+                    (directory / "current.json").unlink(missing_ok=True)
+                    invocation.update(
+                        finished_at=utc_now(),
+                        elapsed_seconds=time.perf_counter() - started,
+                        cancelled=True,
+                    )
+                    write_json(directory / "invocation-current.json", invocation)
+                    retain_interrupted_progress(directory)
+                    return
+        except BaseException:
+            # Ctrl+C also reaches the worker, but a worker stuck without the GIL
+            # never handles it and would outlive this process (ADR 0086).
+            if process.is_alive():
                 process.terminate()
                 process.join()
-                (directory / "current.json").unlink(missing_ok=True)
-                invocation.update(
-                    finished_at=utc_now(),
-                    elapsed_seconds=time.perf_counter() - started,
-                    cancelled=True,
-                )
-                write_json(directory / "invocation-current.json", invocation)
-                retain_interrupted_progress(directory)
-                return
+            raise
         invocation["workers"].append(
             {
                 "exitcode": process.exitcode,

@@ -58,6 +58,7 @@ Temporary planning and review queues belong in `.llm-plans/`.
 | [0083](0083-image-metadata-reading.md) | Text in PNG, JPEG and WebP metadata is a detector reading; unreadable metadata leaves a scan incomplete (amends 0071) |
 | [0084](0084-barcode-reading.md) | QR and barcode payloads decoded with zxing-cpp are a detector reading; URLs are never fetched (amends 0071) |
 | [0085](0085-transparency-views.md) | Images with transparent pixels are also scanned on black and with alpha dropped (amends 0071, 0082) |
+| [0086](0086-sequential-weight-loading.md) | Local weights load sequentially because threaded loading can deadlock in safetensors; interrupted benchmarks terminate their worker |
 
 When revising an agreed decision, write its replacement with a summary of the
 old ADR (identifier, decision, rationale and reason for revision), then delete

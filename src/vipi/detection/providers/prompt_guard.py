@@ -10,6 +10,7 @@ from pathlib import Path
 
 from vipi.storage.files import sha256 as file_hash
 from vipi.torch_logging import quiet_redirects_notice
+from vipi.weight_loading import load_weights_sequentially
 
 MODEL_ID = "meta-llama/Llama-Prompt-Guard-2-86M"
 MODEL_DIR = "models/detector/prompt-guard-2-86m"
@@ -198,6 +199,7 @@ class PromptGuard:
         )
         with _load_lock:
             if key not in _loaded:
+                load_weights_sequentially()
                 quiet_redirects_notice()
                 import torch
                 from transformers import (
