@@ -274,6 +274,7 @@ def detect_ocr(
     metadata_text=None,
     barcode_text=None,
     openstego_texts=None,
+    lsb_text=None,
     views=None,
     incomplete=(),
     text_only=False,
@@ -283,7 +284,8 @@ def detect_ocr(
     ``source_text`` adds an SVG source reading (ADR 0078), ``metadata_text``
     an image metadata reading (ADR 0083) and ``barcode_text`` decoded code
     payloads (ADR 0084). ``openstego_texts`` maps each OpenStego layout to its
-    reading (ADRs 0086 and 0087).
+    reading (ADRs 0086 and 0087). ``lsb_text`` holds candidates from the
+    caller's declared headerless PNG layouts (ADR 0088).
     Reasons in ``incomplete`` prevent a clean verdict.
     ``views`` maps transparency views other than white to their OCR results
     (ADR 0085); their texts are readings and their rasters are image checks.
@@ -298,6 +300,7 @@ def detect_ocr(
         metadata_text=metadata_text,
         barcode_text=barcode_text,
         openstego_texts=openstego_texts,
+        lsb_text=lsb_text,
         view_texts=(
             {READINGS[name]: result.text for name, result in views.items()}
             if views is not None

@@ -116,3 +116,5 @@ class ScanResult:
     transparency: object | None = None
     # The vipi.openstego.OpenStego results for the recognized layouts.
     openstego: tuple[object, ...] = ()
+    # A vipi.png_lsb.PngLsb for a requested headerless scan of an RGB PNG.
+    lsb: object | None = None

@@ -70,6 +70,8 @@ def print_extracted_text(console, path, result):
         for payload in result.openstego
         if payload.detector_text
     )
+    if result.lsb and result.lsb.detector_text:
+        readings.append(("PNG LSB candidates of ", result.lsb.detector_text))
     for label, text in readings:
         console.print()
         heading = Text(label, style="bold cyan")
@@ -167,6 +169,13 @@ def build_parser():
         default=[],
         metavar="PATTERN",
         help="Exclude a local scan path (repeatable); prefix with ! to re-include",
+    )
+    command.add_argument(
+        "--lsb-layout",
+        action="append",
+        default=[],
+        metavar="LAYOUT",
+        help="Check text candidates in a declared PNG LSB layout, e.g. b1,rgb,lsb,xy (repeatable)",
     )
     command.add_argument(
         "--detector",
@@ -299,6 +308,7 @@ def main(argv=None):
                 decision_provider=args.decision_provider,
                 diff=args.diff,
                 exclude_patterns=args.exclude,
+                lsb_layouts=args.lsb_layout,
                 output=args.output,
                 progress=lambda message: status.update(Text(message, style="cyan")),
                 on_result=on_result,

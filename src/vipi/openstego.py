@@ -9,12 +9,12 @@ import unicodedata
 import numpy as np
 from PIL import Image
 
+from .images import is_8bit_rgb_png
 from .openstego_random_lsb import RandomLsbReader
 from .svg.text import normalize_invisible
 
 LEGACY = "openstego"
 RANDOM_LSB = "openstego_random_lsb"
-PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
 MARKER = b"OPENSTEGO"
 HEADER = Struct("<BIBBBB")
 HEADER_BYTES = len(MARKER) + HEADER.size
@@ -66,12 +66,7 @@ class OpenStego:
 def read_openstego(source):
     """Return the legacy and RandomLSB readings found in an 8-bit RGB PNG."""
     with BytesIO(source) if isinstance(source, bytes) else open(source, "rb") as file:
-        png = file.read(26)
-        if (
-            png[:8] != PNG_SIGNATURE
-            or png[12:16] != b"IHDR"
-            or png[24:26] != b"\x08\x02"
-        ):
+        if not is_8bit_rgb_png(file.read(26)):
             return ()
         file.seek(0)
         try:

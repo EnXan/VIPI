@@ -120,4 +120,5 @@ def file_record(result):
             payload.kind: payload.report(detection.answers)
             for payload in result.openstego
         },
+        **({"png_lsb": result.lsb.report(detection.answers)} if result.lsb else {}),
     }

@@ -39,9 +39,10 @@ Without `--diff`, at least one path is required.
 | --- | --- |
 | `--diff REFERENCE` | Select committed images added/modified since the common ancestor of REFERENCE and HEAD. |
 | `--exclude PATTERN` | Repeatable ordered filesystem exclusion; `!` re-includes matching paths. No user rules by default. |
+| `--lsb-layout LAYOUT` | Check text candidates read in a declared [PNG LSB layout](#headerless-lsb-in-pngs). Repeatable. No layouts by default. |
 | `--threshold 0–100` | Finding threshold. Default: the detector's calibrated value, 45 for `d1`, 8 for `clef-flash` and 80 for `prompt-guard`, `jev` and `openai` (ADR 0075, ADR 0077). Equality is a finding. The report records the threshold used. |
 | `--output FILE` | Also write an atomic JSON report, including findings or incomplete scans. |
-| `--verbose` | Print each image's final OCR text. Off by default. |
+| `--verbose` | Print each image's final OCR text and additional text readings. Off by default. |
 | `--list-only` | Run input selection only and list the selected images; no models, providers or keys are used. Selected files have status `selected` and the report status is `listed`; exit 2 on selection errors, otherwise 0. |
 
 Local/cloud choices must agree. Explicit cloud mode rejects `--ocr-mode`, and
@@ -163,7 +164,8 @@ reports with `if: always()` to retain either.
 - **QR codes and barcodes:** see [QR codes and barcodes](#qr-codes-and-barcodes).
   Codes too small, blurred or damaged to decode are counted, not checked.
 - **Hidden PNG data:** see [OpenStego in PNGs](#openstego-in-pngs) for the
-  supported pixel layout and how unavailable payloads are reported.
+  known formats and [Headerless LSB in PNGs](#headerless-lsb-in-pngs) for
+  caller-declared layouts.
 - **Transparency:** see [Transparent images](#transparent-images). Only white,
   black and the raw colour values are scanned; text visible only on another
   background colour relies on OCR contrast recovery. Codes are decoded in the
@@ -265,8 +267,30 @@ alone does not determine the injection verdict.
 - `encrypted`, `compressed`, `unsupported`, `malformed` and `unreadable`
   leave the scan incomplete (exit 2). A finding in another reading is retained.
 
-Coverage is limited to these two layouts. It omits password-dependent
-RandomLSB positioning, PngLoader, headerless LSB, non-RGB PNGs and SVG renders.
+OpenStego coverage is limited to these two layouts. It omits password-dependent
+RandomLSB positioning, PngLoader, non-RGB PNGs and SVG renders.
+
+## Headerless LSB in PNGs
+
+Use `--lsb-layout` when a downstream tool reads text from the original RGB
+samples of static 8-bit PNGs. Pass the tool's known layout, for example
+`--lsb-layout b1,rgb,lsb,xy` ([ADR 0088](../adr-code/0088-declared-png-lsb-layouts.md)).
+Repeat the option for each layout the workflow reads. There is no headerless
+check by default because ordinary images can produce plausible text fragments.
+
+Layouts use zsteg's `bN,channels,order,traversal` notation. `N` is 1 through 8
+low bits per channel. Channels are `r`, `g`, `b`, `rgb` or `bgr`. `lsb` and
+`msb` use zsteg's byte assembly order. `xy` traverses rows and `yx` traverses
+columns, starting at the top left. VIPI reads the first printable ASCII run
+of at least 8 bytes in the first 256 decoded bytes per layout. These settings
+match zsteg's default fragment preview used by tools such as Aperi’Solve.
+Binary signatures and longer previews are outside this check.
+
+The `png_lsb` object reports the checked `layouts`, each candidate's layout
+and character count, `unreadable`, and the `ocr` and `png_lsb` scores when
+available. `--verbose` shows the recovered text. A candidate is a finding
+if the detector score meets the configured threshold. Unreadable samples
+leave the scan incomplete (exit 2). Other input types skip this check.
 
 ## Transparent images
 
