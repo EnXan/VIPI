@@ -131,7 +131,7 @@ split is no independent estimate for it.
   `6600c048`) reaches 43.6 / 3.1 (Prompt Guard 19.4 / 1.8, Clef-Flash 56.8 /
   4.0) with 76.7 % words recognized. Three of its 450 images have no result:
   two stopped in a weight-loading deadlock and one in the worker ended to
-  recover from it (fix in EnXan/VIPI#128). They count
+  recover from it ([ADR 0086](0086-sequential-weight-loading.md)). They count
   as not detected (2 attacks, 1 benign), and words recognized covers 432 of 435
   referenced images. The tree was dirty with two untracked files. The README
   results table and `vipi-results.svg` show all three configurations.

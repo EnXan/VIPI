@@ -80,7 +80,9 @@ upstream model sizes at the pinned revisions and VIPI's loading precision:
 | [Wolf Defender small](https://huggingface.co/patronus-studio/wolf-defender-prompt-injection-small/tree/2484cc9a13550aa4f2c29b577ff3ef331dc6ba07) | 141M parameters, FP32, 563 MB file | ~0.6 GB | not used |
 
 VIPI loads decision models in FP32 on CPU, BF16 on CUDA and FP16 on Apple MPS
-([`local_decisions.py`](../src/vipi/local_decisions.py)). Weights exclude OCR,
+([`local_decisions.py`](../src/vipi/local_decisions.py)). Local weights load with one
+thread (`HF_DEACTIVATE_ASYNC_LOAD=1`, unless already set), because threaded loading can
+deadlock ([ADR 0086](../adr-code/0086-sequential-weight-loading.md)). Weights exclude OCR,
 activations, image buffers and operating-system overhead. The measured `speed`
 run used MPS/FP16 with fresh processes every four images; it does not certify a
 minimum; neither does the measured `quality` run on an M4 Pro (MPS/FP16, median
