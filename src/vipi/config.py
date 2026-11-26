@@ -21,7 +21,7 @@ DEFAULT_DETECTOR = "auto"
 DECISION_PROVIDERS = (*LOCAL_DECISION_PROVIDERS, *CLOUD_DECISION_PROVIDERS)
 JEV_MODEL = "jev-1.14.0"
 DEFAULT_THRESHOLD = 80
-# Calibrated default thresholds of the local detectors (ADR 0075, ADR 0085):
+# Calibrated default thresholds of the local detectors (ADR 0075, ADR 0087):
 # the highest recall at no more than 5 % false positives on the development
 # split, checked on the test split. Other detectors use DEFAULT_THRESHOLD.
 DETECTOR_THRESHOLDS = {"d1": 45, "clef-flash": 8, "wolf-defender": 40}

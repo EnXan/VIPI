@@ -22,7 +22,8 @@ def scan_image(image, *, options=None, session=None, provider=None, on_event=Non
     An `.svg` path is rendered for OCR, and its source text is checked as a
     second reading (ADR 0078). For a raster image, the text in its metadata is
     the second reading (ADR 0083). QR and barcode payloads in the scanned
-    raster are a further reading (ADR 0084).
+    raster are a further reading (ADR 0084). An image with transparent pixels
+    is also scanned on black and with alpha dropped (ADR 0085).
 
     A caller can reuse a session/provider across images. No existing run directory,
     Flask application or dataset catalog is required.
@@ -33,8 +34,14 @@ def scan_image(image, *, options=None, session=None, provider=None, on_event=Non
     from .image_metadata import read_metadata
     from .images import decode_image
     from .svg import is_svg, prepare_svg
+    from .transparency import read_views
 
     svg = prepare_svg(image) if is_svg(image) else None
+    transparency = (
+        None
+        if svg
+        else read_views(BytesIO(image) if isinstance(image, bytes) else image)
+    )
     options = options or ScanOptions()
     provider = provider or prepare_provider(
         options.resolved_detector, cache_directory() / "wolf-defender"
@@ -52,6 +59,10 @@ def scan_image(image, *, options=None, session=None, provider=None, on_event=Non
                 )
             )
         ocr = session.extract(source, on_event)
+        if transparency:
+            transparency = transparency.scanned(
+                ocr, lambda png: session.extract(png, on_event)
+            )
         metadata = None if svg else read_metadata(image)
         raster = BytesIO(source) if isinstance(source, bytes) else source
         barcodes = read_codes(decode_image(raster, max_pixels=None))
@@ -65,11 +76,20 @@ def scan_image(image, *, options=None, session=None, provider=None, on_event=Non
             source_text=svg.document.detector_text if svg else None,
             metadata_text=metadata.detector_text if metadata else None,
             barcode_text=barcodes.detector_text,
+            views=transparency.ocr_views if transparency else None,
             incomplete=(svg.incomplete if svg else metadata.incomplete)
-            + barcodes.incomplete,
+            + barcodes.incomplete
+            + (transparency.incomplete if transparency else ()),
         )
     return ScanResult(
-        ocr, detection, provider.model, provider.identity, svg, metadata, barcodes
+        ocr,
+        detection,
+        provider.model,
+        provider.identity,
+        svg,
+        metadata,
+        barcodes,
+        transparency,
     )
 
 

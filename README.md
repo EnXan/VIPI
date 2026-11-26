@@ -107,7 +107,8 @@ result is unclear, a visual model compares it with the image; when text is
 missing, VIPI reads the image again rotated, with more contrast or upscaled. A
 detector then checks the final text for prompt injections at the selected score
 threshold, together with the text in the image's metadata or an SVG's source
-and the payloads of QR codes and barcodes.
+and the payloads of QR codes and barcodes. Images with transparency are also
+read on black and with the alpha channel dropped.
 Cloud scans check the image when the text check finds no injection.
 
 <p align="center">
@@ -152,7 +153,7 @@ See [contributing to the dataset](https://github.com/EnXan/VIPI/blob/main/CONTRI
 Recorded OCR-text baselines on the development split: 227 injection and 223
 benign images, each detector at its default threshold. These runs predate the
 additional image check in the cloud scanner. Wolf Defender replaced Prompt
-Guard 2 in 0.19.0. In its `quality` run, 3 of 450 images have no result
+Guard 2 in 0.20.0. In its `quality` run, 3 of 450 images have no result
 (interrupted by a weight-loading deadlock); they count as not
 detected, and words recognized covers 432 of 435 referenced images.
 

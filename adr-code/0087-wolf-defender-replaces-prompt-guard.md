@@ -1,4 +1,4 @@
-# ADR 0085: Wolf Defender replaces Prompt Guard as the local text classifier
+# ADR 0087: Wolf Defender replaces Prompt Guard as the local text classifier
 
 Status: Accepted, 2026-11-22. Replaces
 [ADR 0061](#replaced-adr-0061) and amends the default thresholds of

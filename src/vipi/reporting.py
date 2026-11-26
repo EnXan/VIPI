@@ -52,7 +52,15 @@ def file_record(result):
         else None
     )
     remote = [a for a in detection.answers if a.get("provider") in {"jev", "openai"}]
-    ocr_fee = ocr.cost.get("estimated_usd")
+    # The OCR cost of transparency views adds to the total (ADR 0085).
+    views = result.transparency.ocr_views.values() if result.transparency else ()
+    ocr_fees = [ocr.cost.get("estimated_usd")]
+    ocr_fees += [view.cost.get("estimated_usd") for view in views]
+    ocr_fee = (
+        sum(ocr_fees)
+        if all(isinstance(value, (int, float)) for value in ocr_fees)
+        else None
+    )
     image_answer = next(
         (a for a in detection.answers if a.get("kind") == "image"), None
     )
@@ -101,6 +109,11 @@ def file_record(result):
         **(
             {"barcodes": result.barcodes.report(detection.answers)}
             if result.barcodes
+            else {}
+        ),
+        **(
+            {"transparency": result.transparency.report(detection.answers)}
+            if result.transparency
             else {}
         ),
     }

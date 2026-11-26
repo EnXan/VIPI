@@ -111,3 +111,6 @@ class ScanResult:
     metadata: object | None = None
     # A `vipi.barcodes.Barcodes` with the decoded QR and barcode payloads.
     barcodes: object | None = None
+    # A scanned `vipi.transparency.TransparencyViews` for an image with
+    # transparent pixels.
+    transparency: object | None = None

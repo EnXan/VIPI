@@ -22,6 +22,7 @@ the research web UI are not included in the wheel.
 | `vipi.scanner` | A shared image scan and sequential scans of selected inputs |
 | `vipi.inputs` | File discovery and immutable Git branch-diff inputs |
 | `vipi.images` | Raster decoding and preparation for hosted image decisions |
+| `vipi.transparency` | White, black and raw-colour views of images with transparent pixels ([ADR 0085](../adr-code/0085-transparency-views.md)) |
 | `vipi.svg` | SVG source text, the render-safe copy and resvg rendering ([ADR 0078](../adr-code/0078-svg-inputs.md)) |
 | `vipi.ocr` | Transformations, OCR engines, assembly and reusable model sessions |
 | `vipi.detection` | Text and whole-image checks, one selected detector and score policy |
@@ -39,6 +40,7 @@ The data flow is:
 CLI -> file/Git inputs -> scanner.scan_image
                            -> (SVG: vipi.svg source text + rendered PNG)
                            -> OCR -> OcrResult
+                              (transparent raster: OCR per distinct view)
                            -> detection (+ SVG source text or whole image) -> DetectionResult
                            -> ScanResult -> report/exit code
 ```
@@ -55,8 +57,10 @@ beside the OCR artifacts. The selected detector checks final OCR text and either
 the SVG source reading or, for raster images, the metadata reading
 (`vipi.image_metadata`, [ADR 0083](../adr-code/0083-image-metadata-reading.md)),
 plus the decoded QR and barcode payloads (`vipi.barcodes`,
-[ADR 0084](../adr-code/0084-barcode-reading.md)). In a regular cloud scan it checks the same input raster
-after a text verdict with no finding, with the same detection policy and verdict
+[ADR 0084](../adr-code/0084-barcode-reading.md)), and for an image with
+transparent pixels the final OCR text of its black and raw-colour views
+(`vipi.transparency`, [ADR 0085](../adr-code/0085-transparency-views.md)). In a regular cloud scan it checks the same input raster
+(each distinct view of a transparent image) after a text verdict with no finding, with the same detection policy and verdict
 threshold ([ADR 0082](../adr-code/0082-cloud-image-check-without-image-only-scans.md)). Dataset references
 remain scoring inputs. Evaluation reuse of complete
 OCR/detection results belongs to `research.ocr_eval.ocr_reuse`.

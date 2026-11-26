@@ -48,9 +48,13 @@ def build_evidence(
     source_text=None,
     metadata_text=None,
     barcode_text=None,
+    view_texts=None,
     incomplete=(),
 ):
     """Freeze the final OCR text plus SVG source, metadata and barcode readings.
+
+    ``view_texts`` maps reading kinds such as ``ocr_black`` to the final OCR
+    text of a transparency view (ADR 0085).
 
     Detection consumes only the final OCR outcome, never individual variants.
     ``incomplete`` lists reasons why a scan cannot be declared clean.
@@ -74,6 +78,7 @@ def build_evidence(
             }
         )
     for kind, extra in (
+        *(view_texts or {}).items(),
         ("svg_source", source_text),
         ("image_metadata", metadata_text),
         ("barcode", barcode_text),
@@ -87,6 +92,8 @@ def build_evidence(
         else:
             values.append({"id": digest(extra), "text": extra, "sources": [source]})
     scope = "final_ocr"
+    if view_texts is not None:
+        scope += "_and_transparency_views"
     if source_text is not None:
         scope += "_and_svg_source"
     if metadata_text is not None:

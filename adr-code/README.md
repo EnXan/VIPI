@@ -47,7 +47,7 @@ Temporary planning and review queues belong in `.llm-plans/`.
 | [0072](0072-exclusions-in-git-diff-scans.md) | Diff scans and the Action apply user exclusions, reading `.vipiignore` from the base commit |
 | [0073](0073-github-action-in-its-own-repository.md) | GitHub Action moves to its own repository, installs a pinned PyPI release and selects via `vipi scan --list-only` |
 | [0074](0074-detector-only-evaluation-on-retained-ocr-text.md) | Evaluate one detector on the OCR text retained by an earlier run, without OCR and apart from the baselines |
-| [0075](0075-calibrated-default-thresholds-for-local-detectors.md) | Calibrated default thresholds: 40 for d1, 8 for Clef-Flash, 80 for the other detectors (amends 0003); d1 default amended by 0077; Wolf Defender 40 by 0085 |
+| [0075](0075-calibrated-default-thresholds-for-local-detectors.md) | Calibrated default thresholds: 40 for d1, 8 for Clef-Flash, 80 for the other detectors (amends 0003); d1 default amended by 0077; Wolf Defender 40 by 0087 |
 | [0076](0076-action-threshold-follows-detector-default.md) | The Action's threshold input follows VIPI's detector default; v1 defaults rule narrowed (amends 0073) |
 | [0077](0077-sentence-windows-for-local-decision-models.md) | d1 and Clef-Flash also check sentence windows of up to 80 words, one about every 40 words; d1 defaults to 45 (amends 0075) |
 | [0078](0078-svg-inputs.md) | SVG files: a source text reading plus a resvg render without external references; embedded fonts make a scan incomplete (amends 0003 and 0071) |
@@ -56,7 +56,8 @@ Temporary planning and review queues belong in `.llm-plans/`.
 | [0082](0082-cloud-image-check-without-image-only-scans.md) | Jev and Luna whole-image check only inside cloud scans; `--image-only` removed (replaces 0081) |
 | [0083](0083-image-metadata-reading.md) | Text in PNG, JPEG and WebP metadata is a detector reading; unreadable metadata leaves a scan incomplete (amends 0071) |
 | [0084](0084-barcode-reading.md) | QR and barcode payloads decoded with zxing-cpp are a detector reading; URLs are never fetched (amends 0071) |
-| [0085](0085-wolf-defender-replaces-prompt-guard.md) | Wolf Defender small replaces Prompt Guard 2 as the local text classifier, default threshold 40; its evaluation configurations replace 0061's (replaces 0061, amends 0075) |
+| [0085](0085-transparency-views.md) | Images with transparent pixels are also scanned on black and with alpha dropped (amends 0071, 0082) |
+| [0087](0087-wolf-defender-replaces-prompt-guard.md) | Wolf Defender small replaces Prompt Guard 2 as the local text classifier, default threshold 40; its evaluation configurations replace 0061's (replaces 0061, amends 0075) |
 
 When revising an agreed decision, write its replacement with a summary of the
 old ADR (identifier, decision, rationale and reason for revision), then delete
