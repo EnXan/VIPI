@@ -1,7 +1,7 @@
-# ADR 0087 — OpenStego RandomLSB as a detector reading
+# ADR 0089 — OpenStego RandomLSB as a detector reading
 
 Status: accepted for implementation and review, 2026-11-26. Refs #86.
-Extends [ADR 0086](0086-legacy-openstego-reading.md).
+Extends [ADR 0088](0088-legacy-openstego-reading.md).
 
 ## Context
 
@@ -22,7 +22,7 @@ declared in the header. Validate both bit capacities before consuming any
 payload. Track used positions in a packed bitmap after a header match to keep
 memory proportional to the image's capacity.
 
-Treat the decoded text, binary data and unavailable payloads as in ADR 0086.
+Treat the decoded text, binary data and unavailable payloads as in ADR 0088.
 The `openstego_random_lsb` evidence kind and report key preserve provenance if
 both OpenStego layouts occur in the same PNG. Password-dependent positioning,
 compressed-text extraction, headerless LSB and PngLoader are outside this

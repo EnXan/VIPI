@@ -22,7 +22,7 @@ from research.ocr_eval import benchmark, benchmark_report, ocr_reuse
 from .runs import DEFAULT_RUNS_DIRECTORY
 
 DEFAULT_OUTPUT_DIRECTORY = Path("runs/detector-text")
-DETECTORS = ("prompt-guard", "d1", "clef-flash", "jev", "openai")
+DETECTORS = ("wolf-defender", "d1", "clef-flash", "jev", "openai")
 
 
 def source_rows(directory):
@@ -170,7 +170,7 @@ def run(
             "signals": {detector: {"threshold": threshold / 100}},
         },
     )
-    provider = prepare_provider(detector, cache_directory() / "prompt-guard")
+    provider = prepare_provider(detector, cache_directory() / "wolf-defender")
     records = []
     for row in rows:
         path = target / "rows" / f"{row['key'].replace(':', '-')}.json"

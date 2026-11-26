@@ -28,7 +28,7 @@ Scan and Evaluate use the options of `vipi scan` and nothing else:
 - **Text recognition**: Speed, Balanced or Quality locally; Google Cloud
   Vision, OpenAI or Mistral in the cloud.
 - **Injection detector**: locally d1 for Speed and Balanced and Clef-Flash
-  for Quality (these also review OCR), or Prompt Guard 2 for every local OCR
+  for Quality (these also review OCR), or Wolf Defender for every local OCR
   size (detection only; review stays d1 or Clef-Flash); in the cloud
   OpenAI Luna (the product default) or Jev.
 - **Threshold** (Scan only): flag at a detector score of at least this value.

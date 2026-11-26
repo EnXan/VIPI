@@ -7,6 +7,7 @@ import pytest
 
 from vipi.detection.verdict import summarize, validate_thresholds
 from vipi.__main__ import main
+from vipi.config import WOLF_DEFENDER_REVISION
 from vipi.scanner import scan, scan_image
 from vipi.results import ScanResult, OcrResult, DetectionResult
 from vipi.inputs import select_images
@@ -431,7 +432,7 @@ def test_setup_only_prepares_default_ocr_and_selected_local_detector(
         lambda path, model, **kwargs: calls.append((path, model)),
     )
     monkeypatch.setattr(
-        "vipi.detection.providers.prompt_guard.prepare_model",
+        "vipi.detection.providers.wolf_defender.prepare_model",
         lambda path, **kwargs: calls.append((path, kwargs)),
     )
     assert main(["setup"]) == 0
@@ -443,9 +444,9 @@ def test_setup_only_prepares_default_ocr_and_selected_local_detector(
     assert decisions[-1][0] == "d1"
     assert main(["setup", "--ocr-model", "ppocr-v6-small"]) == 0
     assert calls[-1][1] == "ppocr-v6-small"
-    assert main(["setup", "--detector", "prompt-guard"]) == 0
-    assert calls[-1][1]["revision"] == "a8ded8e697ce7c355e395a0df51f94adb4a2fd27"
-    assert "--detector prompt-guard" in capsys.readouterr().out
+    assert main(["setup", "--detector", "wolf-defender"]) == 0
+    assert calls[-1][1]["revision"] == WOLF_DEFENDER_REVISION
+    assert "--detector wolf-defender" in capsys.readouterr().out
 
 
 def test_setup_mistral_does_not_prepare_local_ocr_model(tmp_path, monkeypatch, capsys):

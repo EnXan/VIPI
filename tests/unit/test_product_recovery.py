@@ -37,7 +37,7 @@ def test_full_local_mode_resolves_both_model_roles(mode, decision, ocr):
         {"ocr_execution_mode": "local", "decision_provider": "openai"},
         {"ocr_execution_mode": "local", "detector": "jev"},
         {"ocr_execution_mode": "cloud", "decision_provider": "d1"},
-        {"ocr_execution_mode": "cloud", "detector": "prompt-guard"},
+        {"ocr_execution_mode": "cloud", "detector": "wolf-defender"},
     ],
 )
 def test_mixed_execution_is_rejected_before_any_provider(options, monkeypatch):

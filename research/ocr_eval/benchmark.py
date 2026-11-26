@@ -45,22 +45,22 @@ CONFIGURATIONS = {
         "ocr_mode": "quality",
         "decision_provider": "clef-flash",
     },
-    # Same local OCR and review, final detection by Prompt Guard 2 instead.
+    # Same local OCR and review, final detection by Wolf Defender instead.
     **{
-        f"local-{mode}-prompt-guard": {
+        f"local-{mode}-wolf-defender": {
             "ocr_execution_mode": "local",
             "ocr_mode": mode,
-            "detector": "prompt-guard",
+            "detector": "wolf-defender",
         }
         for mode in ("speed", "balanced")
     },
     # Names its review provider like local-quality-clef-flash, so its OCR is
     # reused from runs recorded before Clef-Flash became the quality default.
-    "local-quality-prompt-guard": {
+    "local-quality-wolf-defender": {
         "ocr_execution_mode": "local",
         "ocr_mode": "quality",
         "decision_provider": "clef-flash",
-        "detector": "prompt-guard",
+        "detector": "wolf-defender",
     },
     **{
         f"cloud-{provider}": {"ocr_execution_mode": "cloud", "ocr_provider": provider}
@@ -290,7 +290,7 @@ def worker(directory, configuration, rows, reuse=None):
     directory = Path(directory)
     options = ScanOptions(**CONFIGURATIONS[configuration])
     provider = prepare_provider(
-        options.resolved_detector, cache_directory() / "prompt-guard"
+        options.resolved_detector, cache_directory() / "wolf-defender"
     )
     with ExitStack() as resources:
         session = None
@@ -468,20 +468,28 @@ def run_configuration(
         )
         worker_started = time.perf_counter()
         process.start()
-        while process.is_alive():
-            process.join(0.5)
-            if cancel is not None and cancel.is_set():
+        try:
+            while process.is_alive():
+                process.join(0.5)
+                if cancel is not None and cancel.is_set():
+                    process.terminate()
+                    process.join()
+                    (directory / "current.json").unlink(missing_ok=True)
+                    invocation.update(
+                        finished_at=utc_now(),
+                        elapsed_seconds=time.perf_counter() - started,
+                        cancelled=True,
+                    )
+                    write_json(directory / "invocation-current.json", invocation)
+                    retain_interrupted_progress(directory)
+                    return
+        except BaseException:
+            # Ctrl+C also reaches the worker, but a worker stuck without the GIL
+            # never handles it and would outlive this process (ADR 0086).
+            if process.is_alive():
                 process.terminate()
                 process.join()
-                (directory / "current.json").unlink(missing_ok=True)
-                invocation.update(
-                    finished_at=utc_now(),
-                    elapsed_seconds=time.perf_counter() - started,
-                    cancelled=True,
-                )
-                write_json(directory / "invocation-current.json", invocation)
-                retain_interrupted_progress(directory)
-                return
+            raise
         invocation["workers"].append(
             {
                 "exitcode": process.exitcode,

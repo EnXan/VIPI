@@ -24,8 +24,8 @@ the research web UI are not included in the wheel.
 | `vipi.images` | Raster decoding and preparation for hosted image decisions |
 | `vipi.transparency` | White, black and raw-colour views of images with transparent pixels ([ADR 0085](../adr-code/0085-transparency-views.md)) |
 | `vipi.svg` | SVG source text, the render-safe copy and resvg rendering ([ADR 0078](../adr-code/0078-svg-inputs.md)) |
-| `vipi.openstego` | Legacy OpenStego and RandomLSB headers and payload text in original PNG samples ([ADR 0086](../adr-code/0086-legacy-openstego-reading.md), [ADR 0087](../adr-code/0087-openstego-random-lsb-reading.md)) |
-| `vipi.png_lsb` | Text candidates in declared PNG layouts and optional original sample-pair statistics ([ADR 0088](../adr-code/0088-declared-png-lsb-layouts.md), [ADR 0089](../adr-code/0089-png-lsb-statistics.md)) |
+| `vipi.openstego` | Legacy OpenStego and RandomLSB headers and payload text in original PNG samples ([ADR 0088](../adr-code/0088-legacy-openstego-reading.md), [ADR 0089](../adr-code/0089-openstego-random-lsb-reading.md)) |
+| `vipi.png_lsb` | Text candidates in declared PNG layouts and optional original sample-pair statistics ([ADR 0090](../adr-code/0090-declared-png-lsb-layouts.md), [ADR 0091](../adr-code/0091-png-lsb-statistics.md)) |
 | `vipi.ocr` | Transformations, OCR engines, assembly and reusable model sessions |
 | `vipi.detection` | Text and whole-image checks, one selected detector and score policy |
 | `vipi.results` | `OcrResult`, `DetectionResult` and `ScanResult` at component boundaries |
@@ -61,9 +61,9 @@ the SVG source reading or, for raster images, the metadata reading
 (`vipi.image_metadata`, [ADR 0083](../adr-code/0083-image-metadata-reading.md)),
 plus the decoded QR and barcode payloads (`vipi.barcodes`,
 [ADR 0084](../adr-code/0084-barcode-reading.md)), text from supported OpenStego
-PNGs (`vipi.openstego`, [ADR 0086](../adr-code/0086-legacy-openstego-reading.md),
-[ADR 0087](../adr-code/0087-openstego-random-lsb-reading.md)),
-text candidates from caller-declared PNG LSB layouts ([ADR 0088](../adr-code/0088-declared-png-lsb-layouts.md)),
+PNGs (`vipi.openstego`, [ADR 0088](../adr-code/0088-legacy-openstego-reading.md),
+[ADR 0089](../adr-code/0089-openstego-random-lsb-reading.md)),
+text candidates from caller-declared PNG LSB layouts ([ADR 0090](../adr-code/0090-declared-png-lsb-layouts.md)),
 and the final OCR text of an image's black and raw-colour views where applicable
 (`vipi.transparency`, [ADR 0085](../adr-code/0085-transparency-views.md)). In a regular cloud scan it checks the same input raster
 (each distinct view of a transparent image) after a text verdict with no finding, with the same detection policy and verdict
@@ -71,7 +71,7 @@ threshold ([ADR 0082](../adr-code/0082-cloud-image-check-without-image-only-scan
 remain scoring inputs. Evaluation reuse of complete
 OCR/detection results belongs to `research.ocr_eval.ocr_reuse`.
 Requested PNG low-bit statistics are carried to the report without adding
-detector evidence ([ADR 0089](../adr-code/0089-png-lsb-statistics.md)).
+detector evidence ([ADR 0091](../adr-code/0091-png-lsb-statistics.md)).
 
 ## OCR implementation
 
@@ -145,7 +145,7 @@ evaluation code ([ADR 0053](../adr-code/0053-one-evaluation-dataset.md)).
 
 `ocr` and `ocr-cuda` select alternative ONNX OCR runtimes and shared image,
 layout and quality-signal dependencies. `detector-local` supplies PyTorch,
-Transformers, the local decision models and Prompt Guard's runtime dependencies.
+Transformers, the local decision models and Wolf Defender's runtime dependencies.
 `research` supplies Flask for the local workbench; `test` supplies pytest and
 Ruff. Cloud installation with `ocr` requires neither PyTorch nor TensorFlow.
 

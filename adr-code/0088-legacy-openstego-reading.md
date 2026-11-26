@@ -1,4 +1,4 @@
-# ADR 0086 — Legacy OpenStego text as a detector reading
+# ADR 0088 — Legacy OpenStego text as a detector reading
 
 Status: accepted for implementation and review, 2026-11-26. Refs #86.
 Amends the verdict scope in [ADR 0071](0071-scan-verdict-and-final-ocr-completeness.md).

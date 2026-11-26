@@ -1,4 +1,4 @@
-# ADR 0089 — Optional PNG low-bit statistics
+# ADR 0091 — Optional PNG low-bit statistics
 
 Status: accepted for implementation and review, 2026-11-26. Refs #86.
 

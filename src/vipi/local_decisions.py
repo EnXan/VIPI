@@ -10,6 +10,7 @@ import sys
 import threading
 
 from .torch_logging import quiet_redirects_notice
+from .weight_loading import load_weights_sequentially
 
 MODELS = json.loads(Path(__file__).with_name("decision_models.json").read_text())
 _loaded = {}
@@ -105,6 +106,7 @@ class LocalDecisionModel:
         key = (self.name, str(self.directory), self.identity["revision"])
         with _load_lock:
             if key not in _loaded:
+                load_weights_sequentially()
                 quiet_redirects_notice()
                 import torch
 

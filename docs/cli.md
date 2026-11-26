@@ -32,7 +32,7 @@ Without `--diff`, at least one path is required.
 | `--ocr-model ID` | Override OCR with `ppocr-v6`, `ppocr-v6-medium`, `ppocr-v6-small`, `ppocr-v6-tiny`, `google-cloud-vision`, `gpt-6-luna` or `mistral-ocr-4-1`. |
 | `--ocr-provider google|openai|mistral` | Cloud OCR selection, default Google. Requires explicit `--modus cloud`; cannot be combined with `--ocr-model`. |
 | `--decision-provider clef-flash|d1|jev|openai` | OCR review model. Default local quality: Clef-Flash; other local profiles: d1; cloud: OpenAI Decisions. |
-| `--detector auto|jev|openai|prompt-guard|clef-flash|d1` | Injection detector. Default `auto` follows the decision provider. |
+| `--detector auto|jev|openai|wolf-defender|clef-flash|d1` | Injection detector. Default `auto` follows the decision provider. |
 | `-h`, `--help` | Show root or command help and exit without preparing models. |
 
 | Scan-only option | Meaning and default |
@@ -41,7 +41,7 @@ Without `--diff`, at least one path is required.
 | `--exclude PATTERN` | Repeatable ordered filesystem exclusion; `!` re-includes matching paths. No user rules by default. |
 | `--lsb-layout LAYOUT` | Check text candidates read in a declared [PNG LSB layout](#headerless-lsb-in-pngs). Repeatable. No layouts by default. |
 | `--lsb-stats` | Report per-channel [low-bit statistics](#png-low-bit-statistics) for static 8-bit RGB PNGs. Off by default. |
-| `--threshold 0–100` | Finding threshold. Default: the detector's calibrated value, 45 for `d1`, 8 for `clef-flash` and 80 for `prompt-guard`, `jev` and `openai` (ADR 0075, ADR 0077). Equality is a finding. The report records the threshold used. |
+| `--threshold 0–100` | Finding threshold. Default: the detector's calibrated value, 45 for `d1`, 8 for `clef-flash`, 40 for `wolf-defender` and 80 for `jev` and `openai` (ADR 0075, ADR 0077, ADR 0087). Equality is a finding. The report records the threshold used. |
 | `--output FILE` | Also write an atomic JSON report, including findings or incomplete scans. |
 | `--verbose` | Print each image's final OCR text and additional text readings. Off by default. |
 | `--list-only` | Run input selection only and list the selected images; no models, providers or keys are used. Selected files have status `selected` and the report status is `listed`; exit 2 on selection errors, otherwise 0. |
@@ -60,8 +60,8 @@ uv run vipi scan label.png screenshot.jpg
 uv run vipi scan ./images --verbose
 uv run vipi scan ./images --ocr-mode speed
 uv run vipi scan image.png --modus cloud --ocr-provider mistral --decision-provider jev
-uv run vipi setup --ocr-mode balanced --detector prompt-guard
-uv run vipi scan ./images --ocr-mode balanced --detector prompt-guard
+uv run vipi setup --ocr-mode balanced --detector wolf-defender
+uv run vipi scan ./images --ocr-mode balanced --detector wolf-defender
 ```
 
 ## Credentials and local models
@@ -77,10 +77,10 @@ setting prevents fallback to the file. See [`.env.example`](../.env.example).
 | Mistral OCR | `MISTRAL_API_KEY` |
 | Jev review/detection | `TYPESAFE_API_KEY`, alias `JEV_API_KEY` |
 | Clef-Flash/d1 | Prepared local weights and verified code; no inference API key |
-| Prompt Guard | Prepared local weights; authorized Hugging Face access (`HF_TOKEN` or existing login) for downloads |
+| Wolf Defender | Prepared local weights; no key or Hugging Face login |
 
 The `ocr` extra supplies local OCR and shared image operations. Local decision
-models and Prompt Guard additionally need `detector-local`. Local PP-OCRv6 runs
+models and Wolf Defender additionally need `detector-local`. Local PP-OCRv6 runs
 through ONNX on CPU in the public scanner; decision models select available
 CUDA, Apple MPS or CPU. Research scan configurations use the same OCR execution
 path as the public scanner.
@@ -249,9 +249,9 @@ prints the payloads after the OCR text.
 VIPI checks the original colour samples of static 8-bit RGB PNGs for two
 OpenStego layouts.
 
-- Legacy version 1 with one low bit per RGB channel. [ADR 0086](../adr-code/0086-legacy-openstego-reading.md)
+- Legacy version 1 with one low bit per RGB channel. [ADR 0088](../adr-code/0088-legacy-openstego-reading.md)
 - RandomLSB version 2 with the default, password-free positioning sequence and
-  the one to eight bits per channel declared by its header. [ADR 0087](../adr-code/0087-openstego-random-lsb-reading.md)
+  the one to eight bits per channel declared by its header. [ADR 0089](../adr-code/0089-openstego-random-lsb-reading.md)
 
 VIPI extracts unencrypted, uncompressed UTF-8 payload text as a detector
 reading for each layout found. The selected detector processes it like OCR
@@ -276,7 +276,7 @@ RandomLSB positioning, PngLoader, non-RGB PNGs and SVG renders.
 
 Use `--lsb-layout` when a downstream tool reads text from the original RGB
 samples of static 8-bit PNGs. Pass the tool's known layout, for example
-`--lsb-layout b1,rgb,lsb,xy` ([ADR 0088](../adr-code/0088-declared-png-lsb-layouts.md)).
+`--lsb-layout b1,rgb,lsb,xy` ([ADR 0090](../adr-code/0090-declared-png-lsb-layouts.md)).
 Repeat the option for each layout the workflow reads. There is no headerless
 check by default because ordinary images can produce plausible text fragments.
 
@@ -303,7 +303,7 @@ static 8-bit RGB PNG. Each pair groups adjacent values that differ only in
 their lowest bit. A lower chi-square value means the counts in those pairs are
 closer to equal. Use the values with a matched reference or other evidence.
 Individual values provide neither a PngLoader attribution nor a
-prompt-injection verdict. See [ADR 0089](../adr-code/0089-png-lsb-statistics.md).
+prompt-injection verdict. See [ADR 0091](../adr-code/0091-png-lsb-statistics.md).
 
 ```bash
 vipi scan image.png --lsb-stats --output report.json
@@ -431,8 +431,8 @@ a live progress display when supported; redirected output uses a compact brand.
 | Windows | `%LOCALAPPDATA%/vipi/` |
 
 `XDG_CACHE_HOME/vipi/` overrides these defaults. OCR files live in `ocr/`, local
-decision models in `decisions/clef-flash` and `decisions/d1`, Prompt Guard in
-`prompt-guard/`, and persistent input/variant/result artifacts in `runs/`.
+decision models in `decisions/clef-flash` and `decisions/d1`, Wolf Defender in
+`wolf-defender/`, and persistent input/variant/result artifacts in `runs/`.
 
 ## Platform validation status
 

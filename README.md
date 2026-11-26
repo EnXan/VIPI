@@ -124,7 +124,7 @@ Cloud scans check the image when the text check finds no injection.
 | :-- | :-- | :-- | :-- | :-- |
 | 1 · Read text | <img src="https://raw.githubusercontent.com/EnXan/VIPI/main/assets/providers/paddlepaddle.svg" width="14" height="14" alt="PaddlePaddle"> PP-OCRv6 Medium<br><sub>or Small · Tiny</sub> | <img src="https://raw.githubusercontent.com/EnXan/VIPI/main/assets/providers/paddlepaddle.svg" width="14" height="14" alt="PaddlePaddle"> PP-OCRv6 Small<br><sub>or Medium · Tiny</sub> | <img src="https://raw.githubusercontent.com/EnXan/VIPI/main/assets/providers/paddlepaddle.svg" width="14" height="14" alt="PaddlePaddle"> PP-OCRv6 Tiny<br><sub>or Medium · Small</sub> | <img src="https://raw.githubusercontent.com/EnXan/VIPI/main/assets/providers/google.svg" width="14" height="14" alt="Google"> Cloud Vision<br><sub>or <img src="https://raw.githubusercontent.com/EnXan/VIPI/main/assets/providers/openai.svg" width="12" height="12" alt=""> OpenAI · <img src="https://raw.githubusercontent.com/EnXan/VIPI/main/assets/providers/mistralai.svg" width="12" height="12" alt=""> Mistral</sub> |
 | 2 · Verify OCR visually | <img src="https://raw.githubusercontent.com/EnXan/VIPI/main/assets/providers/cloudflare.svg" width="14" height="14" alt="Cloudflare"> Clef-Flash 9B<br><sub>or <img src="https://raw.githubusercontent.com/EnXan/VIPI/main/assets/providers/liquidai.svg" width="12" height="12" alt="Liquid AI"> d1 3B</sub> | <img src="https://raw.githubusercontent.com/EnXan/VIPI/main/assets/providers/liquidai.svg" width="14" height="14" alt="Liquid AI"> d1 3B<br><sub>or <img src="https://raw.githubusercontent.com/EnXan/VIPI/main/assets/providers/cloudflare.svg" width="12" height="12" alt="Cloudflare"> Clef-Flash 9B</sub> | <img src="https://raw.githubusercontent.com/EnXan/VIPI/main/assets/providers/liquidai.svg" width="14" height="14" alt="Liquid AI"> d1 3B<br><sub>or <img src="https://raw.githubusercontent.com/EnXan/VIPI/main/assets/providers/cloudflare.svg" width="12" height="12" alt="Cloudflare"> Clef-Flash 9B</sub> | <img src="https://raw.githubusercontent.com/EnXan/VIPI/main/assets/providers/openai.svg" width="14" height="14" alt="OpenAI"> Decisions API<br><sub>or <img src="https://raw.githubusercontent.com/EnXan/VIPI/main/assets/providers/typesafe.svg" width="12" height="12" alt=""> TypeSafe Jev</sub> |
-| 3 · Detect injections | <img src="https://raw.githubusercontent.com/EnXan/VIPI/main/assets/providers/cloudflare.svg" width="14" height="14" alt="Cloudflare"> Clef-Flash 9B<br><sub>or <img src="https://raw.githubusercontent.com/EnXan/VIPI/main/assets/providers/liquidai.svg" width="12" height="12" alt="Liquid AI"> d1 3B · <img src="https://raw.githubusercontent.com/EnXan/VIPI/main/assets/providers/meta.svg" width="12" height="12" alt="Meta"> Prompt Guard 2</sub> | <img src="https://raw.githubusercontent.com/EnXan/VIPI/main/assets/providers/liquidai.svg" width="14" height="14" alt="Liquid AI"> d1 3B<br><sub>or <img src="https://raw.githubusercontent.com/EnXan/VIPI/main/assets/providers/cloudflare.svg" width="12" height="12" alt="Cloudflare"> Clef-Flash 9B · <img src="https://raw.githubusercontent.com/EnXan/VIPI/main/assets/providers/meta.svg" width="12" height="12" alt="Meta"> Prompt Guard 2</sub> | <img src="https://raw.githubusercontent.com/EnXan/VIPI/main/assets/providers/liquidai.svg" width="14" height="14" alt="Liquid AI"> d1 3B<br><sub>or <img src="https://raw.githubusercontent.com/EnXan/VIPI/main/assets/providers/cloudflare.svg" width="12" height="12" alt="Cloudflare"> Clef-Flash 9B · <img src="https://raw.githubusercontent.com/EnXan/VIPI/main/assets/providers/meta.svg" width="12" height="12" alt="Meta"> Prompt Guard 2</sub> | <img src="https://raw.githubusercontent.com/EnXan/VIPI/main/assets/providers/openai.svg" width="14" height="14" alt="OpenAI"> Decisions API<br><sub>or <img src="https://raw.githubusercontent.com/EnXan/VIPI/main/assets/providers/typesafe.svg" width="12" height="12" alt=""> TypeSafe Jev</sub> |
+| 3 · Detect injections | <img src="https://raw.githubusercontent.com/EnXan/VIPI/main/assets/providers/cloudflare.svg" width="14" height="14" alt="Cloudflare"> Clef-Flash 9B<br><sub>or <img src="https://raw.githubusercontent.com/EnXan/VIPI/main/assets/providers/liquidai.svg" width="12" height="12" alt="Liquid AI"> d1 3B · Wolf Defender</sub> | <img src="https://raw.githubusercontent.com/EnXan/VIPI/main/assets/providers/liquidai.svg" width="14" height="14" alt="Liquid AI"> d1 3B<br><sub>or <img src="https://raw.githubusercontent.com/EnXan/VIPI/main/assets/providers/cloudflare.svg" width="12" height="12" alt="Cloudflare"> Clef-Flash 9B · Wolf Defender</sub> | <img src="https://raw.githubusercontent.com/EnXan/VIPI/main/assets/providers/liquidai.svg" width="14" height="14" alt="Liquid AI"> d1 3B<br><sub>or <img src="https://raw.githubusercontent.com/EnXan/VIPI/main/assets/providers/cloudflare.svg" width="12" height="12" alt="Cloudflare"> Clef-Flash 9B · Wolf Defender</sub> | <img src="https://raw.githubusercontent.com/EnXan/VIPI/main/assets/providers/openai.svg" width="14" height="14" alt="OpenAI"> Decisions API<br><sub>or <img src="https://raw.githubusercontent.com/EnXan/VIPI/main/assets/providers/typesafe.svg" width="12" height="12" alt=""> TypeSafe Jev</sub> |
 | Memory, Apple Silicon or GPU&nbsp;¹ | 48 GB unified memory (measured)<br><sub>or 24 GB VRAM</sub> | ~16 GB unified memory<br><sub>or 16 GB VRAM</sub> | 16 GB unified memory (measured)<br><sub>or 16 GB VRAM</sub> | ~8 GB RAM<br><sub>no GPU needed</sub> |
 | Memory, CPU only&nbsp;¹ | ~48 GB RAM | ~24 GB RAM | ~24 GB RAM | ~8 GB RAM |
 
@@ -146,7 +146,7 @@ projects can use the dataset to evaluate their own OCR or injection detection.
 See [contributing to the dataset](https://github.com/EnXan/VIPI/blob/main/CONTRIBUTING.md#evaluation-dataset).
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/EnXan/VIPI/main/assets/diagrams/vipi-results.svg" alt="Bar charts of detection rate, false positive rate and words recognized: cloud configurations detect 74 to 85 percent of injections with 0.4 to 4.5 percent false positives and recognize 85 to 88 percent of words; local configurations detect 17 to 57 percent with 1.8 to 4.0 percent false positives and recognize 70 to 77 percent of words. Exact values and models are in the expandable tables below." width="900">
+  <img src="https://raw.githubusercontent.com/EnXan/VIPI/main/assets/diagrams/vipi-results.svg" alt="Bar charts of detection rate, false positive rate and words recognized: cloud configurations detect 74 to 85 percent of injections with 0.4 to 4.5 percent false positives and recognize 85 to 88 percent of words; local configurations detect 41 to 57 percent with 2.2 to 4.0 percent false positives and recognize 70 to 77 percent of words. Exact values and models are in the expandable tables below." width="900">
 </p>
 
 <details>
@@ -154,7 +154,10 @@ See [contributing to the dataset](https://github.com/EnXan/VIPI/blob/main/CONTRI
 
 Recorded OCR-text baselines on the development split: 227 injection and 223
 benign images, each detector at its default threshold. These runs predate the
-additional image check in the cloud scanner.
+additional image check in the cloud scanner. Wolf Defender replaced Prompt
+Guard 2 in 0.20.0. In its `quality` run, 3 of 450 images have no result
+(interrupted by a weight-loading deadlock); they count as not
+detected, and words recognized covers 432 of 435 referenced images.
 
 | Cloud OCR | Detector | Detection rate | False positive rate | Words recognized |
 | :-- | :-- | --: | --: | --: |
@@ -168,11 +171,11 @@ additional image check in the cloud scanner.
 | Local OCR | Detector | Detection rate | False positive rate | Words recognized |
 | :-- | :-- | --: | --: | --: |
 | PP-OCRv6 Medium (`quality`) | Clef-Flash 9B (default) | **56.8%** | 4.0% | **77.0%** |
-| PP-OCRv6 Medium (`quality`) | Prompt Guard 2 86M | 19.4% | **1.8%** | **77.0%** |
-| PP-OCRv6 Small (`balanced`) | d1 3B | 45.4% | 2.2% | 72.3% |
-| PP-OCRv6 Small (`balanced`) | Prompt Guard 2 86M | 16.7% | **1.8%** | 72.3% |
-| PP-OCRv6 Tiny (`speed`) | d1 3B | 43.2% | 2.2% | 70.0% |
-| PP-OCRv6 Tiny (`speed`) | Prompt Guard 2 86M | 18.5% | 2.2% | 70.0% |
+| PP-OCRv6 Medium (`quality`) | Wolf Defender small | 43.6% | 3.1% | 76.7% |
+| PP-OCRv6 Small (`balanced`) | d1 3B | 45.4% | **2.2%** | 72.3% |
+| PP-OCRv6 Small (`balanced`) | Wolf Defender small | 44.1% | 3.1% | 72.3% |
+| PP-OCRv6 Tiny (`speed`) | d1 3B | 43.2% | **2.2%** | 70.0% |
+| PP-OCRv6 Tiny (`speed`) | Wolf Defender small | 41.4% | 3.6% | 70.0% |
 
 </details>
 
@@ -186,8 +189,8 @@ vipi scan . --diff origin/main --output report.json      # only images changed s
 vipi scan image.png --threshold 90                       # stricter finding threshold
 
 # other detector: prepare it first, scans never download models
-vipi setup --ocr-mode balanced --detector prompt-guard
-vipi scan ./images --ocr-mode balanced --detector prompt-guard
+vipi setup --ocr-mode balanced --detector wolf-defender
+vipi scan ./images --ocr-mode balanced --detector wolf-defender
 vipi scan image.png --modus cloud --detector jev
 ```
 
@@ -202,7 +205,7 @@ to `.vipiignore`.
 | WebP | `.webp` | Static images only; animated WebPs are rejected; metadata text is checked too |
 | SVG | `.svg` | Rendered without scripts or external resources; the source text is checked too |
 
-A score at or above the threshold is a finding. The default depends on the detector: 45 for d1, 8 for Clef-Flash and 80 for the others. Size limits,
+A score at or above the threshold is a finding. The default depends on the detector: 45 for d1, 8 for Clef-Flash, 40 for Wolf Defender and 80 for the others. Size limits,
 skipped files and what a score does not tell you are in
 [Limitations](https://github.com/EnXan/VIPI/blob/main/docs/cli.md#limitations).
 

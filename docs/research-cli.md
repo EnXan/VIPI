@@ -97,12 +97,12 @@ uv run python -m research.evaluate detect-text RUN_ID --detector DETECTOR [--run
 | Argument or option | Subcommands | Meaning and default |
 | --- | --- | --- |
 | `--check` | `split` | Only verify that the committed split matches the dataset; write nothing. |
-| `CONFIGURATION` | `status`, `run` | Required: `local-speed`, `local-balanced`, `local-quality-clef-flash`, `local-speed-prompt-guard`, `local-balanced-prompt-guard`, `local-quality-prompt-guard`, `cloud-google`, `cloud-openai`, `cloud-mistral`, `cloud-google-jev`, `cloud-openai-jev` or `cloud-mistral-jev`. |
+| `CONFIGURATION` | `status`, `run` | Required: `local-speed`, `local-balanced`, `local-quality-clef-flash`, `local-speed-wolf-defender`, `local-balanced-wolf-defender`, `local-quality-wolf-defender`, `cloud-google`, `cloud-openai`, `cloud-mistral`, `cloud-google-jev`, `cloud-openai-jev` or `cloud-mistral-jev`. |
 | `--split SPLIT` | `status`, `run` | `development` (default) or `test`. |
 | `--confirm-test-split` | `run` | Required for the one-time confirmation run on the test split. |
 | `--run-id ID` | `run` | Resume this run; default: a new run ID. Must be one directory name without a leading dot, slash, backslash, colon or NUL; its resolved path must stay inside the runs directory. |
 | `--runs-dir DIR` | `run`, `save-baseline`, `rescore`, `detect-text` | Folder of evaluation runs. Default `runs/evaluations`. |
-| `--detector DETECTOR` | `detect-text` | Required: `prompt-guard`, `d1`, `clef-flash`, `jev` or `openai`. Cloud detectors incur provider charges. |
+| `--detector DETECTOR` | `detect-text` | Required: `wolf-defender`, `d1`, `clef-flash`, `jev` or `openai`. Cloud detectors incur provider charges. |
 | `--output-dir DIR` | `detect-text` | Folder for detector-only results, one subfolder per source run and detector. Default `runs/detector-text`. |
 | `--dry-run` | `run` | Show the plan, including how many images would be reused, without scanning. |
 | `--no-reuse-ocr` | `run` | Scan every image from scratch instead of reusing earlier OCR and detection results. |

@@ -130,18 +130,24 @@ def test_run_detects_every_image_and_resumes(source_run, tmp_path, monkeypatch):
     output = tmp_path / "out"
 
     target, summary = detector_text.run(
-        "source-run", "prompt-guard", runs_directory=source_run, output_directory=output
+        "source-run",
+        "wolf-defender",
+        runs_directory=source_run,
+        output_directory=output,
     )
     detector_text.run(
-        "source-run", "prompt-guard", runs_directory=source_run, output_directory=output
+        "source-run",
+        "wolf-defender",
+        runs_directory=source_run,
+        output_directory=output,
     )
 
-    assert target == output / "source-run--prompt-guard"
+    assert target == output / "source-run--wolf-defender"
     assert calls == ["a", "b"]
     assert summary["summary"]["detection"]["recall"] == 1.0
     assert summary["summary"]["detection"]["false_positive_rate"] == 0.0
     assert (
-        json.loads((target / "summary.json").read_text())["detector"] == "prompt-guard"
+        json.loads((target / "summary.json").read_text())["detector"] == "wolf-defender"
     )
 
 
@@ -155,13 +161,16 @@ def test_run_refuses_a_different_request_in_the_same_folder(
     )
     output = tmp_path / "out"
     detector_text.run(
-        "source-run", "prompt-guard", runs_directory=source_run, output_directory=output
+        "source-run",
+        "wolf-defender",
+        runs_directory=source_run,
+        output_directory=output,
     )
 
     with pytest.raises(ValueError, match="different request"):
         detector_text.run(
             "source-run",
-            "prompt-guard",
+            "wolf-defender",
             runs_directory=source_run,
             output_directory=output,
             threshold=50,

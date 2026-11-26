@@ -1,4 +1,4 @@
-# ADR 0088 — Declared headerless PNG layouts
+# ADR 0090 — Declared headerless PNG layouts
 
 Status: accepted for implementation and review, 2026-11-26. Refs #86.
 Amends the verdict scope in [ADR 0071](0071-scan-verdict-and-final-ocr-completeness.md).
