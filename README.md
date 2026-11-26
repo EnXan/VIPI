@@ -143,7 +143,7 @@ projects can use the dataset to evaluate their own OCR or injection detection.
 See [contributing to the dataset](https://github.com/EnXan/VIPI/blob/main/CONTRIBUTING.md#evaluation-dataset).
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/EnXan/VIPI/main/assets/diagrams/vipi-results.svg" alt="Bar charts of detection rate, false positive rate and words recognized: cloud configurations detect 74 to 85 percent of injections with 0.4 to 4.5 percent false positives and recognize 85 to 88 percent of words; local configurations detect 19 to 57 percent with 1.8 to 4.0 percent false positives and recognize 70 to 77 percent of words. Exact values and models are in the expandable tables below." width="900">
+  <img src="https://raw.githubusercontent.com/EnXan/VIPI/main/assets/diagrams/vipi-results.svg" alt="Bar charts of detection rate, false positive rate and words recognized: cloud configurations detect 74 to 85 percent of injections with 0.4 to 4.5 percent false positives and recognize 85 to 88 percent of words; local configurations detect 41 to 57 percent with 2.2 to 4.0 percent false positives and recognize 70 to 77 percent of words. Exact values and models are in the expandable tables below." width="900">
 </p>
 
 <details>
@@ -152,7 +152,9 @@ See [contributing to the dataset](https://github.com/EnXan/VIPI/blob/main/CONTRI
 Recorded OCR-text baselines on the development split: 227 injection and 223
 benign images, each detector at its default threshold. These runs predate the
 additional image check in the cloud scanner. Wolf Defender replaced Prompt
-Guard 2 in 0.19.0; its quality baseline is not recorded yet.
+Guard 2 in 0.19.0. In its `quality` run, 3 of 450 images have no result
+(interrupted by a weight-loading deadlock); they count as not
+detected, and words recognized covers 432 of 435 referenced images.
 
 | Cloud OCR | Detector | Detection rate | False positive rate | Words recognized |
 | :-- | :-- | --: | --: | --: |
@@ -166,10 +168,10 @@ Guard 2 in 0.19.0; its quality baseline is not recorded yet.
 | Local OCR | Detector | Detection rate | False positive rate | Words recognized |
 | :-- | :-- | --: | --: | --: |
 | PP-OCRv6 Medium (`quality`) | Clef-Flash 9B (default) | **56.8%** | 4.0% | **77.0%** |
-| PP-OCRv6 Medium (`quality`) | Prompt Guard 2 86M (removed in 0.19.0) | 19.4% | **1.8%** | **77.0%** |
-| PP-OCRv6 Small (`balanced`) | d1 3B | 45.4% | 2.2% | 72.3% |
+| PP-OCRv6 Medium (`quality`) | Wolf Defender small | 43.6% | 3.1% | 76.7% |
+| PP-OCRv6 Small (`balanced`) | d1 3B | 45.4% | **2.2%** | 72.3% |
 | PP-OCRv6 Small (`balanced`) | Wolf Defender small | 44.1% | 3.1% | 72.3% |
-| PP-OCRv6 Tiny (`speed`) | d1 3B | 43.2% | 2.2% | 70.0% |
+| PP-OCRv6 Tiny (`speed`) | d1 3B | 43.2% | **2.2%** | 70.0% |
 | PP-OCRv6 Tiny (`speed`) | Wolf Defender small | 41.4% | 3.6% | 70.0% |
 
 </details>

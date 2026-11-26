@@ -126,17 +126,22 @@ split is no independent estimate for it.
   (Prompt Guard 18.5 / 2.2, d1 43.2 / 2.2) and `local-balanced-wolf-defender`
   44.1 / 3.1 (Prompt Guard 16.7 / 1.8, d1 45.4 / 2.2), with the same words
   recognized as the Prompt Guard runs (70.0 % and 72.3 %). The speed run
-  reproduces the `detect-text` rate at 40 exactly. The README results table
-  and `vipi-results.svg` show both; `local-quality-wolf-defender` is not
-  recorded yet, so its row still shows the last Prompt Guard baseline, marked
-  as removed.
+  reproduces the `detect-text` rate at 40 exactly.
+  `local-quality-wolf-defender` (Clef-Flash review, Apple M4 Pro, commit
+  `6600c048`) reaches 43.6 / 3.1 (Prompt Guard 19.4 / 1.8, Clef-Flash 56.8 /
+  4.0) with 76.7 % words recognized. Three of its 450 images have no result:
+  two stopped in a weight-loading deadlock and one in the worker ended to
+  recover from it (fix in EnXan/VIPI#128). They count
+  as not detected (2 attacks, 1 benign), and words recognized covers 432 of 435
+  referenced images. The tree was dirty with two untracked files. The README
+  results table and `vipi-results.svg` show all three configurations.
 - The three saved `-prompt-guard` baselines stay as historical records.
 
 ## Validation boundary
 
 The threshold comes from retained OCR text through the product provider. The
-speed and balanced rates are also confirmed by end-to-end development runs; the
-quality configuration (Clef-Flash review) has no Wolf Defender run yet. No GitHub runner (Linux, x86) run has
+speed, balanced and quality rates are also confirmed by end-to-end development
+runs; the quality run misses 3 of 450 images. No GitHub runner (Linux, x86) run has
 been measured yet; the vendor warns that its INT8 ONNX files can misbehave on
 some x86 CPUs, which does not apply to the FP32 safetensors used here. Tests
 cover the manifest and checksum, the label check, windowing, offline loading
