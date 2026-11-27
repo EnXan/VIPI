@@ -63,6 +63,7 @@ Temporary planning and review queues belong in `.llm-plans/`.
 | [0089](0089-openstego-random-lsb-reading.md) | Plaintext in supported OpenStego RandomLSB v2 PNGs is a detector reading (extends 0088) |
 | [0090](0090-declared-png-lsb-layouts.md) | An opt-in scan checks text previews from caller-declared headerless PNG layouts (amends 0071) |
 | [0091](0091-png-lsb-statistics.md) | An opt-in scan reports original PNG low-bit sample-pair statistics for forensic review |
+| [0092](0092-caller-context-cases-as-tasks.md) | Caller-context cases are image-specific caller tasks with swapped controls, without test-data wording |
 
 When revising an agreed decision, write its replacement with a summary of the
 old ADR (identifier, decision, rationale and reason for revision), then delete
