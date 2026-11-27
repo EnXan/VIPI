@@ -41,7 +41,8 @@ separate draft location and a second image layout no longer serve a purpose.
   by label × content: 450 development and 104 test entries.
 - `research.download` fetches `catalog.json`, `vocabulary.json` and
   `images/` into `research/dataset/` at the commit pinned in
-  `research/dataset.json` (the merge commit 91eeb7d6 on `main`).
+  `research/dataset.json` (the merge commit 91eeb7d6 on `main` at the time
+  of this decision; 0ce5faea since ADR 0092).
 
 ## Alternatives
 
