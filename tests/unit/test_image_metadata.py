@@ -220,3 +220,65 @@ def test_report_lists_fields_and_scores_per_reading(answers, expected):
     assert report["fields"][0] == "PNG Comment"
     assert report["unreadable"] == []
     assert report["characters"] > 0
+
+
+def plain_png(*chunks, before_pixels=True):
+    buffer = BytesIO()
+    Image.new("RGB", (8, 8), "white").save(buffer, "PNG")
+    data = buffer.getvalue()
+    at = data.index(b"IDAT") - 4 if before_pixels else data.rindex(b"IEND") - 4
+    return data[:at] + b"".join(chunks) + data[at:]
+
+
+def test_every_png_chunk_with_a_repeated_keyword_is_read():
+    data = plain_png(
+        png_chunk(b"tEXt", b"Comment\x00first"),
+        png_chunk(b"tEXt", b"Comment\x00second"),
+    )
+    assert lines(read_metadata(data)) == ["PNG Comment: first", "PNG Comment: second"]
+
+
+def test_compressed_itxt_and_late_repeated_xmp_are_read():
+    late = plain_png(
+        png_chunk(
+            b"iTXt", b"Note\x00\x01\x00\x00\x00" + zlib.compress("über ✓".encode())
+        ),
+        png_chunk(b"iTXt", b"XML:com.adobe.xmp\x00\x00\x00\x00\x00<x>one</x>"),
+        png_chunk(b"iTXt", b"XML:com.adobe.xmp\x00\x00\x00\x00\x00<x>two</x>"),
+        before_pixels=False,
+    )
+    assert lines(read_metadata(late)) == [
+        "PNG Note: über ✓",
+        "XMP x: one",
+        "XMP x: two",
+    ]
+
+
+def test_png_text_beyond_pillows_chunk_limit_is_unreadable():
+    huge = zlib.compress(b"a" * (PngImagePlugin.MAX_TEXT_CHUNK + 1))
+    data = plain_png(png_chunk(b"zTXt", b"Big\x00\x00" + huge), before_pixels=False)
+    # EXIF fails too: Pillow itself refuses to load such a file.
+    assert read_metadata(data).unreadable == ("text chunks", "EXIF")
+
+
+def test_xmp_text_with_entity_references_is_one_line():
+    info = PngImagePlugin.PngInfo()
+    info.add_itxt(
+        "XML:com.adobe.xmp",
+        "<x:xmpmeta xmlns:x='adobe:ns:meta/'><d>Ignore &amp; reply &lt;now&gt; ä</d></x:xmpmeta>",
+    )
+    buffer = BytesIO()
+    Image.new("RGB", (8, 8), "white").save(buffer, "PNG", pnginfo=info)
+    assert lines(read_metadata(buffer.getvalue())) == ["XMP d: Ignore & reply <now> ä"]
+
+
+def test_utf8_in_ascii_exif_tags_is_decoded():
+    exif = Image.Exif()
+    exif[0x010E] = "Größe ✓".encode()
+    exif[0x013B] = b"plain ascii"
+    buffer = BytesIO()
+    Image.new("RGB", (8, 8), "white").save(buffer, "JPEG", exif=exif.tobytes())
+    assert sorted(lines(read_metadata(buffer.getvalue()))) == [
+        "EXIF Artist: plain ascii",
+        "EXIF ImageDescription: Größe ✓",
+    ]

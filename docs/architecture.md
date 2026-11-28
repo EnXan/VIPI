@@ -122,8 +122,14 @@ initializers and model metadata imports do not load inference frameworks.
   `research/dataset/` (ignored by Git, fetched by `research.download`).
 - `research/workbench/`: local Flask UI. `scans` runs one product scan,
   `evaluations` runs `research.evaluate` in the background, `curation_routes` and
-  `contribute_routes` serve the Dataset page; the browser code is `static/app.js` and
-  `static/curation.js`.
+  `contribute_routes` serve the Dataset page, `fixture_routes` the Editor page; the
+  browser code is `static/app.js`, `static/curation.js` and the editor's
+  `static/editor-ui.js`, `static/editor-layers.js`, `static/editor-heal.js`,
+  `static/editor-scan.js` and
+  `static/editor.js`.
+- `research/fixtures/`: writes the editor's hidden layers (metadata, scaling attacks,
+  transparency, OpenStego and PNG LSB, SVG source text) into a
+  composed image and reads them back with VIPI's readers (ADR 0093).
 - `research/evaluate/`: frozen split, evaluation runs of product scan
   configurations and the saved baseline.
 - `research/ocr_eval/`: OCR metrics, the dataset benchmark and its report.

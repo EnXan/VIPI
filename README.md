@@ -271,6 +271,10 @@ cloud settings.
   Runs can be stopped and resumed.
 - **Dataset:** add images, edit labels and reference text, and submit your
   changes as a pull request on Hugging Face.
+- **Editor:** build test images with content in every channel VIPI reads
+  (text, QR codes and barcodes, metadata, transparency, steganography, SVG
+  source) plus scaling attacks, inspect them in zoomable views, see what VIPI
+  reads back, and export them as fixtures.
 
 The workbench is included in the repository, not the PyPI package. With
 Python 3.12 and uv installed, run:

@@ -74,7 +74,10 @@ def create_app(
     )
 
     from research.curation.store import DEFAULT_DIRECTORY, CurationStore
+    from . import fixture_routes
     from .curation_routes import register_routes as register_curation_routes
+
+    fixture_routes.register(app)
 
     register_curation_routes(
         app,
@@ -124,10 +127,13 @@ def create_app(
         try:
             value = request.form.get("threshold")
             threshold = None if value in (None, "") else float(value)
+            layouts = request.form.getlist("lsb_layout")
             job = scans.start(
                 upload.read(),
                 request.form.get("configuration", DEFAULT_CONFIGURATION),
                 threshold,
+                lsb_layouts=layouts,
+                svg=upload.filename.lower().endswith(".svg"),
             )
         except ValueError:
             app.logger.exception("Scan request rejected")

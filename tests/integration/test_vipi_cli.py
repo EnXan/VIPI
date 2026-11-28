@@ -276,6 +276,16 @@ def test_scan_runs_shared_pipeline_sequentially_and_emits_json(
     assert all(Path(item["artifacts"]).is_dir() for item in report["files"])
 
 
+def test_scan_reports_each_file_start_for_the_percentage(tmp_path, scanner_runtime):
+    from vipi.scanner import scan
+
+    image(tmp_path / "images/a.png")
+    image(tmp_path / "images/b.png")
+    started = []
+    scan([tmp_path / "images"], on_file_started=lambda *call: started.append(call))
+    assert started == [(1, 2), (2, 2)]
+
+
 @pytest.mark.parametrize(
     ("options", "mode", "model"),
     [

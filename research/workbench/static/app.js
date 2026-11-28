@@ -1,9 +1,11 @@
 'use strict';
-// Workbench shell: page tabs, "Scan an image" and "Evaluate". Dataset lives in curation.js.
+// Workbench shell: page tabs, "Scan an image" and "Evaluate". Dataset lives in curation.js, Editor in editor.js.
 
 const $ = id => document.getElementById(id);
 const state = {configurations: [], defaultConfiguration: null, threshold: 80, image: null, runId: null};
 const POLL_MS = 1000;
+const SCAN_POLL_MS = 400;  // the scan button shows each reported step soon
+const PAGES = ['scan', 'evaluation', 'dataset', 'editor'];
 
 /** @param {string} url @param {object} [options] */
 async function request(url, options = {}) {
@@ -14,10 +16,11 @@ async function request(url, options = {}) {
 }
 const postJson = (url, body = {}) => request(url, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)});
 
+/** Errors appear as notifications (toast.js); an empty message shows nothing. */
 function showError(message) {
-  $('error').textContent = message || '';
-  $('error').hidden = !message;
+  window.vipiToast(message, {kind: 'error'});
 }
+
 const percent = value => (value === null || value === undefined) ? '—' : `${(value * 100).toFixed(1)}%`;
 const points = value => (value === null || value === undefined) ? '' : `${value >= 0 ? '+' : ''}${(value * 100).toFixed(1)} pp`;
 function element(tag, attributes = {}, ...children) {
@@ -33,17 +36,18 @@ const configuration = id => state.configurations.find(item => item.id === id);
 // Pages
 
 function selectPage(page) {
-  for (const name of ['scan', 'evaluation', 'dataset']) {
+  for (const name of PAGES) {
     $(`${name}-page`).hidden = page !== name;
     $(`tab-${name}`).setAttribute('aria-selected', String(page === name));
   }
   document.querySelector('main').dataset.page = page;
   showError('');
   if (page === 'dataset' && window.vipiCuration) window.vipiCuration.open();
+  if (page === 'editor' && window.vipiEditor) window.vipiEditor.open();
   if (page === 'evaluation') { refreshEvaluationSetup(); refreshRuns(); }
   try { sessionStorage.setItem('vipi-workbench-page', page); } catch { /* storage unavailable */ }
 }
-for (const name of ['scan', 'evaluation', 'dataset']) $(`tab-${name}`).onclick = () => selectPage(name);
+for (const name of PAGES) $(`tab-${name}`).onclick = () => selectPage(name);
 
 // Settings: where the scan runs and which text recognition it uses
 
@@ -208,6 +212,9 @@ $('scan-start').onclick = async () => {
   form.append('configuration', scanSettings.value());
   form.append('threshold', String(scanSettings.threshold()));
   $('scan-start').disabled = true;
+  $('scan-start').setAttribute('aria-busy', 'true');
+  const meter = window.vipiScanMeter($('scan-start'), form.get('configuration'));
+  let finished = false;
   $('scan-result').hidden = true;
   $('scan-status').textContent = 'Starting…';
   try {
@@ -215,17 +222,23 @@ $('scan-start').onclick = async () => {
     for (;;) {
       const job = await request(`/api/scans/${id}`);
       if (job.state === 'done' || job.state === 'failed') {
+        finished = job.state === 'done';
         $('scan-status').textContent = job.state === 'done' ? 'Done.' : 'Failed.';
         renderScan(job);
         break;
       }
-      $('scan-status').textContent = job.state === 'checking' ? 'Checking the text for prompt injection…' : 'Reading the text in the image…';
-      await new Promise(resolve => setTimeout(resolve, POLL_MS));
+      meter.update(job);
+      const {checking, count} = window.vipiScanCount(job);
+      const [phase, unit] = checking ? ['Checking the text for prompt injection', 'check'] : ['Reading the text in the image', 'OCR pass'];
+      $('scan-status').textContent = count ? `${phase} · ${unit} ${count[0]} of ${count[1]}` : `${phase}…`;
+      await new Promise(resolve => setTimeout(resolve, SCAN_POLL_MS));
     }
   } catch (error) {
     showError(error.message);
     $('scan-status').textContent = '';
   } finally {
+    $('scan-start').removeAttribute('aria-busy');
+    meter.stop(finished);
     updateScanSummary();
   }
 };
@@ -489,9 +502,13 @@ async function refreshRuns() {
 
 // Start
 
+// Deferred scripts run before DOMContentLoaded, so this fires once curation.js and
+// the editor scripts exist; opening the saved page earlier left the editor empty.
+const scriptsLoaded = new Promise(resolve => document.addEventListener('DOMContentLoaded', resolve, {once: true}));
 (async () => {
   try {
     const options = await request('/api/configurations');
+    await scriptsLoaded;
     state.configurations = options.configurations;
     state.defaultConfiguration = options.default;
     state.threshold = options.threshold;
@@ -500,6 +517,6 @@ async function refreshRuns() {
     updateScanSummary();
     let page = 'scan';
     try { page = sessionStorage.getItem('vipi-workbench-page') || 'scan'; } catch { /* storage unavailable */ }
-    selectPage(['scan', 'evaluation', 'dataset'].includes(page) ? page : 'scan');
+    selectPage(PAGES.includes(page) ? page : 'scan');
   } catch (error) { showError(error.message); }
 })();

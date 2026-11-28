@@ -8,10 +8,13 @@ manifests) are not text and are left out.
 
 from dataclasses import dataclass
 from io import BytesIO
+from pathlib import Path
 import pyexpat
+import struct
 import unicodedata
+import zlib
 
-from PIL import Image, IptcImagePlugin
+from PIL import Image, IptcImagePlugin, PngImagePlugin
 from PIL.ExifTags import GPSTAGS, IFD, TAGS
 
 from .svg.text import normalize_invisible
@@ -66,7 +69,8 @@ class ImageMetadata:
 def read_metadata(source):
     """Read the metadata text of a PNG, JPEG or WebP path or bytes."""
     lines, unreadable = [], []
-    with Image.open(BytesIO(source) if isinstance(source, bytes) else source) as image:
+    data = source if isinstance(source, bytes) else Path(source).read_bytes()
+    with Image.open(BytesIO(data)) as image:
         for group, read in (
             ("text chunks", _png_text),
             ("JPEG comments", _jpeg_comments),
@@ -75,7 +79,7 @@ def read_metadata(source):
             ("IPTC", _iptc),
         ):
             try:
-                lines += read(image)
+                lines += read(image, data)
             except Exception:  # noqa: BLE001 - any parser failure is unreadable
                 unreadable.append(group)
     lines = [(name, value.strip()) for name, value in lines]
@@ -91,18 +95,74 @@ def read_metadata(source):
     )
 
 
-def _png_text(image):
+def _png_text(image, data):
     if image.format != "PNG":
         return []
-    # `text` loads the image, so chunks after the pixel data are included.
     return [
-        (f"PNG {key}", value)
-        for key, value in image.text.items()
-        if key != XMP_KEY and isinstance(value, str)
+        (f"PNG {key}", _value(text))
+        for key, text in _png_chunks(data)
+        if key != XMP_KEY
     ]
 
 
-def _jpeg_comments(image):
+def _value(text):
+    """A decoded chunk text, or the error that kept it from being decoded."""
+    if isinstance(text, Exception):
+        raise text
+    return text
+
+
+def _png_chunks(data):
+    """Every text chunk as (keyword, text or error), before or after the pixels.
+
+    Pillow's `Image.text` keeps one value per keyword, so a later chunk with
+    the same keyword would hide an earlier one; the chunks are parsed here.
+    Decompression is bounded by Pillow's own text chunk limits. A chunk that
+    cannot be decoded carries its error, so only the group reading it fails.
+    """
+    chunks, position, memory = [], 8, 0
+    while position + 8 <= len(data):
+        length, kind = struct.unpack(">I4s", data[position : position + 8])
+        body = data[position + 8 : position + 8 + length]
+        if len(body) < length:
+            raise ValueError("PNG chunk is truncated.")
+        position += 12 + length
+        if kind in (b"tEXt", b"zTXt", b"iTXt"):
+            key, _, rest = body.partition(b"\x00")
+            try:
+                text = _png_chunk_text(kind, rest)
+                memory += len(text or "")
+                if memory > PngImagePlugin.MAX_TEXT_MEMORY:
+                    raise ValueError("PNG text exceeds Pillow's text memory limit.")
+            except (ValueError, zlib.error) as error:
+                text = ValueError(str(error))
+            if text is not None:
+                chunks.append((key.decode("latin-1"), text))
+        if kind == b"IEND":
+            break
+    return chunks
+
+
+def _png_chunk_text(kind, rest):
+    if kind == b"tEXt":
+        return rest.decode("latin-1")
+    if kind == b"zTXt":
+        return _inflate(rest[1:]).decode("latin-1")
+    flag, rest = rest[:1], rest[2:]
+    _, _, rest = rest.partition(b"\x00")  # language tag
+    _, _, rest = rest.partition(b"\x00")  # translated keyword
+    return _text(_inflate(rest) if flag == b"\x01" else rest)
+
+
+def _inflate(data):
+    inflater = zlib.decompressobj()
+    text = inflater.decompress(data, PngImagePlugin.MAX_TEXT_CHUNK)
+    if inflater.unconsumed_tail:
+        raise ValueError("Compressed PNG text exceeds Pillow's text chunk limit.")
+    return text
+
+
+def _jpeg_comments(image, data):
     if image.format != "JPEG":
         return []
     return [
@@ -112,9 +172,11 @@ def _jpeg_comments(image):
     ]
 
 
-def _xmp(image):
+def _xmp(image, data):
     if image.format == "PNG":
-        packets = [image.text[XMP_KEY].encode()] if XMP_KEY in image.text else []
+        packets = [
+            _value(text).encode() for key, text in _png_chunks(data) if key == XMP_KEY
+        ]
     elif image.format == "JPEG":
         packets = _jpeg_xmp(image.applist)
     else:
@@ -140,38 +202,53 @@ def _jpeg_xmp(applist):
 
 
 def _xmp_lines(packet):
-    lines, stack = [], []
+    # Expat delivers one text node in pieces (at entity references, for
+    # example), so text is collected until the next markup event.
+    lines, stack, pending = [], [], []
 
     def label():
         names = [name for name in stack if not name.startswith(("rdf:", "x:"))]
         return f"XMP {names[-1] if names else 'text'}"
 
+    def flush():
+        data = "".join(pending)
+        pending.clear()
+        if data.strip():
+            lines.append((label(), data))
+
     def start(name, attributes):
+        flush()
         stack.append(name)
         for key, value in zip(attributes[::2], attributes[1::2]):
             if not key.startswith("xmlns") and key not in XMP_STRUCTURAL:
                 lines.append((f"XMP {key}", value))
 
-    def characters(data):
-        if data.strip():
-            lines.append((label(), data))
+    def end(name):
+        flush()
+        stack.pop()
+
+    def comment(data):
+        flush()
+        lines.append(("XMP comment", data))
 
     def instruction(target, data):
+        flush()
         if target != "xpacket":
             lines.append((f"XMP {target}", data))
 
     parser = pyexpat.ParserCreate()
     parser.ordered_attributes = True
     parser.StartElementHandler = start
-    parser.EndElementHandler = lambda name: stack.pop()
-    parser.CharacterDataHandler = characters
-    parser.CommentHandler = lambda data: lines.append(("XMP comment", data))
+    parser.EndElementHandler = end
+    parser.CharacterDataHandler = pending.append
+    parser.CommentHandler = comment
     parser.ProcessingInstructionHandler = instruction
     parser.Parse(packet, True)
+    flush()
     return lines
 
 
-def _exif(image):
+def _exif(image, data):
     raw = image.info.get("exif") or b""
     exif = image.getexif()
     groups = [
@@ -196,7 +273,7 @@ def _exif(image):
 
 def _exif_text(group, tag, value, endian):
     if isinstance(value, str):
-        return value.replace("\x00", " ")
+        return _utf8_from_latin1(value).replace("\x00", " ")
     if isinstance(value, tuple) and tag in UTF16_TAGS:
         value = bytes(value)
     if not isinstance(value, bytes):
@@ -216,7 +293,7 @@ def _exif_text(group, tag, value, endian):
     return _text(value.rstrip(b"\x00"))
 
 
-def _iptc(image):
+def _iptc(image, data):
     if image.format != "JPEG":
         return []
     info = IptcImagePlugin.getiptcinfo(image) or {}
@@ -229,6 +306,14 @@ def _iptc(image):
             if text is not None:
                 lines.append((f"IPTC 2:{dataset}", text))
     return lines
+
+
+def _utf8_from_latin1(text):
+    """Pillow decodes ASCII tags as Latin-1; writers commonly store UTF-8 there."""
+    try:
+        return text.encode("latin-1").decode("utf-8")
+    except UnicodeError:
+        return text
 
 
 def _text(data):
