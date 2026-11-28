@@ -74,6 +74,29 @@ uv run python -m research.workbench serve [--port PORT]
 It uses the product scan options only; prepare local models with `vipi setup`
 first. See the [workbench guide](../research/workbench/README.md).
 
+## Fixture editor MCP server
+
+```bash
+uv run python -m research.mcp [--output DIR] [--allow-cloud]
+```
+
+| Option | Meaning and default |
+| --- | --- |
+| `--output DIR` | Folder for created images and `.fixture.json` files. Default `research/generated/mcp` (ignored by Git). |
+| `--allow-cloud` | Let `scan_image` use cloud configurations, which make paid API calls. Off by default. |
+
+An MCP server over stdio with the fixture editor's functions for AI models:
+`editor_options`, `create_fixture`, `read_image`, `render_view`,
+`find_text_lines` and `scan_image`. Recipes use the editor's fixture format,
+so fixtures open in the editor and back. Register it in Claude Code from the
+repository root:
+
+```bash
+claude mcp add vipi-fixtures -- uv run python -m research.mcp
+```
+
+See [ADR 0096](../adr-code/0096-fixture-mcp-server.md).
+
 ## Evaluation and baseline
 
 ```bash
