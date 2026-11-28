@@ -14,6 +14,7 @@ REFERENCES = {
         "research.download",
         "research.curation.__main__",
         "research.workbench.__main__",
+        "research.mcp.__main__",
         "research.evaluate.__main__",
         "research.ocr_eval.benchmark",
         "research.ocr_eval.benchmark_report",

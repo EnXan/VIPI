@@ -207,6 +207,10 @@ Shortcuts: **T**, **C**, **M**, **S**, **A**, **P**, **V** add a layer; **+**/**
 **⇧⌘Z** undo and redo (Ctrl on Windows and Linux). Visible text is checked
 only by a full scan; the editor does not run OCR.
 
+AI models can use the editor's functions without the browser through the
+MCP server `python -m research.mcp`; see the
+[research CLI reference](../../docs/research-cli.md#fixture-editor-mcp-server).
+
 ## Saved artifacts
 
 | Artifact | Path |

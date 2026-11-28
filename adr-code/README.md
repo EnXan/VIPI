@@ -66,6 +66,7 @@ Temporary planning and review queues belong in `.llm-plans/`.
 | [0093](0093-fixture-editor.md) | The workbench Editor composes visible layers in the browser; the server writes hidden channels (metadata, scaling, transparency, steganography, SVG source; codes are drawn from zxing-cpp) and reads them back with VIPI |
 | [0094](0094-metadata-reader-corrections.md) | Metadata reading parses every PNG text chunk, keeps XMP text nodes whole and decodes UTF-8 in ASCII EXIF tags (amends 0083) |
 | [0095](0095-scan-percentage.md) | `vipi scan` shows the run's percentage in its status line, moving by time per file (pass counts were too coarse) |
+| [0096](0096-fixture-mcp-server.md) | MCP server with the fixture editor's functions: same recipe format, Pillow renderer, output folder only, cloud scans opt-in |
 
 When revising an agreed decision, write its replacement with a summary of the
 old ADR (identifier, decision, rationale and reason for revision), then delete
