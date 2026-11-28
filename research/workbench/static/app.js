@@ -515,8 +515,9 @@ const scriptsLoaded = new Promise(resolve => document.addEventListener('DOMConte
     scanSettings = settingsPanel($('scan-settings'), {withThreshold: true, onChange: updateScanSummary});
     evaluationSettings = settingsPanel($('evaluation-settings'), {withThreshold: false, onChange: refreshEvaluationSetup});
     updateScanSummary();
-    let page = 'scan';
-    try { page = sessionStorage.getItem('vipi-workbench-page') || 'scan'; } catch { /* storage unavailable */ }
+    // A link such as /#editor opens that page; otherwise the last page of this tab.
+    let page = location.hash.slice(1) || 'scan';
+    if (!location.hash) try { page = sessionStorage.getItem('vipi-workbench-page') || 'scan'; } catch { /* storage unavailable */ }
     selectPage(PAGES.includes(page) ? page : 'scan');
   } catch (error) { showError(error.message); }
 })();
