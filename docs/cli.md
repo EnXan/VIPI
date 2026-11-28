@@ -201,14 +201,17 @@ reading next to the OCR text ([ADR 0083](../adr-code/0083-image-metadata-reading
 Applications, agents and tools such as `exiftool` read it, while OCR sees only
 pixels. The reading holds one `field: value` line per text value:
 
-- PNG `tEXt`, `zTXt` and `iTXt` chunks, including chunks after the image data;
+- PNG `tEXt`, `zTXt` and `iTXt` chunks, including chunks after the image data
+  and every chunk of a repeated keyword;
 - JPEG comments (`COM`);
 - XMP (PNG `XML:com.adobe.xmp`, JPEG standard and extended XMP, WebP): element
   text, attribute values except `xmlns`, `rdf:parseType` and `xml:lang`,
-  comments and processing instructions except `xpacket`;
+  comments and processing instructions except `xpacket`; one text node is one
+  line, also when it contains entity references such as `&amp;`;
 - EXIF text in IFD0, the Exif IFD and the GPS IFD, including `UserComment`
   and the GPS method and area fields with their character code and the UTF-16
-  `XP*` fields; byte values count only when they decode as UTF-8 text;
+  `XP*` fields; byte values count only when they decode as UTF-8 text, and
+  UTF-8 in ASCII tags is decoded as UTF-8;
 - IPTC application record values in JPEG files.
 
 Numbers, dates stored as numbers and binary values are not text. Unicode tag
@@ -422,7 +425,11 @@ symlinks and VIPI's cache. Image symlinks are errors.
 Reports include resolved models, hashes, runtime identities, threshold, timing,
 usage/cost evidence, artifact paths, skipped/error/not-scanned inputs and diff
 commit IDs. `--output` cannot overwrite a selected image. Terminal output uses
-a live progress display when supported; redirected output uses a compact brand.
+a live progress display when supported: the status line shows the run's
+percentage in front of the current file. A file's share moves by time, against
+the average duration of the files already scanned in this run (15 s for the
+first), and never shows complete before the next file starts, so it is an
+estimate. Redirected output uses a compact brand.
 
 | Platform | Default cache |
 | --- | --- |

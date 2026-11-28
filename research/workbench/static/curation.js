@@ -342,7 +342,7 @@
     if (event.target.open) renderVocabulary();
   };
   document.addEventListener('keydown', event => {
-    if (node('label-page').hidden || !state.entry) return;
+    if (node('dataset-page').hidden || !state.entry) return;
     if (event.target.closest('input, select, textarea') || event.metaKey || event.ctrlKey || event.altKey) return;
     if (event.key === 'ArrowLeft' && state.index > 0) { event.preventDefault(); select(state.index - 1); }
     if (event.key === 'ArrowRight' && state.index < state.items.length - 1) { event.preventDefault(); select(state.index + 1); }

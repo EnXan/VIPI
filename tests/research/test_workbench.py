@@ -444,3 +444,47 @@ def test_evaluations_run_in_parallel_and_list_running_local_runs(tmp_path, monke
         service.start("local-speed", "development", False)  # same run ID
     release.set()
     wait(lambda: service.running() == [])
+
+
+def test_editor_scan_passes_svg_as_a_file_and_declared_lsb_layouts(tmp_path):
+    scan, calls = fake_scanner(tmp_path)
+    seen = {}
+
+    def recording(image, *, options, on_event):
+        # The temporary SVG file only exists while the scan runs.
+        seen["suffix"], seen["data"] = Path(image).suffix, Path(image).read_bytes()
+        return scan(image, options=options, on_event=on_event)
+
+    client = create_app(repository_root=tmp_path, scanner=recording).test_client()
+    started = client.post(
+        "/api/scans",
+        data={
+            "image": (io.BytesIO(b"<svg/>"), "fixture.svg"),
+            "lsb_layout": ["b1,rgb,lsb,xy", "b2,g,msb,yx"],
+        },
+        content_type="multipart/form-data",
+    )
+    job_id = started.json["id"]
+    wait(lambda: client.get(f"/api/scans/{job_id}").json["state"] == "done")
+    assert seen == {"suffix": ".svg", "data": b"<svg/>"}
+    assert not Path(calls[0][0]).exists()
+    assert calls[0][1].lsb_layouts == ("b1,rgb,lsb,xy", "b2,g,msb,yx")
+    assert client.get(f"/api/scans/{job_id}").json["result"]["readings"] == {}
+
+
+def test_scan_job_counts_ocr_passes_over_runs_and_detection_checks():
+    from research.workbench.scans import ScanJob
+
+    job = ScanJob("local-quality-clef-flash", None)
+    events = [
+        {"type": "run_started", "run_id": "r1", "total": 1},
+        {"type": "resolution_planned", "run_id": "r1", "total": 3},
+        {"type": "step_completed", "run_id": "r1", "completed": 2},
+        {"type": "run_started", "run_id": "r2", "total": 1},  # a transparency view
+        {"type": "detection_started", "run_id": "d1", "total": 2},
+        {"type": "check_started", "run_id": "d1"},
+    ]
+    for event in events:
+        job.on_event(event)
+    assert job.snapshot()["progress"] == {"read": [2, 4], "checked": [1, 2]}
+    assert job.state == "checking"

@@ -2,6 +2,7 @@
 
 import json
 from pathlib import Path
+import tempfile
 import threading
 import uuid
 
@@ -13,10 +14,26 @@ from research.ocr_eval.benchmark import CONFIGURATIONS
 DEFAULT_CONFIGURATION = "local-quality-clef-flash"  # the product default (`vipi scan`)
 
 
-def options_for(configuration, threshold=None):
+# Report keys that hold one reading next to OCR, each with `scores` (ADR 0083-0090).
+READING_REPORTS = (
+    "svg",
+    "metadata",
+    "barcodes",
+    "transparency",
+    "openstego",
+    "openstego_random_lsb",
+    "png_lsb",
+)
+
+
+def options_for(configuration, threshold=None, lsb_layouts=()):
     if configuration not in CONFIGURATIONS:
         raise ValueError("Choose a supported configuration.")
-    return ScanOptions(threshold=threshold, **CONFIGURATIONS[configuration])
+    return ScanOptions(
+        threshold=threshold,
+        lsb_layouts=tuple(lsb_layouts),
+        **CONFIGURATIONS[configuration],
+    )
 
 
 class ScanJob:
@@ -29,11 +46,33 @@ class ScanJob:
         self.artifacts = None
         self.result = None
         self.error = None
+        self.reading = {}  # OCR run id -> [passes done, passes planned]
+        self.checks = [0, 0]  # detection checks started, planned
 
     def on_event(self, event):
         self.run_id = self.run_id or event.get("run_id")
-        if event.get("type", "").startswith("detection"):
+        kind = event.get("type", "")
+        if kind.startswith("detection"):
             self.state = "checking"
+            if kind == "detection_started":
+                self.checks[1] = event.get("total") or 0
+        elif kind == "check_started":
+            self.checks[0] += 1
+        elif event.get("run_id") and ("total" in event or "completed" in event):
+            done, total = self.reading.get(event["run_id"], [0, 0])
+            self.reading[event["run_id"]] = [
+                event.get("completed", done),
+                event.get("total", total),
+            ]
+
+    def progress(self):
+        """Counts behind the scan state: OCR passes over every OCR run of the
+        scan (a run can plan further passes), then detection checks."""
+        runs = self.reading.values()
+        return {
+            "read": [sum(run[0] for run in runs), sum(run[1] for run in runs)],
+            "checked": list(self.checks),
+        }
 
     def snapshot(self):
         return {
@@ -44,6 +83,7 @@ class ScanJob:
             "result": self.result,
             "error": self.error,
             "steps": self.steps(),
+            "progress": self.progress(),
         }
 
     def steps(self):
@@ -82,23 +122,30 @@ class ScanService:
         self.jobs = {}
         self.scanner = scanner
 
-    def start(self, image, configuration, threshold):
-        options = options_for(configuration, threshold)
+    def start(self, image, configuration, threshold, *, lsb_layouts=(), svg=False):
+        """Scan image bytes; `svg` bytes go through a temporary .svg file,
+        because VIPI recognises SVG input by its path."""
+        options = options_for(configuration, threshold, lsb_layouts)
         if not self.busy.acquire(blocking=False):
             raise RuntimeError("A scan is already running.")
         job = ScanJob(configuration, threshold)
         self.jobs[job.id] = job
         threading.Thread(
-            target=self.run, args=(job, image, options), daemon=True
+            target=self.run, args=(job, image, options, svg), daemon=True
         ).start()
         return job
 
-    def run(self, job, image, options):
+    def run(self, job, image, options, svg=False):
+        folder = tempfile.TemporaryDirectory(prefix="vipi-workbench-") if svg else None
         try:
             if self.scanner is None:
                 from vipi.scanner import scan_image as scanner
             else:
                 scanner = self.scanner
+            if folder:
+                path = Path(folder.name) / "image.svg"
+                path.write_bytes(image)
+                image = path
             result = scanner(image, options=options, on_event=job.on_event)
             job.artifacts = result.ocr.artifacts
             record = file_record(result)
@@ -113,6 +160,12 @@ class ScanService:
                 "ocr_seconds": record["ocr_seconds"],
                 "detection_seconds": record["detection_seconds"],
                 "cost_usd": record["estimated_total_api_cost_usd"],
+                "readings": {
+                    key: record[key].get("scores", {})
+                    for key in READING_REPORTS
+                    if isinstance(record.get(key), dict)
+                },
+                "image_check": record.get("image_check"),
             }
             job.state = "done"
         except Exception as error:
@@ -120,6 +173,8 @@ class ScanService:
             job.error = str(error) or type(error).__name__
             job.state = "failed"
         finally:
+            if folder:
+                folder.cleanup()
             self.busy.release()
 
     def get(self, identifier):

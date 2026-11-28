@@ -132,6 +132,7 @@ def scan(
     progress=None,
     on_result=None,
     list_only=False,
+    on_file_started=None,
 ):
     """Scan selected inputs sequentially and produce the public report schema.
 
@@ -222,6 +223,8 @@ def scan(
             for index, (source, item) in enumerate(
                 zip(selection.images, report["files"]), 1
             ):
+                if on_file_started:
+                    on_file_started(index, len(selection.images))
                 notify(
                     f"[{index}/{len(selection.images)}] Scanning {str(source.path)!r}"
                 )

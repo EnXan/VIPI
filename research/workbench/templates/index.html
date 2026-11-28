@@ -7,8 +7,17 @@
   <link rel="icon" href="/static/brand/favicon.svg">
   <link rel="stylesheet" href="/static/brand/tokens.css">
   <link rel="stylesheet" href="/static/style.css">
+  <script src="/static/toast.js" defer></script>
+  <script src="/static/scan-progress.js" defer></script>
   <script src="/static/app.js" defer></script>
   <script src="/static/curation.js" defer></script>
+  <script src="/static/editor-ui.js" defer></script>
+  <script src="/static/editor-layers.js" defer></script>
+  <script src="/static/editor-heal.js" defer></script>
+  <script src="/static/editor-text.js" defer></script>
+  <script src="/static/editor-readback.js" defer></script>
+  <script src="/static/editor-scan.js" defer></script>
+  <script src="/static/editor.js" defer></script>
 </head>
 <body>
   <header class="topbar">
@@ -20,8 +29,8 @@
       <button id="tab-scan" class="workbench-tab" type="button" role="tab" aria-selected="true" aria-controls="scan-page">Scan an image</button>
       <button id="tab-evaluation" class="workbench-tab" type="button" role="tab" aria-selected="false" aria-controls="evaluation-page">Evaluate</button>
       <button id="tab-dataset" class="workbench-tab" type="button" role="tab" aria-selected="false" aria-controls="dataset-page">Dataset</button>
+      <button id="tab-editor" class="workbench-tab" type="button" role="tab" aria-selected="false" aria-controls="editor-page">Editor</button>
     </nav>
-    <p id="error" class="error" role="alert" hidden></p>
 
     <section id="scan-page" class="workbench-page" role="tabpanel" aria-labelledby="tab-scan">
       <header class="page-head">
@@ -245,7 +254,144 @@
         </div>
       </div>
     </section>
+    <section id="editor-page" class="workbench-page editor-page" role="tabpanel" aria-labelledby="tab-editor" hidden>
+      <header class="page-head editor-head">
+        <div>
+          <h1>Editor</h1>
+          <p class="muted">Build a test image with known content in the channels VIPI reads, see what VIPI reads back, scan it, and export it as a fixture. Use inert markers and benign controls only.</p>
+        </div>
+        <div class="editor-head-actions">
+          <div class="editor-actions" role="group" aria-label="Files">
+            <label class="editor-action editor-file" title="Open a .fixture.json to edit it again"><svg class="editor-icon-svg" viewBox="0 0 16 16" aria-hidden="true"><rect x="1.75" y="2.75" width="12.5" height="10.5" rx="1.5"/><circle cx="5.5" cy="6.25" r="1.25"/><path d="M2 11.5l3.5-3.5 2.5 2.5 2-2 4 4"/></svg><span>Open</span><input id="editor-open" type="file" accept="application/json,.json"></label>
+            <div class="editor-menu">
+              <button id="editor-export" class="editor-action" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="editor-export-menu"><svg class="editor-icon-svg" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2v8M4.5 6.75L8 10.25l3.5-3.5M2.5 11.5v1.75h11V11.5"/></svg><span>Export</span><svg class="editor-icon-svg editor-chevron" viewBox="0 0 16 16" aria-hidden="true"><path d="M4.5 6.5L8 10l3.5-3.5"/></svg></button>
+              <div id="editor-export-menu" class="editor-menu-list" role="menu" aria-labelledby="editor-export" hidden>
+                <button id="editor-export-image" class="editor-menu-item" type="button" role="menuitem"><strong>Image</strong><span>The image file only</span></button>
+                <button id="editor-export-fixture" class="editor-menu-item" type="button" role="menuitem"><strong>Image + fixture JSON</strong><span>Label, expected readings, read-back and the recipe to reopen it</span></button>
+              </div>
+            </div>
+          </div>
+          <div class="editor-scan-control" role="group" aria-label="Scan">
+            <select id="editor-scan-configuration" class="editor-scan-select" aria-label="Scan settings" title="Scan settings, as in vipi scan"></select>
+            <button id="editor-scan" class="editor-scan-button" type="button" title="Run the full vipi scan (OCR and detection) on the written file"><svg class="editor-icon-svg" viewBox="0 0 16 16" aria-hidden="true"><path d="M2 5.25V3.5A1.5 1.5 0 0 1 3.5 2h1.75M10.75 2h1.75A1.5 1.5 0 0 1 14 3.5v1.75M14 10.75v1.75a1.5 1.5 0 0 1-1.5 1.5h-1.75M5.25 14H3.5A1.5 1.5 0 0 1 2 12.5v-1.75M4.5 8h7"/></svg><span id="editor-scan-label">Scan with VIPI</span></button>
+          </div>
+        </div>
+      </header>
+      <div class="editor-bar">
+        <div class="editor-bar-group" role="group" aria-labelledby="editor-bar-document">
+          <span id="editor-bar-document" class="editor-bar-title">Document</span>
+          <div class="editor-bar-row">
+            <input id="editor-name" class="editor-control editor-name" type="text" value="fixture" spellcheck="false" aria-label="File name" title="File name of the export">
+            <select id="editor-size" class="editor-control" aria-label="Size preset"></select>
+            <span class="editor-size">
+              <input id="editor-width" class="editor-control" type="number" min="16" step="1" aria-label="Width in pixels">
+              <span aria-hidden="true">×</span>
+              <input id="editor-height" class="editor-control" type="number" min="16" step="1" aria-label="Height in pixels">
+            </span>
+          </div>
+        </div>
+        <div class="editor-bar-group" role="group" aria-labelledby="editor-bar-background">
+          <span id="editor-bar-background" class="editor-bar-title">Background</span>
+          <div class="editor-bar-row">
+            <input id="editor-background" class="editor-swatch" type="color" value="#ffffff" aria-label="Background colour" title="Background colour">
+            <label class="editor-button editor-file" title="Use an image as background; the canvas takes its size"><svg class="editor-icon-svg" viewBox="0 0 16 16" aria-hidden="true"><rect x="1.75" y="2.75" width="12.5" height="10.5" rx="1.5"/><circle cx="5.5" cy="6.25" r="1.25"/><path d="M2 11.5l3.5-3.5 2.5 2.5 2-2 4 4"/></svg><span id="editor-background-image-label">Add image</span><input id="editor-background-image" type="file" accept="image/png,image/jpeg,image/webp"></label>
+            <button id="editor-background-clear" class="editor-button editor-button-icon" type="button" title="Remove the background image" aria-label="Remove the background image" hidden><svg class="editor-icon-svg" viewBox="0 0 16 16" aria-hidden="true"><path d="M4.5 4.5l7 7M11.5 4.5l-7 7"/></svg></button>
+          </div>
+        </div>
+        <div class="editor-bar-group" role="group" aria-labelledby="editor-bar-output">
+          <span id="editor-bar-output" class="editor-bar-title">Format</span>
+          <div class="editor-bar-row">
+            <select id="editor-format" class="editor-control" aria-label="File format"></select>
+          </div>
+        </div>
+        <div class="editor-bar-group" role="group" aria-labelledby="editor-bar-label">
+          <span id="editor-bar-label" class="editor-bar-title" title="What the fixture is: the answer VIPI should give. It is saved in the fixture JSON and does not change the image.">Ground-truth label</span>
+          <div class="editor-bar-row">
+            <select id="editor-label" class="editor-control" aria-label="Ground-truth label: what VIPI should decide; does not change the image" title="What the fixture is: the answer VIPI should give. It is saved in the fixture JSON and does not change the image."></select>
+          </div>
+        </div>
+      </div>
+      <div class="editor">
+        <div class="editor-tools" role="toolbar" aria-label="Add layer">
+          <span id="editor-tool-list" class="editor-tool-list"></span>
+          <span class="editor-tool-gap"></span>
+          <button id="editor-tool-heal" class="editor-tool" type="button" aria-pressed="false" title="Remove brush (J): paint over text in the background image to remove it" aria-label="Remove brush"><svg class="editor-icon-svg" viewBox="0 0 16 16" aria-hidden="true"><path d="M9.5 2.5l4 4-6.5 6.5H3.5L2.5 12l7-9.5zM6 6l4 4M7 13h6.5"/></svg></button>
+          <span class="editor-tool-gap"></span>
+          <button id="editor-undo" class="editor-tool" type="button" title="Undo (⌘Z)" aria-label="Undo"><span aria-hidden="true">↶</span></button>
+          <button id="editor-redo" class="editor-tool" type="button" title="Redo (⇧⌘Z)" aria-label="Redo"><span aria-hidden="true">↷</span></button>
+        </div>
+        <div class="editor-stage" id="editor-stage">
+          <div class="editor-stage-bar" role="toolbar" aria-label="View">
+            <span class="editor-zoom" role="group" aria-label="Zoom">
+              <button id="editor-zoom-out" class="editor-tool" type="button" title="Zoom out (−)" aria-label="Zoom out">−</button>
+              <output id="editor-zoom-level" class="mono" aria-live="polite">Fit</output>
+              <button id="editor-zoom-in" class="editor-tool" type="button" title="Zoom in (+)" aria-label="Zoom in">+</button>
+              <button id="editor-zoom-fit" class="small" type="button" title="Fit to window (0)">Fit</button>
+              <button id="editor-zoom-actual" class="small" type="button" title="Actual pixels (1)">100%</button>
+            </span>
+            <span class="editor-view" role="group" aria-label="View">
+              <span id="editor-view-modes" class="editor-segment" role="radiogroup" aria-label="Show"></span>
+            </span>
+          </div>
+          <div class="editor-viewport-frame">
+          <button id="editor-select-text" class="editor-pill" type="button" aria-pressed="false" hidden></button>
+          <!-- Tool and view options float over the image, so showing them never moves the bar. -->
+          <div class="editor-float" role="group" aria-label="Options">
+            <span id="editor-brush-options" class="editor-brush-options" role="group" aria-label="Remove brush" hidden>
+              <label class="editor-view-width mono"><span class="editor-scrub" title="Drag left or right to change">Brush</span> <input id="editor-brush-size" type="number" min="2" step="1" aria-label="Brush size in pixels"> px</label>
+              <label class="editor-brush-snap mono" title="A stroke over text found in the image removes those lines whole"><input id="editor-brush-snap" type="checkbox" disabled> Snap to text</label>
+              <button id="editor-brush-done" class="small" type="button">Done</button>
+            </span>
+            <span id="editor-view-scaled-options" class="editor-view-options" hidden>
+              <select id="editor-view-method" aria-label="Scaling method"></select>
+              <label class="editor-view-width mono">to <input id="editor-view-width" type="number" min="1" step="1" aria-label="Target width in pixels"> px</label>
+            </span>
+            <span id="editor-view-bitplane-options" class="editor-view-options" hidden>
+              <select id="editor-view-channel" aria-label="Colour channel"><option value="r">Red</option><option value="g">Green</option><option value="b">Blue</option></select>
+              <select id="editor-view-bit" aria-label="Bit"><option value="0">bit 0 (lowest)</option><option value="1">bit 1</option><option value="2">bit 2</option><option value="3">bit 3</option><option value="4">bit 4</option><option value="5">bit 5</option><option value="6">bit 6</option><option value="7">bit 7 (highest)</option></select>
+            </span>
+          </div>
+          <div class="editor-viewport" id="editor-viewport">
+            <canvas id="editor-canvas" width="800" height="450" aria-label="Fixture canvas. Drag a text layer to move it; arrow keys nudge the selected layer."></canvas>
+            <img id="editor-preview" alt="The image as the chosen resizer delivers it" hidden>
+          </div>
+          </div>
+          <p id="editor-status" class="editor-status mono" role="status" aria-live="polite"></p>
+        </div>
+        <aside class="editor-side">
+          <section class="editor-panel" aria-labelledby="editor-properties-title">
+            <h2 id="editor-properties-title" class="editor-panel-title">Properties</h2>
+            <div id="editor-properties"></div>
+          </section>
+          <section class="editor-panel" aria-labelledby="editor-layers-title">
+            <h2 id="editor-layers-title" class="editor-panel-title">Layers</h2>
+            <ol id="editor-layers" class="editor-layers"></ol>
+          </section>
+        </aside>
+      </div>
+      <section id="editor-scan-panel" class="editor-panel editor-scan" aria-labelledby="editor-scan-title" hidden>
+        <div class="section-head"><h2 id="editor-scan-title" class="editor-panel-title">Scan result</h2><span id="editor-scan-stale" class="editor-badge status-changed" hidden>The document changed since this scan</span></div>
+        <div id="editor-scan-verdict" class="verdict"><h3 id="editor-scan-headline"></h3><p id="editor-scan-note"></p></div>
+        <dl id="editor-scan-facts" class="facts"></dl>
+        <div class="editor-scan-grid">
+          <div><h3>Score per reading</h3><div id="editor-scan-scores"></div></div>
+          <div><h3>Recognized text</h3><p id="editor-scan-coverage" class="muted editor-hint"></p><pre id="editor-scan-text" tabindex="0"></pre></div>
+        </div>
+        <ul id="editor-scan-errors" class="error-list" hidden></ul>
+      </section>
+      <div class="editor-readback">
+        <section class="editor-panel" aria-labelledby="editor-expected-title">
+          <h2 id="editor-expected-title" class="editor-panel-title">Expected</h2>
+          <h3>Visible text (OCR)</h3>
+          <pre id="editor-expected-ocr" tabindex="0"></pre>
+          <div id="editor-expected-decoded-block" hidden><h3>Decoded text</h3><pre id="editor-expected-decoded" tabindex="0"></pre></div>
+          <h3>Obfuscation</h3>
+          <p class="muted editor-hint">Filled-in chips follow from the layer properties. Toggle the others yourself, e.g. low contrast or small font.</p>
+          <div id="editor-obfuscation" class="label-chips"></div>
+        </section>
+      </div>
+    </section>
   </main>
-  <footer><span>VIPI</span><span class="mono">SCAN · EVALUATE · DATASET</span></footer>
+  <footer><span>VIPI</span><span class="mono">SCAN · EVALUATE · DATASET · EDITOR</span></footer>
 </body>
 </html>

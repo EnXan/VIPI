@@ -2,6 +2,7 @@
 
 import argparse
 import math
+import threading
 from pathlib import Path
 
 from rich import box
@@ -38,6 +39,50 @@ def percentage(value):
     except ValueError:
         pass
     raise argparse.ArgumentTypeError("Threshold must be a number between 0 and 100.")
+
+
+class PercentStatus:
+    """Status line of `vipi scan` with the run's percentage in front of the
+    latest message, refreshed while a file is scanned (see scan_progress)."""
+
+    REFRESH_SECONDS = 0.25
+
+    def __init__(self, status):
+        from .scan_progress import ScanPercent
+
+        self.status = status
+        self.tracker = ScanPercent()
+        self.text = None
+        self.stopped = threading.Event()
+        self.lock = threading.Lock()
+
+    def message(self, text):
+        with self.lock:
+            self.text = text
+        self.render()
+
+    def start_file(self, index, total):
+        with self.lock:
+            self.tracker.start_file(index, total)
+
+    def render(self):
+        with self.lock:
+            value, text = self.tracker.percent(), self.text
+        if text is None:
+            return
+        line = text if value is None else f"{value:>3} % · {text.strip()}"
+        self.status.update(Text(line, style="cyan"))
+
+    def refresh(self):
+        while not self.stopped.wait(self.REFRESH_SECONDS):
+            self.render()
+
+    def __enter__(self):
+        threading.Thread(target=self.refresh, daemon=True).start()
+        return self
+
+    def __exit__(self, *_):
+        self.stopped.set()
 
 
 def print_brand(console):
@@ -307,11 +352,14 @@ def main(argv=None):
                             )
                         )
 
-        with console.status(
-            Text("Preparing scan", style="cyan"),
-            spinner="dots",
-            spinner_style="cyan",
-        ) as status:
+        with (
+            console.status(
+                Text("Preparing scan", style="cyan"),
+                spinner="dots",
+                spinner_style="cyan",
+            ) as status,
+            PercentStatus(status) as show,
+        ):
             report = scan(
                 args.paths or [Path(".")],
                 detector=args.detector,
@@ -326,9 +374,10 @@ def main(argv=None):
                 lsb_layouts=args.lsb_layout,
                 lsb_stats=args.lsb_stats,
                 output=args.output,
-                progress=lambda message: status.update(Text(message, style="cyan")),
+                progress=show.message,
                 on_result=on_result,
                 list_only=args.list_only,
+                on_file_started=show.start_file,
             )
         for error in report["errors"]:
             message = error.get("error", error) if isinstance(error, dict) else error

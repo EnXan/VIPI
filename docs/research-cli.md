@@ -68,7 +68,7 @@ uv run python -m research.workbench serve [--port PORT]
 
 | Subcommand or option | Meaning and default |
 | --- | --- |
-| `serve` | Start the workbench (scan an image, evaluate, dataset) on `127.0.0.1`. |
+| `serve` | Start the workbench (scan an image, evaluate, dataset, editor) on `127.0.0.1`. |
 | `--port PORT` | Port to listen on. Default `8000`. |
 
 It uses the product scan options only; prepare local models with `vipi setup`
